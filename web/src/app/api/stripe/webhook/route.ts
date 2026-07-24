@@ -1183,7 +1183,7 @@ export async function POST(req: Request) {
               amount: reminderCurrencyFormatter.format(line.amount / 100),
             }));
             const usageNote = integrationAddon
-              ? `This total doesn't include usage charges yet — invoices delivered this billing period are added automatically before your renewal on ${reminderValues.renewalDate}.`
+              ? "This total doesn't include usage charges yet — invoices delivered this billing period are added automatically before your billing cycle closes."
               : undefined;
 
             await sendRenewalReminderEmail(organizationId, reminderValues.renewalDate, reminderValues.amount, reminderLineItems, usageNote);
