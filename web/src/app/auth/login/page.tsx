@@ -81,8 +81,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </div>
           )}
 
-          <h1 className="mb-1 text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Sign in</h1>
-          <p className="mb-6 text-sm text-[var(--gbp-text2)]">
+          <h1 className="mb-1 text-center text-2xl font-bold tracking-tight text-[var(--gbp-text)]">Sign in</h1>
+          <p className="mb-6 text-center text-sm text-[var(--gbp-text2)]">
             Enter your credentials to access the dashboard.
           </p>
 

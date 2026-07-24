@@ -69,7 +69,7 @@ const FAQ_ITEMS: { q: string; a: React.ReactNode }[] = [
     q: "I'm a restaurant — my vendor isn't set up. What do I do?",
     a: (
       <>
-        <Link href="/refer">Refer them</Link> and we&apos;ll reach out and handle the setup so their documents start landing in your Restaurant365 automatically — at no cost to you.
+        <Link href="/refer">Refer them</Link>{" "}and we&apos;ll reach out and handle the setup so their documents start landing in your Restaurant365 automatically — at no cost to you.
       </>
     ),
   },
