@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { LEGAL_ADDRESS } from "@/shared/lib/company-addresses";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import { IntegrationSiteHeader, IntegrationSiteFooter } from "@/modules/landing/ui/integration-site-chrome";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -34,12 +34,6 @@ const STYLES = `
 .ir-page a{color:var(--accent);text-decoration:none;}
 .ir-page a:hover{color:var(--accent-dark);}
 .ir-page .mono{font-family:var(--font-mono,'JetBrains Mono',monospace);}
-
-.ir-page .page-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 0;}
-.ir-page .page-nav-inner{max-width:var(--max-width);margin:0 auto;padding:0 24px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;}
-.ir-page .brand{font-weight:700;font-size:16px;color:var(--text);letter-spacing:-.01em;}
-.ir-page .brand-dot{color:var(--accent);}
-.ir-page .nav-badge{font-family:var(--font-mono,monospace);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);padding:4px 10px;border:1px solid var(--border);border-radius:100px;}
 
 .ir-page .container{max-width:var(--max-width);margin:0 auto;padding:48px 24px;}
 .ir-page .section-header{margin-bottom:32px;padding-bottom:20px;border-bottom:1px solid var(--border);}
@@ -75,9 +69,6 @@ const STYLES = `
 .ir-page .full-doc{background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius);padding:20px 24px;margin:20px 0;font-size:13px;color:var(--text-secondary);line-height:1.6;}
 .ir-page .full-doc strong{color:var(--text);}
 
-.ir-page .footer{max-width:var(--max-width);margin:0 auto;padding:32px 24px 48px;border-top:1px solid var(--border);font-size:13px;color:var(--text-light);display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;}
-.ir-page .footer a{color:var(--text-muted);}
-
 @media (max-width:640px){
   .ir-page .container{padding:32px 20px;}
   .ir-page h1{font-size:24px;}
@@ -90,12 +81,7 @@ export default function IncidentResponsePage() {
     <div className={`${plusJakartaSans.variable} ${jetbrainsMono.variable} ir-page`}>
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
 
-      <nav className="page-nav">
-        <div className="page-nav-inner">
-          <Link href="/" className="brand">GetBackplate<span className="brand-dot">.</span></Link>
-          <div className="nav-badge">Trust Center · Integration</div>
-        </div>
-      </nav>
+      <IntegrationSiteHeader />
 
       <div className="container">
 
@@ -236,17 +222,7 @@ export default function IncidentResponsePage() {
 
       </div>
 
-      <footer className="footer">
-        <div>
-          <strong>Backplate Technologies LLC, d/b/a GetBackplate</strong><br />
-          {LEGAL_ADDRESS.inline} · United States<br />
-          <a href="mailto:security@getbackplate.com">security@getbackplate.com</a>
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <Link href="/trust">Back to Trust</Link><br />
-          Version 2026.07.23
-        </div>
-      </footer>
+      <IntegrationSiteFooter />
 
     </div>
   );
