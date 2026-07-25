@@ -11,6 +11,16 @@ import { buildBrandedEmailSubject, getTenantEmailBranding, resolveEmailSenderNam
 
 const BUCKET_NAME = "tenant-documents";
 
+/** Escapes HTML special characters to prevent layout breakage and content injection via user-controlled values. */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export async function POST(request: Request) {
   const moduleAccess = await assertCompanyAdminModuleApi("documents");
   if (!moduleAccess.ok) {
@@ -74,10 +84,12 @@ export async function POST(request: Request) {
     fallbackAppUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://getbackplate.com",
   });
   const branding = await getTenantEmailBranding(tenant.organizationId);
+  const safeTitle = escapeHtml(document.title);
+  const safeMessage = escapeHtml(message);
   const html = `
     <h2 style="margin:0 0 10px 0;">Shared document</h2>
-    <p style="margin:0 0 10px 0;color:#444;">The document <strong>${document.title}</strong> has been shared with you.</p>
-    ${message ? `<p style="margin:0 0 10px 0;color:#444;">Message: ${message}</p>` : ""}
+    <p style="margin:0 0 10px 0;color:#444;">The document <strong>${safeTitle}</strong> has been shared with you.</p>
+    ${safeMessage ? `<p style="margin:0 0 10px 0;color:#444;">Message: ${safeMessage}</p>` : ""}
     <p style="margin:14px 0;"><a href="${signed.signedUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">Download document</a></p>
     <p style="margin:0;color:#666;font-size:12px;">This link expires in 24 hours.</p>
     ${appUrl ? `<p style="margin:10px 0 0 0;color:#666;font-size:12px;">Platform: ${appUrl}</p>` : ""}
