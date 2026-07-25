@@ -21,9 +21,15 @@ export type IntegrationAlertInput =
       customerName: string | null;
       entityId: string;
       errorMessage: string;
+    }
+  | {
+      kind: "receipt_processing_failed";
+      receiptId: string;
+      status: string;
+      errorMessage: string;
     };
 
-function buildPayload(orgName: string, input: IntegrationAlertInput) {
+function buildPayload(orgName: string | null, input: IntegrationAlertInput) {
   switch (input.kind) {
     case "identification_failed":
       return {
@@ -39,6 +45,11 @@ function buildPayload(orgName: string, input: IntegrationAlertInput) {
       return {
         title: "Failed to send invoice to R365",
         body: `${input.customerName ?? `Entity ${input.entityId}`} (${orgName}): An error occurred while sending the invoice.`,
+      };
+    case "receipt_processing_failed":
+      return {
+        title: "Intuit webhook receipt could not be processed",
+        body: `Receipt ${input.receiptId} (${input.status}): ${input.errorMessage}`,
       };
   }
 }
@@ -65,17 +76,20 @@ export async function notifyIntegrationEvent(input: IntegrationAlertInput): Prom
     const userIds = Array.from(new Set((subs ?? []).map((s) => String(s.user_id))));
     if (userIds.length === 0) return;
 
-    const { data: org } = await admin
-      .from("organizations")
-      .select("name")
-      .eq("id", input.organizationId)
-      .maybeSingle();
-    const orgName = org?.name ?? "unknown organization";
+    let orgName: string | null = null;
+    if (input.kind !== "receipt_processing_failed") {
+      const { data: org } = await admin
+        .from("organizations")
+        .select("name")
+        .eq("id", input.organizationId)
+        .maybeSingle();
+      orgName = org?.name ?? "unknown organization";
+    }
 
     const payload = buildPayload(orgName, input);
     await sendPushToUsers(userIds, { ...payload, url: "/superadmin/notifications" }, {
       source: "integration_alert",
-      organizationId: input.organizationId,
+      ...(input.kind !== "receipt_processing_failed" ? { organizationId: input.organizationId } : {}),
     });
   } catch (err) {
     console.error("[integration-alerts] Notification error:", err instanceof Error ? err.message : err);

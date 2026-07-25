@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { insertQboWebhookEvents } from "@/modules/integrations/qbo-r365/service";
 import { parseQboWebhookEnvelope } from "@/modules/integrations/qbo-r365/qbo-webhook-payload";
+import { notifyIntegrationEvent } from "@/infrastructure/push/integration-alerts";
 
 type ReceiptRow = {
   id: string;
@@ -42,6 +43,12 @@ async function processReceipt(receipt: ReceiptRow) {
       claimed_at: null,
       last_error: "signed_payload_invalid_json",
     }).eq("id", receipt.id).eq("status", "processing");
+    await notifyIntegrationEvent({
+      kind: "receipt_processing_failed",
+      receiptId: receipt.id,
+      status: "malformed",
+      errorMessage: "The Intuit webhook payload could not be parsed as JSON.",
+    });
     return { id: receipt.id, status: "malformed" as const, events: 0 };
   }
 
@@ -76,12 +83,24 @@ async function processReceipt(receipt: ReceiptRow) {
     }).eq("id", receipt.id).eq("status", "processing");
     return { id: receipt.id, status, events: envelope.events.length, ...result };
   } catch (error) {
+    const errorMessage = (error instanceof Error ? error.message : "receipt_processing_failed").slice(0, 500);
     await admin.from("qbo_webhook_receipts").update({
       status: "failed",
       attempts,
       claimed_at: null,
-      last_error: (error instanceof Error ? error.message : "receipt_processing_failed").slice(0, 500),
+      last_error: errorMessage,
     }).eq("id", receipt.id).eq("status", "processing");
+    // Solo avisar en el ultimo intento permitido (ver drainPendingQboWebhookReceipts:
+    // attempts >= 8 ya no vuelve a ser tomado por el cron, asi que este es el
+    // punto en el que el recibo queda abandonado para siempre si nadie mira.
+    if (attempts >= 8) {
+      await notifyIntegrationEvent({
+        kind: "receipt_processing_failed",
+        receiptId: receipt.id,
+        status: "failed",
+        errorMessage: `Gave up after ${attempts} attempts: ${errorMessage}`,
+      });
+    }
     return { id: receipt.id, status: "failed" as const, events: 0 };
   }
 }
