@@ -4,12 +4,6 @@ import {
   getPlanLimitErrorMessage,
 } from "@/shared/lib/plan-limits";
 
-const INTEGRATION_ONLY_MODULE_CODES = new Set([
-  "qbo_r365",
-  "settings",
-  "custom_branding",
-]);
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -62,16 +56,17 @@ export async function provisionOrganizationFromPlan(params: {
 
   if (modules?.length) {
     await supabase.from("organization_modules").insert(
-      modules.map((mod) => ({
-        organization_id: params.organizationId,
-        module_id: mod.id,
-        is_enabled: isIntegrationOnly
-          ? INTEGRATION_ONLY_MODULE_CODES.has(mod.code)
-          : Boolean(mod.is_core) || planModuleIds.has(mod.id),
-        enabled_at: (isIntegrationOnly
-          ? INTEGRATION_ONLY_MODULE_CODES.has(mod.code)
-          : Boolean(mod.is_core) || planModuleIds.has(mod.id)) ? new Date().toISOString() : null,
-      })),
+      modules.map((mod) => {
+        const shouldEnable = isIntegrationOnly
+          ? planModuleIds.has(mod.id)
+          : Boolean(mod.is_core) || planModuleIds.has(mod.id);
+        return {
+          organization_id: params.organizationId,
+          module_id: mod.id,
+          is_enabled: shouldEnable,
+          enabled_at: shouldEnable ? new Date().toISOString() : null,
+        };
+      }),
     );
   }
 
@@ -191,7 +186,7 @@ export async function syncOrganizationPlan(params: {
     await supabase.from("organization_modules").upsert(
       modules.map((mod) => {
         const shouldEnable = isIntegrationOnly
-          ? INTEGRATION_ONLY_MODULE_CODES.has(mod.code)
+          ? planModuleIds.has(mod.id)
           : Boolean(mod.is_core) || planModuleIds.has(mod.id);
         return {
           organization_id: params.organizationId,
