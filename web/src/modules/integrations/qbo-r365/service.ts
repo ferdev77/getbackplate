@@ -3991,11 +3991,12 @@ async function mapAndSendUnifiedRowInner(input: {
   if (lines.length === 0) throw new Error("This invoice has no valid lines to send to Restaurant365.");
 
   const nowMapped = new Date().toISOString();
-  await admin
+  const { error: mappedUpdateError } = await admin
     .from("qbo_unified_invoices")
     .update({ pipeline_status: "mapeada", mapped_at: nowMapped })
     .eq("id", input.unifiedInvoiceId)
     .eq("organization_id", input.organizationId);
+  if (mappedUpdateError) throw new Error(mappedUpdateError.message);
 
   if (!input.syncConfig.r365_ftp_host) throw new Error("FTP is not configured for this synchronization.");
   const ftpSecrets = decryptJsonPayload<FtpStoredSecrets>({
