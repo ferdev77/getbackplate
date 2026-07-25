@@ -4215,18 +4215,16 @@ async function fetchAndCaptureWebhookInvoice(input: {
 
     try {
       const fullSyncConfig = await getSyncConfigRow(input.organizationId, syncConfigId);
-      if (fullSyncConfig.r365_ftp_host) {
-        await mapAndSendUnifiedRow({
-          organizationId: input.organizationId,
-          unifiedInvoiceId,
-          entityId: input.entityId,
-          entityType: input.entityType as "Invoice" | "CreditMemo",
-          rawEntity: entity as QboInvoiceLike,
-          syncConfig: fullSyncConfig,
-          actorId: null,
-          triggerSource: "scheduled",
-        });
-      }
+      await mapAndSendUnifiedRow({
+        organizationId: input.organizationId,
+        unifiedInvoiceId,
+        entityId: input.entityId,
+        entityType: input.entityType as "Invoice" | "CreditMemo",
+        rawEntity: entity as QboInvoiceLike,
+        syncConfig: fullSyncConfig,
+        actorId: null,
+        triggerSource: "scheduled",
+      });
     } catch (err) {
       // mapAndSendUnifiedRow ya notifica sus propios fallos antes de relanzar el error.
       console.error("[qbo-webhook-pipeline]", input.entityId, err instanceof Error ? err.message : err);
