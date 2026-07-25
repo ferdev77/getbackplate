@@ -426,6 +426,18 @@ export function EmployeeDocumentsTree({
       }
     }
 
+    // In "assigned" view, folders already come pre-filtered by the server to the
+    // employee's access scope (location/department/position/user). Without an
+    // active search or filter, show them all — even empty ones — instead of only
+    // folders that happen to contain a visible document.
+    const hasActiveDynamicFilters = Boolean(query.trim()) || Boolean(locationFilter) || Boolean(departmentFilter);
+    if (ownershipView === "assigned" && !hasActiveDynamicFilters) {
+      for (const folder of folderRows) {
+        if (ownedFolderIds.has(folder.id)) continue;
+        ids.add(folder.id);
+      }
+    }
+
     if (folderFilter) {
       let currentId: string | null = folderFilter;
       while (currentId) {
@@ -435,7 +447,7 @@ export function EmployeeDocumentsTree({
     }
 
     return ids;
-  }, [filteredDocsByFolder, folderFilter, folderParentById, ownedFolderIds, ownershipView]);
+  }, [departmentFilter, filteredDocsByFolder, folderFilter, folderParentById, folderRows, locationFilter, ownedFolderIds, ownershipView, query]);
 
   const visibleFolderRows = useMemo(
     () => orderedFolderRows.filter((folder) => visibleFolderIds.has(folder.id)),
@@ -788,7 +800,9 @@ export function EmployeeDocumentsTree({
     : "No hay documentos visibles para tu perfil en este momento.";
 
   const noResultsLabel = `No se encontraron resultados para \"${query}\" en ${ownershipView === "created" ? "Cargados" : "Asignados"}.`;
-  const hasOwnershipContent = ownershipDocumentsCount > 0 || (ownershipView === "created" && ownedFolderIds.size > 0);
+  const hasOwnershipContent = ownershipDocumentsCount > 0
+    || (ownershipView === "created" && ownedFolderIds.size > 0)
+    || (ownershipView === "assigned" && visibleFolderIds.size > 0);
   const isDraggingColumnsItemVisible = isDraggingColumnsItem || Boolean(draggedDocumentId || draggedFolderId);
   const handleViewModeChange = useCallback((next: "tree" | "columns") => {
     setViewMode(next);
