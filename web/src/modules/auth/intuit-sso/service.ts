@@ -112,9 +112,10 @@ async function resolveRedirect(userId: string, fallback: string) {
   const organizations = [...new Set((data ?? []).map((row) => String(row.organization_id)))];
   if (organizations.length === 0) return "/auth/intuit/complete";
   if (organizations.length > 1) return "/auth/select-organization";
-  return fallback === "/app/dashboard"
-    ? `/app/dashboard?org=${encodeURIComponent(organizations[0])}`
-    : fallback;
+
+  const url = new URL(fallback, "https://app.getbackplate.com");
+  url.searchParams.set("org", organizations[0]);
+  return `${url.pathname}${url.search}`;
 }
 
 function registrationCompletionPath(returnTo: string) {

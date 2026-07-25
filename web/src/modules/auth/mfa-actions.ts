@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 import { getCurrentUser } from "@/modules/memberships/queries";
-import { getActiveOrganizationIdFromCookie } from "@/shared/lib/tenant-selection";
+import { getActiveOrganizationIdWithFallback, setActiveOrganizationIdCookie } from "@/shared/lib/tenant-selection";
 import { markMfaVerifiedForUser } from "@/shared/lib/mfa-verification";
 import { createEmailMfaChallenge, verifyEmailMfaChallenge } from "@/modules/auth/mfa.service";
 
@@ -28,11 +28,13 @@ export async function verifyMfaCodeAction(formData: FormData) {
     const next = safeNextPath(formData.get("next"));
 
     const user = await getCurrentUser();
-    const organizationId = await getActiveOrganizationIdFromCookie();
+    const organizationId = await getActiveOrganizationIdWithFallback();
 
     if (!user || !organizationId) {
       redirect("/auth/login");
     }
+
+    await setActiveOrganizationIdCookie(organizationId);
 
     if (!/^\d{6}$/.test(code)) {
       redirect(buildVerifyMfaPath({ error: "Enter the 6-digit code.", next }));
@@ -61,11 +63,13 @@ export async function verifyMfaCodeAction(formData: FormData) {
 export async function resendMfaCodeAction(): Promise<{ ok: boolean; error?: string; retryAfterSeconds?: number }> {
   try {
     const user = await getCurrentUser();
-    const organizationId = await getActiveOrganizationIdFromCookie();
+    const organizationId = await getActiveOrganizationIdWithFallback();
 
     if (!user || !organizationId) {
       return { ok: false, error: "Your session has expired. Please sign in again." };
     }
+
+    await setActiveOrganizationIdCookie(organizationId);
 
     const result = await createEmailMfaChallenge({
       userId: user.id,

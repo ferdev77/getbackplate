@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { getCurrentUser } from "@/modules/memberships/queries";
-import { getActiveOrganizationIdFromCookie } from "@/shared/lib/tenant-selection";
+import { getActiveOrganizationIdWithFallback } from "@/shared/lib/tenant-selection";
 import { verifyMfaCodeAction } from "@/modules/auth/mfa-actions";
 import { createEmailMfaChallenge } from "@/modules/auth/mfa.service";
 import { SubmitButton } from "@/shared/ui/submit-button";
@@ -22,7 +22,7 @@ export default async function VerifyMfaPage({ searchParams }: VerifyMfaPageProps
   const params = await searchParams;
 
   const user = await getCurrentUser();
-  const organizationId = await getActiveOrganizationIdFromCookie();
+  const organizationId = await getActiveOrganizationIdWithFallback();
 
   if (!user || !organizationId) {
     redirect("/auth/login");

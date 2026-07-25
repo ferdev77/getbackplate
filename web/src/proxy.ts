@@ -164,14 +164,20 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  const response = await updateSupabaseSession(request);
-
   // ─── Org cookie resolution ───────────────────────────────────────────────
   //
   // Priority order:
   //  1. Custom domain host (if it resolves to an active organization).
   //  2. Explicit ?org= query param.
   //
+  // This must run and mutate `request.cookies` BEFORE updateSupabaseSession()
+  // constructs its NextResponse.next({request}) below. NextResponse.next()
+  // snapshots the request's headers (including cookies) at call time — a
+  // Set-Cookie added to `response` afterward only reaches the browser for the
+  // *next* request, but the Server Components rendered for *this* request
+  // would still see the stale cookie the browser sent in. Writing to
+  // `request.cookies` first, then letting updateSupabaseSession forward that
+  // already-mutated request, makes the fresh value visible immediately.
   const organizationIdFromUrl = normalizeOrganizationId(
     request.nextUrl.searchParams.get("org"),
   );
@@ -216,8 +222,14 @@ export async function proxy(request: NextRequest) {
   }
 
   const organizationIdToPersist = organizationIdFromHost ?? organizationIdFromUrl;
+  if (organizationIdToPersist) {
+    request.cookies.set(ACTIVE_ORGANIZATION_COOKIE, organizationIdToPersist);
+  }
+
+  const response = await updateSupabaseSession(request);
 
   if (organizationIdToPersist) {
+    // Also set on the outgoing response so the browser stores it for future requests.
     response.cookies.set(ACTIVE_ORGANIZATION_COOKIE, organizationIdToPersist, {
       httpOnly: true,
       sameSite: "lax",
