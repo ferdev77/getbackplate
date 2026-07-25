@@ -92,6 +92,7 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
 
   for (const profile of userProfiles ?? []) {
     if (profile.user_id && userIdsInCatalog.has(profile.user_id)) continue;
+    if (profile.user_id && !roleCodeByUserId.has(profile.user_id)) continue;
     const isEmployee = profile.user_id && roleCodeByUserId.get(profile.user_id) === "employee";
     const roleLabel = isEmployee ? "Empleado" : "Usuario";
     catalog.push({

@@ -156,6 +156,12 @@ export async function DELETE(request: Request) {
       .delete()
       .eq("organization_id", tenant.organizationId)
       .eq("user_id", employee.user_id);
+
+    await admin
+      .from("organization_user_profiles")
+      .delete()
+      .eq("organization_id", tenant.organizationId)
+      .eq("user_id", employee.user_id);
   }
 
   await admin
