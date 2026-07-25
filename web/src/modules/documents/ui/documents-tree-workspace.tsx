@@ -296,7 +296,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
   }, [deptMap, documentRows, folderRows, getEffectiveDocumentScope]);
 
   useEffect(() => {
-    const key = JSON.stringify(folders.map((f) => f.id + f.parent_id + f.name));
+    const key = JSON.stringify(folders.map((f) => [f.id, f.parent_id, f.name, f.access_scope]));
     if (key === prevFoldersKeyRef.current) return;
     prevFoldersKeyRef.current = key;
     if (dragMetaRef.current.kind) {
@@ -589,11 +589,16 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
       setDocumentRows((prev) =>
         prev.map((row) => {
           if (row.id === payload.documentId) {
-            const newScopeString = payload.scope
-              ? `locations:${payload.scope.locations.join(",")};departments:${payload.scope.departments.join(",")};positions:${payload.scope.positions.join(",")};users:${payload.scope.users.join(",")}`
+            const newScope = payload.scope
+              ? {
+                  locations: payload.scope.locations,
+                  department_ids: payload.scope.departments,
+                  position_ids: payload.scope.positions,
+                  users: payload.scope.users,
+                }
               : row.access_scope;
 
-            return { ...row, title: payload.title, folder_id: payload.folderId, access_scope: newScopeString };
+            return { ...row, title: payload.title, folder_id: payload.folderId, access_scope: newScope };
           }
           return row;
         })
@@ -633,11 +638,16 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
       setFolderRows((prev) =>
         prev.map((row) => {
           if (row.id === payload.folderId) {
-            const newScopeString = payload.scope
-              ? `locations:${payload.scope.locations.join(",")};departments:${payload.scope.departments.join(",")};positions:${payload.scope.positions.join(",")};users:${payload.scope.users.join(",")}`
+            const newScope = payload.scope
+              ? {
+                  locations: payload.scope.locations,
+                  department_ids: payload.scope.departments,
+                  position_ids: payload.scope.positions,
+                  users: payload.scope.users,
+                }
               : row.access_scope;
 
-            return { ...row, name: payload.name, parent_id: payload.parentId, access_scope: newScopeString };
+            return { ...row, name: payload.name, parent_id: payload.parentId, access_scope: newScope };
           }
           return row;
         })
