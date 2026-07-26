@@ -17,14 +17,16 @@ function buildSupabaseMock(overrides: {
   positions?: object[];
   memberships?: object[];
   profiles?: object[];
+  branches?: object[];
 }) {
-  const { employees = [], positions = [], memberships = [], profiles = [] } = overrides;
+  const { employees = [], positions = [], memberships = [], profiles = [], branches = [] } = overrides;
 
   const tableMap: Record<string, object[]> = {
     employees,
     department_positions: positions,
     memberships,
     organization_user_profiles: profiles,
+    branches,
   };
 
   const chainMock = (data: object[]) => {
@@ -105,6 +107,96 @@ describe("resolveAudienceContacts", () => {
       });
 
       expect(result.userIds).toContain("u-explicit");
+    });
+  });
+
+  describe("multi-location scope", () => {
+    it("includes an employee whose location_scope_ids cover the targeted branch, not just their primary branch_id", async () => {
+      const supabase = buildSupabaseMock({
+        employees: [
+          {
+            user_id: "u1",
+            branch_id: "b1",
+            all_locations: false,
+            location_scope_ids: ["b2", "b3"],
+            department_id: null,
+            position: null,
+            phone: null,
+            phone_country_code: null,
+          },
+        ],
+        memberships: [],
+        profiles: [],
+        positions: [],
+      });
+
+      const result = await resolveAudienceContacts({
+        supabase,
+        organizationId: "org1",
+        scope: { ...emptyScope, locations: ["b3"] },
+      });
+
+      expect(result.userIds).toContain("u1");
+    });
+
+    it("includes an employee whose multi-location access is only set on the membership row", async () => {
+      const supabase = buildSupabaseMock({
+        employees: [
+          { user_id: "u1", branch_id: "b1", all_locations: false, location_scope_ids: [], department_id: null, position: null, phone: null, phone_country_code: null },
+        ],
+        memberships: [
+          { user_id: "u1", branch_id: "b1", all_locations: false, location_scope_ids: ["b2"] },
+        ],
+        profiles: [],
+        positions: [],
+      });
+
+      const result = await resolveAudienceContacts({
+        supabase,
+        organizationId: "org1",
+        scope: { ...emptyScope, locations: ["b2"] },
+      });
+
+      expect(result.userIds).toContain("u1");
+    });
+
+    it("expands all_locations to every active branch in the org", async () => {
+      const supabase = buildSupabaseMock({
+        employees: [
+          { user_id: "u1", branch_id: "b1", all_locations: true, location_scope_ids: [], department_id: null, position: null, phone: null, phone_country_code: null },
+        ],
+        memberships: [],
+        profiles: [],
+        positions: [],
+        branches: [{ id: "b1" }, { id: "b2" }, { id: "b3" }],
+      });
+
+      const result = await resolveAudienceContacts({
+        supabase,
+        organizationId: "org1",
+        scope: { ...emptyScope, locations: ["b3"] },
+      });
+
+      expect(result.userIds).toContain("u1");
+    });
+
+    it("includes a non-employee profile (is_employee=false) matching a location via location_scope_ids", async () => {
+      const supabase = buildSupabaseMock({
+        employees: [],
+        memberships: [],
+        profiles: [
+          { user_id: "u-profile", branch_id: "b1", all_locations: false, location_scope_ids: ["b2"], department_id: null, position_id: null, phone: null },
+        ],
+        positions: [],
+      });
+
+      const result = await resolveAudienceContacts({
+        supabase,
+        organizationId: "org1",
+        scope: { ...emptyScope, locations: ["b2"] },
+      });
+
+      expect(result.userIds).toContain("u-profile");
     });
   });
 

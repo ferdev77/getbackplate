@@ -18,6 +18,8 @@ export type AudienceContacts = {
 type EmployeeRow = {
   user_id: string | null;
   branch_id: string | null;
+  all_locations: boolean | null;
+  location_scope_ids: string[] | null;
   department_id: string | null;
   position: string | null;
   phone_country_code: string | null;
@@ -27,13 +29,21 @@ type EmployeeRow = {
 type ProfileRow = {
   user_id: string | null;
   branch_id: string | null;
+  all_locations: boolean | null;
+  location_scope_ids: string[] | null;
   department_id: string | null;
   position_id: string | null;
   phone: string | null;
 };
 
 type PositionRow = { id: string; name: string };
-type MembershipRow = { user_id: string | null };
+type MembershipRow = {
+  user_id: string | null;
+  branch_id: string | null;
+  all_locations: boolean | null;
+  location_scope_ids: string[] | null;
+};
+type BranchRow = { id: string };
 
 export type AudienceResolverInput = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -42,6 +52,36 @@ export type AudienceResolverInput = {
   scope: AudienceScope;
   templateBranchId?: string | null;
 };
+
+type MembershipScope = { branchIds: Set<string>; allLocations: boolean };
+
+/**
+ * Combina el alcance de sucursal de la membresia (login) con el de la
+ * ficha propia (employees u organization_user_profiles) de una persona,
+ * igual que ya hacen las funciones RLS de documentos/anuncios/checklists/
+ * mantenimiento — cualquiera de las dos fichas puede tener guardado el
+ * acceso multi-sucursal real.
+ */
+function computeEffectiveBranchIds(params: {
+  ownBranchId: string | null;
+  ownAllLocations: boolean | null;
+  ownLocationScopeIds: string[] | null;
+  membershipScope: MembershipScope | undefined;
+  allOrgBranchIds: string[];
+}): Set<string> {
+  const hasAllLocations = Boolean(params.ownAllLocations) || Boolean(params.membershipScope?.allLocations);
+  if (hasAllLocations) {
+    return new Set(params.allOrgBranchIds);
+  }
+
+  const branchIds = new Set<string>();
+  if (params.ownBranchId) branchIds.add(params.ownBranchId);
+  for (const id of params.ownLocationScopeIds ?? []) branchIds.add(id);
+  if (params.membershipScope) {
+    for (const id of params.membershipScope.branchIds) branchIds.add(id);
+  }
+  return branchIds;
+}
 
 /**
  * Core audience resolution shared between announcements and checklists.
@@ -54,30 +94,48 @@ export async function resolveAudienceContacts(input: AudienceResolverInput): Pro
   const hasSpecificScope =
     locations.length > 0 || department_ids.length > 0 || position_ids.length > 0 || users.length > 0;
 
-  const [{ data: employees }, { data: positionRows }, { data: memberships }, { data: profiles }] = await Promise.all([
-    supabase
-      .from("employees")
-      .select("user_id, branch_id, department_id, position, phone_country_code, phone, status")
-      .eq("organization_id", organizationId)
-      .eq("status", "active")
-      .not("user_id", "is", null),
-    supabase
-      .from("department_positions")
-      .select("id, name")
-      .eq("organization_id", organizationId)
-      .eq("is_active", true),
-    supabase
-      .from("memberships")
-      .select("user_id")
-      .eq("organization_id", organizationId)
-      .eq("status", "active")
-      .not("user_id", "is", null),
-    supabase
-      .from("organization_user_profiles")
-      .select("user_id, branch_id, department_id, position_id, phone, status")
-      .eq("organization_id", organizationId)
-      .eq("status", "active"),
-  ]);
+  const [{ data: employees }, { data: positionRows }, { data: memberships }, { data: profiles }, { data: orgBranches }] =
+    await Promise.all([
+      supabase
+        .from("employees")
+        .select("user_id, branch_id, all_locations, location_scope_ids, department_id, position, phone_country_code, phone, status")
+        .eq("organization_id", organizationId)
+        .eq("status", "active")
+        .not("user_id", "is", null),
+      supabase
+        .from("department_positions")
+        .select("id, name")
+        .eq("organization_id", organizationId)
+        .eq("is_active", true),
+      supabase
+        .from("memberships")
+        .select("user_id, branch_id, all_locations, location_scope_ids")
+        .eq("organization_id", organizationId)
+        .eq("status", "active")
+        .not("user_id", "is", null),
+      supabase
+        .from("organization_user_profiles")
+        .select("user_id, branch_id, all_locations, location_scope_ids, department_id, position_id, phone, status")
+        .eq("organization_id", organizationId)
+        .eq("status", "active"),
+      supabase
+        .from("branches")
+        .select("id")
+        .eq("organization_id", organizationId)
+        .eq("is_active", true),
+    ]);
+
+  const allOrgBranchIds = ((orgBranches as BranchRow[]) ?? []).map((row) => row.id).filter(Boolean);
+
+  const membershipScopeByUser = new Map<string, MembershipScope>();
+  for (const row of (memberships as MembershipRow[]) ?? []) {
+    if (!row.user_id) continue;
+    const existing = membershipScopeByUser.get(row.user_id) ?? { branchIds: new Set<string>(), allLocations: false };
+    if (row.branch_id) existing.branchIds.add(row.branch_id);
+    for (const id of row.location_scope_ids ?? []) existing.branchIds.add(id);
+    if (row.all_locations) existing.allLocations = true;
+    membershipScopeByUser.set(row.user_id, existing);
+  }
 
   const positionIdsByName = new Map<string, string[]>();
   for (const row of (positionRows as PositionRow[]) ?? []) {
@@ -97,8 +155,16 @@ export async function resolveAudienceContacts(input: AudienceResolverInput): Pro
   for (const emp of (employees as EmployeeRow[]) ?? []) {
     if (!emp.user_id) continue;
 
-    const byTemplateBranch = Boolean(templateBranchId) && emp.branch_id === templateBranchId;
-    const byLocation = locations.length > 0 && Boolean(emp.branch_id) && locations.includes(emp.branch_id!);
+    const effectiveBranchIds = computeEffectiveBranchIds({
+      ownBranchId: emp.branch_id,
+      ownAllLocations: emp.all_locations,
+      ownLocationScopeIds: emp.location_scope_ids,
+      membershipScope: membershipScopeByUser.get(emp.user_id),
+      allOrgBranchIds,
+    });
+
+    const byTemplateBranch = Boolean(templateBranchId) && effectiveBranchIds.has(templateBranchId!);
+    const byLocation = locations.length > 0 && locations.some((id) => effectiveBranchIds.has(id));
     const byDepartment =
       department_ids.length > 0 && Boolean(emp.department_id) && department_ids.includes(emp.department_id!);
     const empPositionIds = emp.position
@@ -117,9 +183,16 @@ export async function resolveAudienceContacts(input: AudienceResolverInput): Pro
   for (const profile of (profiles as ProfileRow[]) ?? []) {
     if (!profile.user_id) continue;
 
-    const byTemplateBranch = Boolean(templateBranchId) && profile.branch_id === templateBranchId;
-    const byLocation =
-      locations.length > 0 && Boolean(profile.branch_id) && locations.includes(profile.branch_id!);
+    const effectiveBranchIds = computeEffectiveBranchIds({
+      ownBranchId: profile.branch_id,
+      ownAllLocations: profile.all_locations,
+      ownLocationScopeIds: profile.location_scope_ids,
+      membershipScope: membershipScopeByUser.get(profile.user_id),
+      allOrgBranchIds,
+    });
+
+    const byTemplateBranch = Boolean(templateBranchId) && effectiveBranchIds.has(templateBranchId!);
+    const byLocation = locations.length > 0 && locations.some((id) => effectiveBranchIds.has(id));
     const byDepartment =
       department_ids.length > 0 && Boolean(profile.department_id) && department_ids.includes(profile.department_id!);
     const byPosition =
