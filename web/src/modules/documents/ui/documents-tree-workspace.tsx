@@ -1672,17 +1672,27 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
                             }}
                             className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left cursor-pointer ${dropFolderId === folder.id || column.selectedFolderId === folder.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] hover:bg-[var(--gbp-bg)]"}`}
                           >
-                            <span className="flex min-w-0 items-center gap-2">
-                              <span
-                                className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[var(--gbp-muted)] ${isProtectedFolder(folder) ? "cursor-not-allowed opacity-45" : "cursor-grab hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text2)] active:cursor-grabbing"}`}
-                                title={isProtectedFolder(folder) ? "Carpeta protegida" : "Arrastrar carpeta"}
-                              >
-                                <GripVertical className="h-3.5 w-3.5" />
+                            <span className="flex min-w-0 flex-col">
+                              <span className="flex min-w-0 items-center gap-2">
+                                <span
+                                  className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[var(--gbp-muted)] ${isProtectedFolder(folder) ? "cursor-not-allowed opacity-45" : "cursor-grab hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text2)] active:cursor-grabbing"}`}
+                                  title={isProtectedFolder(folder) ? "Carpeta protegida" : "Arrastrar carpeta"}
+                                >
+                                  <GripVertical className="h-3.5 w-3.5" />
+                                </span>
+                                <Folder className="h-3.5 w-3.5 shrink-0 text-[var(--gbp-text2)]" />
+                                <span className="truncate text-sm font-semibold text-[var(--gbp-text)]">
+                                  {folder.name}
+                                </span>
                               </span>
-                              <Folder className="h-3.5 w-3.5 shrink-0 text-[var(--gbp-text2)]" />
-                              <span className="truncate text-sm font-semibold text-[var(--gbp-text)]">
-                                {folder.name}
-                              </span>
+                              {getFolderScopeBadge(folder) ? (
+                                <span
+                                  className="truncate pl-7 text-[10px] font-medium text-[var(--gbp-muted)]"
+                                  title={`Hereda el alcance de la carpeta "${getFolderScopeBadge(folder)}"`}
+                                >
+                                  Hereda de: {getFolderScopeBadge(folder)}
+                                </span>
+                              ) : null}
                             </span>
                             <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[var(--gbp-muted)]" />
                           </div>
@@ -1744,7 +1754,10 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
                                 {doc.title}
                               </p>
                             </span>
-                            <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">Subido por {getCreatorLabel(doc.owner_user_id)}</p>
+                            <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">
+                              Subido por {getCreatorLabel(doc.owner_user_id)}
+                              {getDocumentScopeBadge(doc) ? ` · Hereda de: ${getDocumentScopeBadge(doc)}` : ""}
+                            </p>
                           </div>
                         ))}
 
@@ -1764,7 +1777,10 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
                         <p className="flex items-center text-sm font-semibold text-[var(--gbp-text)]">
                           {selectedColumnDocument.title}
                         </p>
-                        <p className="mt-1 text-xs text-[var(--gbp-text2)]">Subido por {getCreatorLabel(selectedColumnDocument.owner_user_id)}</p>
+                        <p className="mt-1 text-xs text-[var(--gbp-text2)]">
+                          Subido por {getCreatorLabel(selectedColumnDocument.owner_user_id)}
+                          {getDocumentScopeBadge(selectedColumnDocument) ? ` · Hereda de: ${getDocumentScopeBadge(selectedColumnDocument)}` : ""}
+                        </p>
                       </div>
                       <div className="flex flex-wrap gap-1.5">
                         <a href={`/api/documents/${selectedColumnDocument.id}/download?inline=1`} target="_blank" rel="noopener noreferrer" className={ACTION_BTN_NEUTRAL}><Eye className="h-3.5 w-3.5 shrink-0" /><TooltipLabel label="Ver" /></a>

@@ -1063,6 +1063,7 @@ export function EmployeeDocumentsTree({
                                     </p>
                                     <p className="truncate text-xs text-[var(--gbp-muted)]">
                                       Subido por {getCreatorLabel(doc.owner_user_id)}
+                                      {getDocumentScopeBadge(doc) ? ` · Hereda de: ${getDocumentScopeBadge(doc)}` : ""}
                                     </p>
                                   </div>
                                 </div>
@@ -1218,17 +1219,27 @@ export function EmployeeDocumentsTree({
                                   }}
                                   className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left cursor-pointer ${dropFolderId === folder.id || column.selectedFolderId === folder.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] hover:bg-[var(--gbp-bg)]"}`}
                                 >
-                                  <span className="flex min-w-0 items-center gap-2">
-                                    <span
-                                      className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded ${isFolderOwner(folder) ? "cursor-grab text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text2)] active:cursor-grabbing" : "cursor-not-allowed text-[var(--gbp-border2)]"}`}
-                                      title={isFolderOwner(folder) ? "Arrastrar carpeta" : "Solo puedes mover carpetas que creaste"}
-                                    >
-                                      <GripVertical className="h-3.5 w-3.5" />
+                                  <span className="flex min-w-0 flex-col">
+                                    <span className="flex min-w-0 items-center gap-2">
+                                      <span
+                                        className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded ${isFolderOwner(folder) ? "cursor-grab text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text2)] active:cursor-grabbing" : "cursor-not-allowed text-[var(--gbp-border2)]"}`}
+                                        title={isFolderOwner(folder) ? "Arrastrar carpeta" : "Solo puedes mover carpetas que creaste"}
+                                      >
+                                        <GripVertical className="h-3.5 w-3.5" />
+                                      </span>
+                                      <Folder className="h-3.5 w-3.5 shrink-0 text-[var(--gbp-text2)]" />
+                                      <span className="flex items-center truncate text-sm font-medium text-[var(--gbp-text)]">
+                                        {folder.name}
+                                      </span>
                                     </span>
-                                    <Folder className="h-3.5 w-3.5 shrink-0 text-[var(--gbp-text2)]" />
-                                    <span className="flex items-center truncate text-sm font-medium text-[var(--gbp-text)]">
-                                      {folder.name}
-                                    </span>
+                                    {getFolderScopeBadge(folder) ? (
+                                      <span
+                                        className="truncate pl-7 text-[10px] font-medium text-[var(--gbp-muted)]"
+                                        title={`Hereda el alcance de la carpeta "${getFolderScopeBadge(folder)}"`}
+                                      >
+                                        Hereda de: {getFolderScopeBadge(folder)}
+                                      </span>
+                                    ) : null}
                                   </span>
                                   <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[var(--gbp-muted)]" />
                                 </div>
@@ -1288,6 +1299,7 @@ export function EmployeeDocumentsTree({
                                   </span>
                                   <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">
                                     Subido por {getCreatorLabel(doc.owner_user_id)}
+                                    {getDocumentScopeBadge(doc) ? ` · Hereda de: ${getDocumentScopeBadge(doc)}` : ""}
                                   </p>
                                 </div>
                               ))}
@@ -1310,7 +1322,10 @@ export function EmployeeDocumentsTree({
                               <p className="flex items-center text-sm font-semibold text-[var(--gbp-text)]">
                                 {selectedColumnDocument.title}
                               </p>
-                              <p className="mt-1 text-xs text-[var(--gbp-text2)]">Subido por {getCreatorLabel(selectedColumnDocument.owner_user_id)}</p>
+                              <p className="mt-1 text-xs text-[var(--gbp-text2)]">
+                                Subido por {getCreatorLabel(selectedColumnDocument.owner_user_id)}
+                                {getDocumentScopeBadge(selectedColumnDocument) ? ` · Hereda de: ${getDocumentScopeBadge(selectedColumnDocument)}` : ""}
+                              </p>
                             </div>
                             <EmployeeDocumentActions
                               documentId={selectedColumnDocument.id}
