@@ -6,6 +6,7 @@ import { Download, Eye, GripVertical, MapPin, Pencil, Share2, Trash2, ChevronRig
 // AnimatePresence removed — it interferes with HTML5 DnD by controlling DOM mounting
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
+import { ConfirmActionDialog } from "@/shared/ui/confirm-action-dialog";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 import { ScopePillsOverflow } from "@/shared/ui/scope-pills-overflow";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
@@ -101,6 +102,10 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
     status: "idle",
   });
   const [busy, setBusy] = useState(false);
+  const [pendingScopeMove, setPendingScopeMove] = useState<
+    | { kind: "document" | "folder"; id: string; targetFolderId: string | null; currentName: string | null; nextName: string | null }
+    | null
+  >(null);
   const [connectedUsersCount, setConnectedUsersCount] = useState<number | null>(null);
   const [hydratedColumnFolderKey, setHydratedColumnFolderKey] = useState<string | null>(null);
   const columnsScrollRef = useRef<HTMLDivElement | null>(null);
@@ -240,6 +245,48 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
     if (hasAnyScopeValue(ownScope) || !doc.folder_id) return ownScope;
     return getEffectiveFolderScope(doc.folder_id);
   }, [getEffectiveFolderScope]);
+
+  // Resuelve de que carpeta ancestro (si alguna) se heredaria un alcance
+  // vacio, empezando la busqueda EN startFolderId (no en el item en si) —
+  // sirve tanto para saber "de donde hereda hoy" (parent_id actual) como
+  // "de donde heredaria si lo muevo" (parent_id hipotetico del destino).
+  const resolveInheritedScopeSource = useCallback((startFolderId: string | null) => {
+    let currentFolderId = startFolderId;
+    while (currentFolderId) {
+      const folder = folderById.get(currentFolderId);
+      if (!folder) break;
+      const scope = parseScope(folder.access_scope);
+      if (hasAnyScopeValue(scope)) {
+        return { sourceFolderId: folder.id as string | null, sourceFolderName: folder.name as string | null };
+      }
+      currentFolderId = folder.parent_id;
+    }
+    return { sourceFolderId: null as string | null, sourceFolderName: null as string | null };
+  }, [folderById]);
+
+  const getFolderScopeBadge = useCallback((folder: FolderRow) => {
+    const ownScope = parseScope(folder.access_scope);
+    if (hasAnyScopeValue(ownScope)) return null;
+    const inherited = resolveInheritedScopeSource(folder.parent_id);
+    return inherited.sourceFolderName;
+  }, [resolveInheritedScopeSource]);
+
+  const getDocumentScopeBadge = useCallback((doc: DocumentRow) => {
+    const ownScope = parseScope(doc.access_scope);
+    if (hasAnyScopeValue(ownScope)) return null;
+    const inherited = resolveInheritedScopeSource(doc.folder_id);
+    return inherited.sourceFolderName;
+  }, [resolveInheritedScopeSource]);
+
+  function describeScopeChange(currentName: string | null, nextName: string | null) {
+    if (!currentName && nextName) {
+      return `Hoy es visible para toda la organización. Al moverlo va a heredar el alcance de la carpeta "${nextName}" y quedará restringido a quien esa carpeta permite.`;
+    }
+    if (currentName && !nextName) {
+      return `Hoy hereda el alcance de la carpeta "${currentName}". Al moverlo va a quedar sin restricción (visible para toda la organización).`;
+    }
+    return `Hoy hereda el alcance de la carpeta "${currentName}". Al moverlo va a pasar a heredar el de "${nextName}".`;
+  }
 
   const getDocumentLocationIds = useCallback((doc: DocumentRow) => {
     const ids = new Set<string>();
@@ -706,6 +753,31 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
     const currentDoc = documentRows.find((row) => row.id === documentId);
     if (currentDoc && currentDoc.folder_id === folderId) return;
 
+    // Si el documento no tiene alcance propio (hereda), avisar antes de
+    // mover si el destino cambiaria de quien lo ve.
+    if (currentDoc) {
+      const ownScope = parseScope(currentDoc.access_scope);
+      if (!hasAnyScopeValue(ownScope)) {
+        const current = resolveInheritedScopeSource(currentDoc.folder_id);
+        const next = resolveInheritedScopeSource(folderId);
+        if (current.sourceFolderId !== next.sourceFolderId) {
+          resetDndState();
+          setPendingScopeMove({
+            kind: "document",
+            id: documentId,
+            targetFolderId: folderId,
+            currentName: current.sourceFolderName,
+            nextName: next.sourceFolderName,
+          });
+          return;
+        }
+      }
+    }
+
+    await performDocumentMove(documentId, folderId);
+  }
+
+  async function performDocumentMove(documentId: string, folderId: string | null) {
     logDnd("move-document:start", { documentId, folderId });
 
     const targetFolderName = folderId
@@ -779,6 +851,32 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
         currentParentId = parentById.get(currentParentId) ?? null;
       }
     }
+
+    // Si la carpeta no tiene alcance propio (hereda), avisar antes de mover
+    // si el nuevo padre cambiaria de quien la ve.
+    if (movingFolder) {
+      const ownScope = parseScope(movingFolder.access_scope);
+      if (!hasAnyScopeValue(ownScope)) {
+        const current = resolveInheritedScopeSource(movingFolder.parent_id);
+        const next = resolveInheritedScopeSource(parentId);
+        if (current.sourceFolderId !== next.sourceFolderId) {
+          resetDndState();
+          setPendingScopeMove({
+            kind: "folder",
+            id: folderId,
+            targetFolderId: parentId,
+            currentName: current.sourceFolderName,
+            nextName: next.sourceFolderName,
+          });
+          return;
+        }
+      }
+    }
+
+    await performFolderMove(folderId, parentId);
+  }
+
+  async function performFolderMove(folderId: string, parentId: string | null) {
     const targetFolderName = parentId
       ? folderRows.find((f) => f.id === parentId)?.name ?? "carpeta"
       : "raíz";
@@ -1011,6 +1109,14 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
                   {folder.name}
                 </span>
                 <span className="shrink-0 text-[11px] text-[var(--gbp-muted)]">({folderDocumentCountById.get(folder.id) ?? 0})</span>
+                {getFolderScopeBadge(folder) ? (
+                  <span
+                    className="shrink-0 truncate rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-muted)]"
+                    title={`Hereda el alcance de la carpeta "${getFolderScopeBadge(folder)}"`}
+                  >
+                    Hereda de: {getFolderScopeBadge(folder)}
+                  </span>
+                ) : null}
               </div>
               {/* Fecha de carga */}
               <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{formatDate(folder.created_at)}</p>
@@ -1057,7 +1163,10 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
                           <p className="truncate text-sm font-medium text-[var(--gbp-text)]">
                             {doc.title}
                           </p>
-                          <p className="truncate text-[11px] text-[var(--gbp-muted)]">Subido por {getCreatorLabel(doc.owner_user_id)}</p>
+                          <p className="truncate text-[11px] text-[var(--gbp-muted)]">
+                            Subido por {getCreatorLabel(doc.owner_user_id)}
+                            {getDocumentScopeBadge(doc) ? ` · Hereda de: ${getDocumentScopeBadge(doc)}` : ""}
+                          </p>
                         </div>
                         {/* Fecha de carga */}
                         <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{formatDate(doc.created_at)}</p>
@@ -1383,7 +1492,10 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
                         <p className="truncate text-sm font-medium text-[var(--gbp-text)]">
                           {doc.title}
                         </p>
-                        <p className="truncate text-[11px] text-[var(--gbp-muted)]">Subido por {getCreatorLabel(doc.owner_user_id)}</p>
+                        <p className="truncate text-[11px] text-[var(--gbp-muted)]">
+                          Subido por {getCreatorLabel(doc.owner_user_id)}
+                          {getDocumentScopeBadge(doc) ? ` · Hereda de: ${getDocumentScopeBadge(doc)}` : ""}
+                        </p>
                       </div>
                       {/* Fecha de carga */}
                       <p className="hidden text-xs text-[var(--gbp-text2)] md:block">{formatDate(doc.created_at)}</p>
@@ -1746,6 +1858,25 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
           busy={busy}
           onCancel={() => setDeleteFolderId(null)}
           onConfirm={() => void removeFolder(deleteFolder.id)}
+        />
+      ) : null}
+
+      {pendingScopeMove ? (
+        <ConfirmActionDialog
+          title="Este movimiento cambia quién lo ve"
+          description={describeScopeChange(pendingScopeMove.currentName, pendingScopeMove.nextName)}
+          busy={busy}
+          confirmLabel="Mover de todos modos"
+          onCancel={() => setPendingScopeMove(null)}
+          onConfirm={() => {
+            const move = pendingScopeMove;
+            setPendingScopeMove(null);
+            if (move.kind === "document") {
+              void performDocumentMove(move.id, move.targetFolderId);
+            } else {
+              void performFolderMove(move.id, move.targetFolderId);
+            }
+          }}
         />
       ) : null}
 

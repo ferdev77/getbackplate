@@ -8,6 +8,7 @@ import { ChevronRight, Folder, GripVertical, UploadCloud, FolderPlus } from "luc
 
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
+import { ConfirmActionDialog } from "@/shared/ui/confirm-action-dialog";
 import { UploadDocumentModal } from "@/modules/documents/ui/upload-document-modal";
 import { DocumentFolderModal } from "@/modules/documents/ui/document-folder-modal";
 import { EmployeeDocumentEditModal } from "@/modules/documents/ui/employee-document-edit-modal";
@@ -130,6 +131,10 @@ export function EmployeeDocumentsTree({
     docId: null,
     status: "idle",
   });
+  const [pendingScopeMove, setPendingScopeMove] = useState<
+    | { kind: "document" | "folder"; id: string; targetFolderId: string | null; currentName: string | null; nextName: string | null }
+    | null
+  >(null);
   const {
     viewMode,
     setViewMode,
@@ -267,11 +272,52 @@ export function EmployeeDocumentsTree({
 
   const folderById = useMemo(() => new Map(folderRows.map((folder) => [folder.id, folder])), [folderRows]);
 
+  // Resuelve de que carpeta ancestro (si alguna) se heredaria un alcance
+  // vacio, empezando la busqueda EN startFolderId — recursivo (no se queda
+  // en el primer padre), igual que la funcion homologa del RLS en Postgres.
+  const resolveInheritedScopeSource = useCallback((startFolderId: string | null) => {
+    let currentFolderId = startFolderId;
+    while (currentFolderId) {
+      const folder = folderById.get(currentFolderId);
+      if (!folder) break;
+      const scope = parseScope(folder.access_scope);
+      if (hasAnyScopeValue(scope)) {
+        return { sourceFolderId: folder.id as string | null, sourceFolderName: folder.name as string | null };
+      }
+      currentFolderId = folder.parent_id;
+    }
+    return { sourceFolderId: null as string | null, sourceFolderName: null as string | null };
+  }, [folderById]);
+
   const getEffectiveDocumentScope = useCallback((doc: DocumentRow) => {
     const ownScope = parseScope(doc.access_scope);
     if (!doc.folder_id || hasAnyScopeValue(ownScope)) return ownScope;
-    return parseScope(folderById.get(doc.folder_id)?.access_scope ?? doc.access_scope);
-  }, [folderById]);
+    const inherited = resolveInheritedScopeSource(doc.folder_id);
+    if (!inherited.sourceFolderId) return ownScope;
+    return parseScope(folderById.get(inherited.sourceFolderId)?.access_scope ?? doc.access_scope);
+  }, [folderById, resolveInheritedScopeSource]);
+
+  const getFolderScopeBadge = useCallback((folder: FolderRow) => {
+    const ownScope = parseScope(folder.access_scope);
+    if (hasAnyScopeValue(ownScope)) return null;
+    return resolveInheritedScopeSource(folder.parent_id).sourceFolderName;
+  }, [resolveInheritedScopeSource]);
+
+  const getDocumentScopeBadge = useCallback((doc: DocumentRow) => {
+    const ownScope = parseScope(doc.access_scope);
+    if (hasAnyScopeValue(ownScope)) return null;
+    return resolveInheritedScopeSource(doc.folder_id).sourceFolderName;
+  }, [resolveInheritedScopeSource]);
+
+  function describeScopeChange(currentName: string | null, nextName: string | null) {
+    if (!currentName && nextName) {
+      return `Hoy es visible para toda la organización. Al moverlo va a heredar el alcance de la carpeta "${nextName}" y quedará restringido a quien esa carpeta permite.`;
+    }
+    if (currentName && !nextName) {
+      return `Hoy hereda el alcance de la carpeta "${currentName}". Al moverlo va a quedar sin restricción (visible para toda la organización).`;
+    }
+    return `Hoy hereda el alcance de la carpeta "${currentName}". Al moverlo va a pasar a heredar el de "${nextName}".`;
+  }
 
 
   const docsByFolder = useMemo(() => {
@@ -566,9 +612,17 @@ export function EmployeeDocumentsTree({
                   {folder.name}
                 </span>
                 <span className="text-xs text-[var(--gbp-muted)]">({folderDocumentCountById.get(folder.id) ?? 0})</span>
+                {getFolderScopeBadge(folder) ? (
+                  <span
+                    className="shrink-0 truncate rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--gbp-muted)]"
+                    title={`Hereda el alcance de la carpeta "${getFolderScopeBadge(folder)}"`}
+                  >
+                    Hereda de: {getFolderScopeBadge(folder)}
+                  </span>
+                ) : null}
               </div>
             </div>
-            
+
             {isOpen && (
               <div>
                 <div className="border-l-[3px] border-[var(--gbp-border)]">
@@ -583,6 +637,7 @@ export function EmployeeDocumentsTree({
                            </p>
                            <p className="truncate text-xs text-[var(--gbp-muted)]">
                              Subido por {getCreatorLabel(doc.owner_user_id)}
+                             {getDocumentScopeBadge(doc) ? ` · Hereda de: ${getDocumentScopeBadge(doc)}` : ""}
                            </p>
                          </div>
                       </div>
@@ -695,6 +750,28 @@ export function EmployeeDocumentsTree({
       resetDndState();
       return;
     }
+
+    const ownScope = parseScope(doc.access_scope);
+    if (!hasAnyScopeValue(ownScope)) {
+      const current = resolveInheritedScopeSource(doc.folder_id);
+      const next = resolveInheritedScopeSource(targetFolderId);
+      if (current.sourceFolderId !== next.sourceFolderId) {
+        resetDndState();
+        setPendingScopeMove({
+          kind: "document",
+          id: documentId,
+          targetFolderId,
+          currentName: current.sourceFolderName,
+          nextName: next.sourceFolderName,
+        });
+        return;
+      }
+    }
+
+    await performDocumentMove(documentId, targetFolderId);
+  }
+
+  async function performDocumentMove(documentId: string, targetFolderId: string | null) {
     const targetFolderName = targetFolderId
       ? folderRows.find((f) => f.id === targetFolderId)?.name ?? "carpeta"
       : "raíz";
@@ -754,6 +831,31 @@ export function EmployeeDocumentsTree({
         currentParentId = parentById.get(currentParentId) ?? null;
       }
     }
+
+    const ownScope = parseScope(folder.access_scope);
+    if (!hasAnyScopeValue(ownScope)) {
+      const current = resolveInheritedScopeSource(folder.parent_id);
+      const next = resolveInheritedScopeSource(targetFolderId);
+      if (current.sourceFolderId !== next.sourceFolderId) {
+        resetDndState();
+        setPendingScopeMove({
+          kind: "folder",
+          id: folderId,
+          targetFolderId,
+          currentName: current.sourceFolderName,
+          nextName: next.sourceFolderName,
+        });
+        return;
+      }
+    }
+
+    await performFolderMove(folderId, targetFolderId);
+  }
+
+  async function performFolderMove(folderId: string, targetFolderId: string | null) {
+    const folder = folderRows.find((row) => row.id === folderId);
+    const originalParentId = folder?.parent_id ?? null;
+
     // Optimistic update
     setFolderRows((prev) => prev.map((row) => (row.id === folderId ? { ...row, parent_id: targetFolderId } : row)));
 
@@ -771,7 +873,7 @@ export function EmployeeDocumentsTree({
       const data = (await response.json().catch(() => ({}))) as { error?: string; parentId?: string | null };
       if (!response.ok) {
         // Revert on error
-        setFolderRows((prev) => prev.map((row) => (row.id === folderId ? { ...row, parent_id: folder.parent_id } : row)));
+        setFolderRows((prev) => prev.map((row) => (row.id === folderId ? { ...row, parent_id: originalParentId } : row)));
         throw new Error("Unable to move the folder.");
       }
       if (data.parentId !== undefined) {
@@ -1284,6 +1386,25 @@ export function EmployeeDocumentsTree({
           onCancel={() => setDeleteDocument(null)}
           onConfirm={() => void deleteDocumentById(deleteDocument)}
           confirmLabel="Delete"
+        />
+      ) : null}
+
+      {pendingScopeMove ? (
+        <ConfirmActionDialog
+          title="Este movimiento cambia quién lo ve"
+          description={describeScopeChange(pendingScopeMove.currentName, pendingScopeMove.nextName)}
+          busy={busy}
+          confirmLabel="Mover de todos modos"
+          onCancel={() => setPendingScopeMove(null)}
+          onConfirm={() => {
+            const move = pendingScopeMove;
+            setPendingScopeMove(null);
+            if (move.kind === "document") {
+              void performDocumentMove(move.id, move.targetFolderId);
+            } else {
+              void performFolderMove(move.id, move.targetFolderId);
+            }
+          }}
         />
       ) : null}
 
