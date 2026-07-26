@@ -30,16 +30,16 @@ npm run build
 
 ## Validacion de flujos DB (obligatorio en operaciones)
 
-Comandos canonicos:
+Comandos canonicos seguros para desarrollo:
 
 ```bash
-npm run verify:flow:local
-npm run verify:flow:local:cleanup
-npm run verify:flow:prod:cleanup
+npm test
+npm run test:critical
+npm run verify:rls-isolation:dev
+npm run verify:migrations:dev
 ```
 
-Guia completa:
-- `../DOCS/4_Operaciones_y_Guias/GUIA_VALIDACION_FLUJOS_LOCAL_PROD.md`
+No ejecutar verificaciones, seeds o limpiezas contra produccion como parte del flujo normal de desarrollo. Guia completa: `../DOCS/4_Operaciones_y_Guias/GUIA_TESTING_Y_CI.md`.
 
 ## Estructura clave
 

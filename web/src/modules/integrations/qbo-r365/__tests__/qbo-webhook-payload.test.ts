@@ -153,4 +153,58 @@ describe("parseQboWebhookPayload", () => {
       operation: "Emailed",
     })]);
   });
+
+  it("normalizes documented operation casing and hyphenated entity names", () => {
+    const events = parseQboWebhookPayload([
+      {
+        specversion: "1.0",
+        type: "qbo.credit-memo.voided.v2",
+        id: " event-with-spaces ",
+        time: " 2026-07-26T10:00:00Z ",
+        intuitentityid: " credit-1 ",
+        intuitaccountid: " realm-1 ",
+        data: "not-an-object",
+      },
+      {
+        specversion: "1.0",
+        type: "qbo.invoice.merged.v1",
+        intuitentityid: 123,
+        intuitaccountid: 456,
+      },
+    ]);
+
+    expect(events[0]).toMatchObject({
+      intuitEventId: "event-with-spaces",
+      entity: "CreditMemo",
+      operation: "Void",
+      entityId: "credit-1",
+      realmId: "realm-1",
+      lastUpdatedAt: " 2026-07-26T10:00:00Z ",
+    });
+    expect(events[0].rawPayload).toBe(events[0].rawNotification);
+    expect(events[1]).toMatchObject({ entity: "Invoice", operation: "Merge", entityId: "123", realmId: "456" });
+  });
+
+  it("counts incomplete legacy entities and exposes the reason", () => {
+    const envelope = parseQboWebhookEnvelope({
+      eventNotifications: [{
+        realmId: "realm-1",
+        dataChangeEvent: {
+          id: 123,
+          entities: [
+            { name: "Invoice", id: "1", operation: "Update" },
+            { name: "Invoice", id: "", operation: "Update" },
+            "invalid",
+          ],
+        },
+      }],
+    });
+
+    expect(envelope).toMatchObject({
+      format: "legacy",
+      ignoredEntries: 2,
+      reasons: ["unsupported_or_incomplete_legacy_event"],
+    });
+    expect(envelope.events[0].intuitEventId).toBeNull();
+  });
 });

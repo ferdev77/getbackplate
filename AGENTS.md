@@ -251,3 +251,40 @@ When adding new cached queries in `cached-queries.ts`, bump the version suffix
 - After adding columns to cached queries, bump the cache key version string
 - If a migration is applied manually or by an AI outside the normal Supabase migration runner, the agent must also reconcile `supabase_migrations.schema_migrations` in that environment before finishing. Do not leave schema changes applied without the matching migration-history row.
 - Before considering migration work complete, verify that the versions present in `supabase/migrations/` match the rows recorded in `supabase_migrations.schema_migrations` for the target environment, and explicitly fix any drift.
+
+---
+
+## Environment Safety Baseline (2026-07-26)
+
+- Development Supabase project: `uubdslmtfxwraszinpao`.
+- Production Supabase project: `mfhyemwypuzsqjqxtbjf`.
+- Prodel exists only in production. Its QBO tokens, FTP settings, sync configs, documents, and billing data must never be used by tests.
+- Unit tests load no `.env` files (`envDir: false`) and `test/network-guard.ts` blocks fetch, HTTP/S, TCP, TLS, HTTP/2, and UDP.
+- Hosted integration tests may use Supabase dev only. `verify-dev-rls-isolation.mjs`, `verify-dev-migrations.mjs`, and `apply-dev-migration.mjs` refuse any unexpected project ref.
+- The dev RLS runner creates all Auth and tenant fixtures in one PostgreSQL transaction and always rolls it back. It also verifies that no QA fixture remains.
+- Do not run the legacy `verify-tenant-isolation.mjs` as the canonical RLS test: it may reuse the first organization and persist Auth users.
+- Dev currently has a QBO sandbox organization, but `QBO_ENVIRONMENT` is not configured and the code defaults to the production Intuit API. Database tests must remain network-isolated; do not run QBO synchronization as part of RLS verification.
+
+### Current test commands
+
+Run from `web/`:
+
+```bash
+npm test                         # 405 tests / 51 files as of 2026-07-26
+npm run test:critical            # 129 critical tests with coverage thresholds
+npm run verify:rls-isolation:dev # Real PostgreSQL RLS/RPC checks, rollback-only
+npm run verify:migrations:dev    # Local migration files vs dev history
+npx tsc --noEmit --incremental false
+npm run lint
+```
+
+### Security invariants
+
+- Employees can read only their own HR row, contract, and salary unless they are an authorized organization administrator.
+- Direct user scope is an explicit access grant. Values inside one dimension are OR; populated location, department, and position dimensions are AND.
+- Privileged billing, cleanup, provisioning, and atomic write RPCs are service-role only unless the function performs an explicit actor/tenant authorization check.
+- Never trust caller-supplied `user_id`, `role_code`, or `organization_id` inside a `SECURITY DEFINER` function without binding it to `auth.uid()` and membership.
+
+### Security migration deployment (2026-07-26)
+
+Migrations `20260726000003` through `20260726000009` are applied and tracked in both dev and production. Post-deploy verification confirmed 192/192 versions, unchanged protected row counts, all public tables with RLS, and privileged RPC execution restricted to `service_role`.

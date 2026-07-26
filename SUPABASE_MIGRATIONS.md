@@ -2,7 +2,7 @@
 
 Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 
-> **Última actualización:** 2026-07-22 (181 migraciones en `supabase/migrations/`; la fila 114 también conserva una copia en `web/supabase/migrations/`) — DEV sincronizado; PROD pendiente de `20260722000001`, `20260722000004` y `20260722000005`
+> **Ultima actualizacion:** 2026-07-26. Hay 192 migraciones en `supabase/migrations/`. DEV y PROD estan sincronizados 192/192. Las migraciones de hardening `20260726000003` a `20260726000009` fueron aplicadas y verificadas en ambos entornos. La fila 114 conserva ademas una copia historica en `web/supabase/migrations/`.
 
 ## Todas las migraciones (orden cronológico)
 
@@ -189,6 +189,17 @@ Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 | 179 | `20260722000003_superadmin_referral_leads_crm.sql` | Seguimiento CRM de leads para superadmin: último contacto, próxima fecha de seguimiento y notas de actividad persistentes |
 | 180 | `20260722000004_integration_onboarding_skip_state.sql` | Estado durable para onboarding de integración omitido sin marcarlo como completado |
 | 181 | `20260722000005_canonical_company_data.sql` | Consolida contacto y dirección en `organization_settings` y retira el perfil de integración duplicado |
+| 182 | `20260725000001_restore_position_scope_matching.sql` | Restaura matching de posiciones en scopes de avisos y checklists |
+| 183 | `20260725000002_restore_document_position_scope_matching.sql` | Restaura matching de posiciones en scopes documentales |
+| 184 | `20260726000001_fix_maintenance_multilocacion.sql` | Corrige acceso multi-locacion del modulo mantenimiento |
+| 185 | `20260726000002_folder_scope_inheritance.sql` | Agrega herencia recursiva de scope para carpetas y documentos |
+| 186 | `20260726000003_harden_hr_and_privileged_rpcs.sql` | Restringe PII/contratos HR y RPC privilegiados |
+| 187 | `20260726000004_document_scope_and_semantics.sql` | Implementa OR intra-dimension y AND entre ubicacion/departamento/puesto |
+| 188 | `20260726000005_harden_context_and_transaction_rpcs.sql` | Evita suplantacion/cross-tenant en RPC de contexto y limita transacciones atomicas |
+| 189 | `20260726000006_fix_branch_only_document_scope.sql` | Conserva acceso legacy por `branch_id` tras el hardening de scopes |
+| 190 | `20260726000007_restore_delegated_hr_scope.sql` | Preserva `employees.view` delegado con interseccion de locaciones |
+| 191 | `20260726000008_restore_delegated_contract_scope.sql` | Extiende el mismo scope delegado a contratos y salarios autorizados |
+| 192 | `20260726000009_restore_service_user_lookup.sql` | Restaura lookup Auth faltante fisicamente y lo limita a `service_role` |
 
 ## Convención de naming
 
@@ -200,7 +211,8 @@ Se utilizan dos formatos de timestamp (ambos válidos para Supabase que ordena a
 ## Cómo verificar integridad
 
 ```bash
-npm run verify:migrations-sync
+cd web
+npm run verify:migrations:dev
 ```
 
-El verificador consulta DEV mediante `SUPABASE_DB_POOLER_URL`/`DATABASE_URL` de `web/.env.local` y PROD mediante las variables de producción de Vercel. No depende del proyecto enlazado actualmente en Supabase CLI.
+Este comando valida exclusivamente DEV y rechaza cualquier project ref inesperado. La validacion de PROD debe ejecutarse como paso separado y aprobado de un deploy; no se infiere que PROD esta actualizado porque DEV lo este.

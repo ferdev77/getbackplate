@@ -41,6 +41,14 @@ describe("parseCsvRows", () => {
     const rows = parseCsvRows('a,b\n1,"dijo ""hola"""');
     expect(rows).toEqual([["a", "b"], ["1", 'dijo "hola"']]);
   });
+
+  it("acepta CRLF, conserva campos vacios y elimina una fila final vacia", () => {
+    expect(parseCsvRows("a,b,c\r\n1,,3\r\n")).toEqual([
+      ["a", "b", "c"],
+      ["1", "", "3"],
+    ]);
+    expect(parseCsvRows("")).toEqual([]);
+  });
 });
 
 describe("buildR365Csv + parseCsvRows (roundtrip)", () => {
@@ -71,5 +79,16 @@ describe("buildR365Csv + parseCsvRows (roundtrip)", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]).toHaveLength(11);
     expect(rows[0][6]).toBe("500 Units");
+  });
+
+  it("usa nombre de item final y EACH para una fila de impuesto", () => {
+    const { csv, rowCount } = buildR365Csv({
+      template: "by_item",
+      lines: [makeLine({ sourceLineId: "tax", itemName: "Parent: Tax", description: "Tax", quantity: 1 })],
+    });
+    const rows = parseCsvRows(csv);
+    expect(rowCount).toBe(1);
+    expect(rows[1][5]).toBe("Tax");
+    expect(rows[1][6]).toBe("EACH");
   });
 });

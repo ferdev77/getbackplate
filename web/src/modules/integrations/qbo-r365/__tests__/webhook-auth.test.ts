@@ -20,4 +20,11 @@ describe("verifyQboWebhookSignature", () => {
     expect(verifyQboWebhookSignature(Buffer.from("{}"), null)).toBe(false);
     expect(() => verifyQboWebhookSignature(Buffer.from("{}"), "signature")).toThrow("QBO_WEBHOOK_VERIFIER_TOKEN");
   });
+
+  it("accepts string bodies and surrounding signature whitespace but rejects wrong lengths", () => {
+    process.env.QBO_WEBHOOK_VERIFIER_TOKEN = "verifier";
+    const signature = createHmac("sha256", "verifier").update("{}").digest("base64");
+    expect(verifyQboWebhookSignature("{}", `  ${signature}  `)).toBe(true);
+    expect(verifyQboWebhookSignature("{}", "short")).toBe(false);
+  });
 });

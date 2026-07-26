@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  buildQboAuthorizeUrl,
+  exchangeQboOAuthCode,
   fetchQboCompanyInfo,
   fetchQboCustomers,
   fetchQboCrudoTransaction,
@@ -10,6 +12,53 @@ import {
   refreshQboAccessToken,
   revokeQboToken,
 } from "../qbo-client";
+
+describe("QuickBooks OAuth request construction", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("builds an authorization URL with exact callback, scope, and opaque state", () => {
+    const result = new URL(buildQboAuthorizeUrl({
+      clientId: "client id",
+      redirectUri: "https://app.example.com/oauth/callback?source=qbo",
+      state: "signed.state/value",
+    }));
+
+    expect(result.origin + result.pathname).toBe("https://appcenter.intuit.com/connect/oauth2");
+    expect(Object.fromEntries(result.searchParams)).toEqual({
+      client_id: "client id",
+      redirect_uri: "https://app.example.com/oauth/callback?source=qbo",
+      response_type: "code",
+      scope: "com.intuit.quickbooks.accounting",
+      state: "signed.state/value",
+    });
+  });
+
+  it("exchanges a code using Basic auth and form encoding without a real request", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      access_token: "access",
+      refresh_token: "refresh",
+      token_type: "bearer",
+      expires_in: 3600,
+    }), { status: 200, headers: { "content-type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(exchangeQboOAuthCode({
+      clientId: "client",
+      clientSecret: "secret",
+      redirectUri: "https://app.example.com/callback?a=1",
+      code: "code & value",
+    })).resolves.toMatchObject({ access_token: "access", refresh_token: "refresh" });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer");
+    expect(init.headers).toMatchObject({ Authorization: `Basic ${Buffer.from("client:secret").toString("base64")}` });
+    expect(new URLSearchParams(String(init.body))).toEqual(new URLSearchParams({
+      grant_type: "authorization_code",
+      code: "code & value",
+      redirect_uri: "https://app.example.com/callback?a=1",
+    }));
+  });
+});
 
 describe("fetchWithIntuitTelemetry", () => {
   afterEach(() => {

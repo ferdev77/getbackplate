@@ -1,17 +1,18 @@
-# GetBackplate — Repositorio Principal
+# GetBackplate - Repositorio Principal
 
 SaaS multi-tenant para operación interna de empresas. En producción en `https://app.getbackplate.com`.
 
 ---
 
-## Para desarrolladores — empezá por acá
+## Para desarrolladores - empezar por aca
 
 | Documento | Qué encontrás |
 |---|---|
 | **[AGENTS.md](AGENTS.md)** | Convenciones del codebase, modelo de datos, flujos de billing, patrones obligatorios. **Leer primero.** |
 | **[web/ARCHITECTURE.md](web/ARCHITECTURE.md)** | Estructura de módulos, estrategia de caché, patrones de API routes, tests. |
 | **[DOCS/00_START_HERE.md](DOCS/00_START_HERE.md)** | Índice completo de documentación — dónde buscar cada tema. |
-| **[CHANGELOG.md](CHANGELOG.md)** | Historial de cambios con fecha. |
+| **[CHANGELOG.md](CHANGELOG.md)** | Historial fechado de cambios aplicados y su estado por entorno. |
+| **[DOCS/1_Arquitectura_y_Contexto/ESTADO_Y_AUDITORIA_ACTUAL.md](DOCS/1_Arquitectura_y_Contexto/ESTADO_Y_AUDITORIA_ACTUAL.md)** | Estado vivo, riesgos pendientes y ultima evidencia de validacion. |
 
 ---
 
@@ -55,9 +56,11 @@ npm run dev
 npm run dev                          # Desarrollo local
 npm run lint                         # Lint
 npm run build                        # Build de producción
-npm test                             # Tests unitarios (215 tests)
+npm test                             # Suite Vitest aislada (405 tests al 2026-07-26)
+npm run test:critical                # Gate de cobertura para reglas criticas
+npm run verify:rls-isolation:dev     # RLS real, transaccional, solo Supabase dev
+npm run verify:migrations:dev        # Sincronia local vs Supabase dev
 npm run e2e:smoke                    # E2E smoke de API
-npm run verify:migrations-sync       # Valida sincronía de migraciones DEV/PROD
 npm run verify:flow:local:cleanup    # Valida flujo DB y limpia datos de prueba
 ```
 
@@ -74,7 +77,7 @@ Guía completa de testing: [`DOCS/4_Operaciones_y_Guias/GUIA_TESTING_Y_CI.md`](D
 | **Desarrollo** | `uubdslmtfxwraszinpao` | `us-east-1` | `web/.env.local` |
 | **Producción** | `mfhyemwypuzsqjqxtbjf` | `us-west-2` | `web/.env.production.local` |
 
-Regla: el esquema debe estar alineado en ambos entornos via `supabase/migrations/`.
+Regla: `supabase/migrations/` es la fuente de verdad. El estado aplicado debe documentarse por entorno; una migracion en dev no se declara desplegada en produccion.
 
 ### Despliegue
 
@@ -82,18 +85,12 @@ Regla: el esquema debe estar alineado en ambos entornos via `supabase/migrations
 - **Plataforma:** Vercel (proyecto `getbackplate`, `.vercel/project.json`)
 - Vercel inyecta las variables de `web/.env.production.local` automáticamente
 
-### Correr localmente contra producción (solo debugging)
+### Proteccion de produccion
 
-```bash
-# Scripts puntuales
-node --env-file=web/.env.production.local scripts/mi-script.mjs
-
-# Servidor Next.js completo contra prod (PowerShell)
-$env:NEXT_PUBLIC_SUPABASE_URL="https://mfhyemwypuzsqjqxtbjf.supabase.co"
-npm run dev
-```
-
-> ⚠️ Apuntar a producción local significa operar sobre datos reales de clientes activos. Solo para debugging. Nunca correr seeds, migraciones destructivas ni limpiezas masivas contra producción desde local.
+- Produccion contiene datos reales y la integracion activa de Prodel.
+- Tests, seeds, fixtures, migraciones experimentales y scripts de limpieza se ejecutan exclusivamente contra dev.
+- Una operacion de produccion requiere un runbook especifico, validacion explicita del project ref y aprobacion humana.
+- Nunca usar `.env.production.local` para Vitest, Playwright o verificaciones destructivas.
 
 ---
 
@@ -115,12 +112,12 @@ npm run dev
 ## Migraciones Supabase
 
 - Ubicación: `supabase/migrations/` (fuente de verdad)
-- Índice completo: [`SUPABASE_MIGRATIONS.md`](SUPABASE_MIGRATIONS.md) — 126 migraciones al 2026-06-04
+- Índice completo: [`SUPABASE_MIGRATIONS.md`](SUPABASE_MIGRATIONS.md) - 192 migraciones al 2026-07-26
 - Scripts de migración operativa: [`scripts/`](scripts/) — ver [`DOCS/4_Operaciones_y_Guias/GUIA_SCRIPTS_PLATAFORMA.md`](DOCS/4_Operaciones_y_Guias/GUIA_SCRIPTS_PLATAFORMA.md)
 
 ```bash
-# Verificar sincronía DEV/PROD
-cd web && npm run verify:migrations-sync
+# Verificar sincronia local/DEV sin consultar produccion
+cd web && npm run verify:migrations:dev
 ```
 
 ---
@@ -130,8 +127,11 @@ cd web && npm run verify:migrations-sync
 ```
 ☐ npm run lint        → sin errores
 ☐ npm run build       → sin errores
-☐ npm test            → 215/215 pasando
-☐ npm run verify:migrations-sync → OK en DEV y PROD
+☐ npm test            → 405/405 pasando (baseline 2026-07-26)
+☐ npm run test:critical → umbrales criticos aprobados
+☐ npm run verify:rls-isolation:dev → RLS real aprobado, sin residuos
+☐ npm run verify:migrations:dev → local y DEV sincronizados
+☐ estado de migraciones en PROD revisado explícitamente antes del deploy
 ☐ git status          → limpio
 ```
 

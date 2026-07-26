@@ -1,5 +1,63 @@
 # Changelog
 
+## 2026-07-26 - Baseline de seguridad, tests aislados y RLS validado en Supabase dev
+
+**Estado por entorno:** aplicado y verificado en DEV (`uubdslmtfxwraszinpao`) y PROD (`mfhyemwypuzsqjqxtbjf`) el 2026-07-26.
+
+### Evidencia
+
+- Suite Vitest: **405/405** tests en 51 archivos.
+- Gate critico: **129/129** tests; cobertura agregada 71.42% statements, 68.81% branches, 77.06% functions y 73.29% lines.
+- TypeScript, ESLint, layout guardrails y `git diff --check`: aprobados.
+- RLS/RPC real en Supabase dev: aprobado con fixtures transaccionales y rollback verificado.
+- Migraciones locales, dev y produccion: **192/192**, sin drift.
+- Auditoria read-only de dev: 604 columnas textuales en `public`, `auth` y `storage`; cero coincidencias de Prodel.
+
+### Testing y proteccion de servicios reales
+
+- Vitest ya no carga archivos `.env` (`envDir: false`).
+- `web/test/network-guard.ts` bloquea fetch, HTTP/S, TCP, TLS, HTTP/2 y UDP.
+- Nuevo `npm run test:critical` con umbrales de cobertura para reglas QBO-R365, cifrado/OAuth/webhook, CSV, cuotas, planes duales y scopes documentales.
+- Nuevo `npm run verify:rls-isolation:dev`: valida project ref, crea identidades/tenants temporales dentro de una transaccion, ejecuta como roles `authenticated` reales, hace rollback y comprueba ausencia de residuos.
+- Nuevos comandos seguros `npm run migrate:dev -- <migration.sql>` y `npm run verify:migrations:dev`, ambos bloqueados al project ref de dev.
+
+### Hardening de autorizacion
+
+- Un empleado solo puede leer su propia fila HR, contrato y salario; `company_admin` conserva el acceso administrativo.
+- Empleados con delegacion `employees.view` conservan acceso HR y contratos unicamente cuando las locaciones del objetivo intersectan su scope autorizado.
+- Documentos y carpetas aplican la regla oficial: usuarios directos amplian acceso; multiples valores dentro de una dimension usan OR; ubicacion, departamento y puesto presentes se combinan con AND.
+- Se conserva compatibilidad con documentos antiguos restringidos solamente por `branch_id` y con scopes heredados de carpetas.
+- `get_company_users`, `get_employee_access_context`, `get_tenant_access_context` y `count_accessible_documents` ya no permiten enumeracion cross-tenant ni suplantacion de `user_id`/rol.
+- RPC de billing, slots, compras, limpieza, lookup de Auth y creacion atomica de empleados quedaron restringidos a `service_role`.
+- `submit_checklist_transaction` se ejecuta con el cliente admin despues de las validaciones de la ruta y ya no es invocable directamente por `anon/authenticated`.
+- `resolveHrScope()` ahora falla cerrado: actor inexistente o sin locaciones devuelve alcance vacio; `null` queda reservado para `all_locations=true`.
+
+### Migraciones
+
+- `20260726000003_harden_hr_and_privileged_rpcs.sql`
+- `20260726000004_document_scope_and_semantics.sql`
+- `20260726000005_harden_context_and_transaction_rpcs.sql`
+- `20260726000006_fix_branch_only_document_scope.sql`
+- `20260726000007_restore_delegated_hr_scope.sql`
+- `20260726000008_restore_delegated_contract_scope.sql`
+- `20260726000009_restore_service_user_lookup.sql`
+
+### Despliegue productivo y verificacion
+
+- La primera aplicacion productiva se aborto y revirtio completamente al detectar que `get_user_id_by_email(text)` figuraba en el historial pero no existia fisicamente.
+- La migracion 03 se hizo idempotente ante esa ausencia y la aplicacion 03-08 se completo en una unica transaccion.
+- La migracion 09 restauro el lookup con acceso exclusivo de `service_role`, reconciliando la paridad fisica.
+- Conteos protegidos antes/despues: 4 organizaciones, 20 empleados, 18 contratos, 15 documentos, 1 integracion conectada, 2 sync configs y 44 facturas QBO. No hubo cambios de filas.
+- Auditoria post-deploy: todas las tablas publicas con RLS; RPC privilegiados sin grants para `anon/authenticated`; DEV/PROD 192/192.
+
+### Pendientes conocidos
+
+- Separar el reinicio mensual de documentos incluidos del ciclo anual de Stripe.
+- Configurar explicitamente `QBO_ENVIRONMENT=sandbox` en dev antes de cualquier prueba de integracion QBO con red.
+- Mantener auditoria post-deploy y control de drift fisico ademas del historial de versiones.
+
+---
+
 ## 2026-07-01 — Módulo HR: delegación de gestión de empleados a empleados
 
 - **Nuevo permiso `employees`** en el sistema de delegación de capacidades (`employee_module_permissions`). Un admin de empresa puede ahora delegar a un empleado los permisos `view`, `create`, `edit` y `delete` sobre otros empleados, dentro del alcance de locaciones del empleado delegado.

@@ -14,7 +14,8 @@ export async function resolveHrScope(
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (!actor || actor.all_locations) return null;
+  if (!actor) return [];
+  if (actor.all_locations) return null;
 
   const ids = Array.from(
     new Set([
@@ -22,7 +23,7 @@ export async function resolveHrScope(
       ...(actor.branch_id ? [actor.branch_id] : []),
     ]),
   );
-  return ids.length ? ids : null;
+  return ids;
 }
 
 export function isEmployeeInScope(
@@ -30,6 +31,7 @@ export function isEmployeeInScope(
   scopeIds: string[] | null,
 ): boolean {
   if (!scopeIds) return true;
+  if (scopeIds.length === 0) return false;
   if (record.all_locations) return true;
   const recordBranches = Array.from(
     new Set([

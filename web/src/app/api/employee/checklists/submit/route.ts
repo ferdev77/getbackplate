@@ -296,7 +296,7 @@ export async function POST(request: Request) {
   }
 
   // Execute the atomic transaction
-  const { error: rpcError } = await supabase.rpc("submit_checklist_transaction", {
+  const { error: rpcError } = await admin.rpc("submit_checklist_transaction", {
     p_submission_id: submissionId,
     p_organization_id: tenant.organizationId,
     p_branch_id: branchId,

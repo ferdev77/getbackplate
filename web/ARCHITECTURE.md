@@ -131,59 +131,44 @@ Si Upstash no está configurado, el rate limiting se desactiva silenciosamente.
 
 ---
 
-## Tests automáticos — estado actual y pendiente
+## Estrategia de testing
 
-### Antes de hacer push a producción
+**Baseline validado el 2026-07-26:** 405 tests Vitest, 129 tests criticos, RLS real aprobado y 192 migraciones sincronizadas en dev/prod.
 
-Correr esto antes de cada deploy para atrapar errores de TypeScript sin tener que esperar el build de Vercel:
+### Capas
 
-```bash
-npx tsc --noEmit
-```
+| Capa | Comando | Proposito |
+|---|---|---|
+| Unit/integration mock | `npm test` | Logica y rutas con dependencias simuladas |
+| Critical coverage | `npm run test:critical` | Gate para QBO-R365, planes, billing y scopes |
+| PostgreSQL RLS/RPC | `npm run verify:rls-isolation:dev` | Policies y grants reales con rollback |
+| Migration history | `npm run verify:migrations:dev` | Archivos locales vs historial de dev |
+| Static analysis | `npx tsc --noEmit --incremental false` | Contratos TypeScript sin cache incremental |
+| Lint/guardrails | `npm run lint` | ESLint y layout canonico |
 
-Si no tira nada, está limpio. Si tira errores, hay que arreglarlos antes de pushear.
+### Aislamiento
 
----
+- Vitest usa `envDir: false`; no carga ningun archivo `.env`.
+- `test/network-guard.ts` bloquea fetch, HTTP/S, TCP, TLS, HTTP/2 y UDP.
+- Las pruebas unitarias deben mockear Supabase, Stripe, Intuit y FTP.
+- El runner RLS acepta exclusivamente Supabase dev `uubdslmtfxwraszinpao`.
+- Todos los fixtures RLS viven en una transaccion y se eliminan con rollback verificado.
+- Prodel y cualquier dato productivo estan prohibidos como fixtures.
 
-### Tests unitarios
-Correr con `npm test`. Cubren lógica pura sin base de datos ni browser. **215 tests, 14 archivos.**
+### Invariantes cubiertos
 
-| Archivo de test | Qué verifica |
-|---|---|
-| `shared/lib/__tests__/access.test.ts` | Detección de `force_password_change` |
-| `shared/lib/__tests__/audience-resolver.test.ts` | Resolución de audiencias por scope |
-| `shared/lib/__tests__/audit.test.ts` | Sanitización de datos sensibles en auditoría |
-| `shared/lib/__tests__/plan-limits.test.ts` | Errores de límite de plan y mensajes |
-| `shared/lib/__tests__/scope-policy.test.ts` | `parseAudienceScope`, `matchesAudienceFilters`, `canSubjectAccessScope`, `enforceLocationPolicy` |
-| `shared/lib/__tests__/supabase-compat.test.ts` | Detección de errores de columna faltante |
-| `shared/ui/__tests__/company-shell-utils.test.ts` | Cache keys, rutas activas, temas, precios de planes |
-| `modules/billing/services/__tests__/billing-gate.test.ts` | `resolveBillingGateState` — todos los estados de billing |
-| `modules/checklists/lib/__tests__/checklist-access.test.ts` | `canUseChecklistTemplateInTenant` — acceso por rol, branch y scope |
-| `modules/checklists/services/__tests__/checklist-template.test.ts` | Normalización de prioridades |
-| `modules/documents/lib/__tests__/documents-tree-utils.test.ts` | Formateo de fechas, tamaños, MIME, scopes |
-| `modules/employees/ui/__tests__/new-employee-modal-helpers.test.ts` | Formateo de fechas del modal de empleados |
-| `modules/settings/services/__tests__/org-structure.test.ts` | Generación de slugs (toCode) |
+- aislamiento entre tenants;
+- PII, contratos y salarios propios;
+- delegacion HR limitada por locaciones;
+- usuarios directos como grant de scope;
+- OR dentro de una dimension y AND entre dimensiones;
+- documentos legacy por branch y herencia de carpetas;
+- RPC privilegiados service-role only;
+- checkout, webhooks, allowance y dual-plan;
+- cifrado, OAuth, firma, parsing, CSV, dedupe y retry QBO-R365.
 
-### Tests E2E con Playwright
-Los tests E2E están implementados en `web/e2e/`. Corren en CI (GitHub Actions) en cada push a `main`.
+### Playwright
 
-| Archivo | Qué cubre |
-|---|---|
-| `api-smoke.spec.ts` | 36 endpoints protegidos → 401 sin auth, nunca 500 |
-| `auth-navigation-flow.spec.ts` | Login company admin + 10 páginas cargan sin error |
-| `employee-portal-flow.spec.ts` | Login empleado + 5 páginas del portal; aislamiento |
-| `company-communications-flow.spec.ts` | Aislamiento de avisos, checklists y documentos entre empleados |
-| `documents-custom-flow.spec.ts` | Flujo de documentos con slots personalizados |
-| `documents-search-filters.spec.ts` | Búsqueda y filtros en documentos |
-| `documents-view-mode.spec.ts` | Persistencia del modo de vista |
-| `sidebar-reorder.spec.ts` | Reordenamiento del sidebar |
-| `verify-master-logins.spec.ts` | Verificación de logins por tipo de cuenta |
+Los specs en `web/e2e/` requieren revision antes de ejecutarse. Algunos flujos legacy dependen de credenciales y fixtures persistentes. No ejecutar `e2e:all` contra produccion ni usar `.env.production.local`.
 
-**Comandos:**
-```bash
-npm run e2e:install          # instalar Playwright (una sola vez)
-npm run e2e:smoke            # E2E smoke de API (CI)
-npm run e2e:auth             # E2E navegación company admin
-npm run e2e:portal           # E2E portal empleado
-npm run e2e:all              # todos los E2E
-```
+La guia operativa completa y actualizada es `DOCS/4_Operaciones_y_Guias/GUIA_TESTING_Y_CI.md`.

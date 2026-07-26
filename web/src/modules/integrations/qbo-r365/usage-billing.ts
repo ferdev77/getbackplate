@@ -1,5 +1,6 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { stripe } from "@/infrastructure/stripe/client";
+import { calculateDocumentAllowance, calculateDocumentOverage } from "./usage-billing-rules";
 
 export function formatInvoiceUsageDescription(sentCount: number, allowance: number, billableCount: number, unitPrice: string) {
   return `Documents sent to R365 (${sentCount} sent, ${allowance} included, ${billableCount} × $${unitPrice})`;
@@ -54,17 +55,18 @@ export async function billInvoiceUsageForRenewal(params: {
     return;
   }
 
-  let allowance: number;
-  if (addon?.invoice_allowance_override != null) {
-    allowance = addon.invoice_allowance_override;
-  } else {
+  let planInvoices = 0;
+  if (addon?.invoice_allowance_override == null) {
     const { data: plan } = addon?.integration_plan_id
       ? await supabase.from("plans").select("invoices_included").eq("id", addon.integration_plan_id).maybeSingle()
       : { data: null };
-    const planInvoices = plan?.invoices_included ?? 0;
-    const extraBalance = addon?.invoice_balance ?? 0;
-    allowance = planInvoices + extraBalance;
+    planInvoices = plan?.invoices_included ?? 0;
   }
+  const allowance = calculateDocumentAllowance({
+    baseAllowance: planInvoices,
+    invoiceBalance: addon?.invoice_balance ?? 0,
+    allowanceOverride: addon?.invoice_allowance_override,
+  });
 
   const { count } = await supabase
     .from("qbo_unified_invoices")
@@ -74,7 +76,7 @@ export async function billInvoiceUsageForRenewal(params: {
     .lt("first_sent_at", periodEnd.toISOString());
 
   const sentCount = count ?? 0;
-  const billableCount = Math.max(0, sentCount - allowance);
+  const billableCount = calculateDocumentOverage(sentCount, allowance);
   const amountCents = billableCount * priceCents;
   const unitPrice = (priceCents / 100).toFixed(2);
 

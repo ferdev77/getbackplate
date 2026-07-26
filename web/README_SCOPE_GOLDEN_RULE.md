@@ -1,5 +1,7 @@
 # Regla de Oro de Alcance
 
+**Ultima validacion:** 2026-07-26 contra RLS real en Supabase dev.
+
 Este documento define el comportamiento oficial de alcance para toda la plataforma.
 
 ## Objetivo
@@ -70,6 +72,8 @@ Todos los formularios que configuran alcance deben mostrar:
 - Validacion de ubicaciones permitidas por actor.
 - Rechazo explicito cuando se intenta seleccionar ubicaciones fuera de alcance.
 - En rutas de empleado, validacion extra de `users` para bloquear usuarios fuera de sus ubicaciones permitidas.
+- En lectura, los valores dentro de una dimension usan OR y las dimensiones pobladas usan AND.
+- El runner `npm run verify:rls-isolation:dev` protege esta regla contra regresiones SQL.
 
 ## Cobertura
 

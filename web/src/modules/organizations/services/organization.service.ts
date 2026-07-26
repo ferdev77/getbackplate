@@ -3,6 +3,7 @@ import {
   assertOrganizationCanSwitchToPlan,
   getPlanLimitErrorMessage,
 } from "@/shared/lib/plan-limits";
+import { resolveEnabledOrganizationModuleIds } from "./plan-module-rules";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -41,25 +42,33 @@ export async function provisionOrganizationFromPlan(params: {
     .from("module_catalog")
     .select("id, code, is_core");
 
-  const isIntegrationOnly = !params.planId && Boolean(params.integrationPlanId);
-
-  const planModuleIds = new Set<string>();
-  const planIds = [params.planId, params.integrationPlanId ?? null].filter(Boolean) as string[];
-  for (const pid of planIds) {
+  const platformPlanModuleIds = new Set<string>();
+  const integrationPlanModuleIds = new Set<string>();
+  const selectedPlans: Array<[string | null, Set<string>]> = [
+    [params.planId, platformPlanModuleIds],
+    [params.integrationPlanId ?? null, integrationPlanModuleIds],
+  ];
+  for (const [planId, moduleIds] of selectedPlans) {
+    if (!planId) continue;
     const { data: planModules } = await supabase
       .from("plan_modules")
       .select("module_id")
-      .eq("plan_id", pid)
+      .eq("plan_id", planId)
       .eq("is_enabled", true);
-    for (const row of planModules ?? []) planModuleIds.add(row.module_id);
+    for (const row of planModules ?? []) moduleIds.add(row.module_id);
   }
 
   if (modules?.length) {
+    const enabledModuleIds = resolveEnabledOrganizationModuleIds({
+      modules,
+      platformPlanModuleIds,
+      integrationPlanModuleIds,
+      hasPlatformPlan: Boolean(params.planId),
+      hasIntegrationPlan: Boolean(params.integrationPlanId),
+    });
     await supabase.from("organization_modules").insert(
       modules.map((mod) => {
-        const shouldEnable = isIntegrationOnly
-          ? planModuleIds.has(mod.id)
-          : Boolean(mod.is_core) || planModuleIds.has(mod.id);
+        const shouldEnable = enabledModuleIds.has(mod.id);
         return {
           organization_id: params.organizationId,
           module_id: mod.id,
@@ -169,25 +178,33 @@ export async function syncOrganizationPlan(params: {
     .from("module_catalog")
     .select("id, code, is_core");
 
-  const isIntegrationOnly = !params.planId && Boolean(params.integrationPlanId);
-
-  const planModuleIds = new Set<string>();
-  const planIds = [params.planId, params.integrationPlanId ?? null].filter(Boolean) as string[];
-  for (const pid of planIds) {
+  const platformPlanModuleIds = new Set<string>();
+  const integrationPlanModuleIds = new Set<string>();
+  const selectedPlans: Array<[string | null, Set<string>]> = [
+    [params.planId, platformPlanModuleIds],
+    [params.integrationPlanId ?? null, integrationPlanModuleIds],
+  ];
+  for (const [planId, moduleIds] of selectedPlans) {
+    if (!planId) continue;
     const { data: planModules } = await supabase
       .from("plan_modules")
       .select("module_id")
-      .eq("plan_id", pid)
+      .eq("plan_id", planId)
       .eq("is_enabled", true);
-    for (const row of planModules ?? []) planModuleIds.add(row.module_id);
+    for (const row of planModules ?? []) moduleIds.add(row.module_id);
   }
 
   if (modules?.length) {
+    const enabledModuleIds = resolveEnabledOrganizationModuleIds({
+      modules,
+      platformPlanModuleIds,
+      integrationPlanModuleIds,
+      hasPlatformPlan: Boolean(params.planId),
+      hasIntegrationPlan: Boolean(params.integrationPlanId),
+    });
     await supabase.from("organization_modules").upsert(
       modules.map((mod) => {
-        const shouldEnable = isIntegrationOnly
-          ? planModuleIds.has(mod.id)
-          : Boolean(mod.is_core) || planModuleIds.has(mod.id);
+        const shouldEnable = enabledModuleIds.has(mod.id);
         return {
           organization_id: params.organizationId,
           module_id: mod.id,

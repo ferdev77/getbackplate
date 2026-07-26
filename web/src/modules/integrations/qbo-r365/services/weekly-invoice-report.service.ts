@@ -5,6 +5,7 @@ import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
 import { buildWeeklyReportHtml } from "./weekly-report-template";
 import { createReferralToken } from "./referral-token";
 import { createQboReportPreferenceToken } from "./report-preference-token";
+import { isActiveClaim } from "../pipeline-rules";
 import {
   getOrCreateQboReportSubscription,
   shouldSendQboReport,
@@ -167,9 +168,8 @@ async function claimReportRun(input: {
   if (existingError || !existing) throw new Error(existingError?.message ?? "Report run not found");
 
   const row = existing as ReportRunRow;
-  const staleBefore = Date.now() - 15 * 60_000;
   if (row.status === "completed") return null;
-  if (row.status === "processing" && row.claimed_at && new Date(row.claimed_at).getTime() >= staleBefore) {
+  if (row.status === "processing" && isActiveClaim(row.claimed_at, 15 * 60_000)) {
     return null;
   }
 
@@ -256,9 +256,8 @@ async function claimReportDelivery(input: {
   if (existingError || !existing) throw new Error(existingError?.message ?? "Report delivery not found");
 
   const row = existing as ReportDeliveryRow;
-  const staleBefore = Date.now() - 15 * 60_000;
   if (row.status === "sent") return null;
-  if (row.status === "processing" && new Date(row.claimed_at).getTime() >= staleBefore) return null;
+  if (row.status === "processing" && isActiveClaim(row.claimed_at, 15 * 60_000)) return null;
 
   const { data: retried, error: retryError } = await admin
     .from("qbo_report_deliveries")

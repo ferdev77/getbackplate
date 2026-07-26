@@ -242,6 +242,16 @@ describe("canSubjectAccessScope", () => {
     expect(canSubjectAccessScope(scope, basicSubject)).toBe(true);
   });
 
+  it("matches a subject location against a scope containing multiple locations", () => {
+    const scope = {
+      locations: ["loc-other", "loc1", "loc-third"],
+      department_ids: [],
+      position_ids: [],
+      users: [],
+    };
+    expect(canSubjectAccessScope(scope, basicSubject)).toBe(true);
+  });
+
   it("handles raw unparsed scope object (arrays with duplicates / whitespace)", () => {
     const rawScope = {
       locations: ["  loc1  ", "loc1"],
