@@ -50,6 +50,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const passwordBillingTrack = params.desde === "integracion" ? "integration" : "platform";
   const intuitBillingTrack = params.desde === "plataforma" ? "platform" : "integration";
   const intuitReturnTo = `/app/dashboard?billingTrack=${intuitBillingTrack}`;
+  const showIntuitSso = params.desde !== "plataforma";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_var(--gbp-surface)_0%,_var(--gbp-bg)_48%,_var(--gbp-bg2)_100%)] px-6 py-10">
@@ -86,17 +87,21 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             Enter your credentials to access the dashboard.
           </p>
 
-          <div className="mb-4 flex justify-center">
-            <IntuitSignInButton href={`/api/auth/intuit/start?returnTo=${encodeURIComponent(intuitReturnTo)}`} />
-          </div>
-          <p className="-mt-2 mb-4 text-center text-[11px] text-[var(--gbp-muted)]">
-            This verifies your identity only. QuickBooks access is requested separately.
-          </p>
-          <div className="mb-4 flex items-center gap-3 text-xs text-[var(--gbp-muted)]">
-            <span className="h-px flex-1 bg-[var(--gbp-border)]" />
-            or
-            <span className="h-px flex-1 bg-[var(--gbp-border)]" />
-          </div>
+          {showIntuitSso ? (
+            <>
+              <div className="mb-4 flex justify-center">
+                <IntuitSignInButton href={`/api/auth/intuit/start?returnTo=${encodeURIComponent(intuitReturnTo)}`} />
+              </div>
+              <p className="-mt-2 mb-4 text-center text-[11px] text-[var(--gbp-muted)]">
+                This verifies your identity only. QuickBooks access is requested separately.
+              </p>
+              <div className="mb-4 flex items-center gap-3 text-xs text-[var(--gbp-muted)]">
+                <span className="h-px flex-1 bg-[var(--gbp-border)]" />
+                or
+                <span className="h-px flex-1 bg-[var(--gbp-border)]" />
+              </div>
+            </>
+          ) : null}
 
           {error ? (
             <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
