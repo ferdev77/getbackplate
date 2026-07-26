@@ -40,9 +40,10 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
     tenant.membershipId,
   );
 
-  if (!delegatedPermissions.checklists.view) {
-    return null;
-  }
+  // A diferencia de documentos/avisos, checklists.view NO bloquea la pagina
+  // completa: cualquier empleado debe poder completar sus checklists
+  // asignados (via scope de sucursal/departamento/puesto) aunque no tenga
+  // el permiso delegado de "gestionar checklists". Ver feedback del 2026-07-26.
 
   const canCreate = delegatedPermissions.checklists.create;
   const canEdit = delegatedPermissions.checklists.edit;

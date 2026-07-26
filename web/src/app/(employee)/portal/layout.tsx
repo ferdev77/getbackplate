@@ -696,7 +696,6 @@ export default async function EmployeeLayout({
       }}
       canViewDocuments={delegatedPermissions.documents.view}
       canDeleteDocuments={delegatedPermissions.documents.delete}
-      canViewChecklists={delegatedPermissions.checklists.view}
       canCreateChecklistReports={delegatedPermissions.checklists.create}
       canViewAnnouncements={delegatedPermissions.announcements.view}
       canViewVendors={delegatedPermissions.vendors.view}
