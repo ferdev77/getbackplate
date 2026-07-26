@@ -33,6 +33,11 @@ export default async function EmployeeDocumentsPage({ searchParams }: EmployeeDo
     tenant.organizationId,
     tenant.membershipId,
   );
+
+  if (!delegatedPermissions.documents.view) {
+    return null;
+  }
+
   const canViewCreatedDocuments =
     delegatedPermissions.documents.create || delegatedPermissions.documents.edit || delegatedPermissions.documents.delete;
   const enabledModulesSet = new Set(await getEnabledModulesCached(tenant.organizationId));

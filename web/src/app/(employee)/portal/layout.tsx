@@ -694,8 +694,11 @@ export default async function EmployeeLayout({
         ai_assistant: isAiAssistantEnabled,
         maintenance: isMaintenanceEnabled,
       }}
+      canViewDocuments={delegatedPermissions.documents.view}
       canDeleteDocuments={delegatedPermissions.documents.delete}
+      canViewChecklists={delegatedPermissions.checklists.view}
       canCreateChecklistReports={delegatedPermissions.checklists.create}
+      canViewAnnouncements={delegatedPermissions.announcements.view}
       canViewVendors={delegatedPermissions.vendors.view}
       canViewMaintenance={delegatedPermissions.maintenance.view}
       canCreateMaintenance={delegatedPermissions.maintenance.create}

@@ -3,12 +3,12 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
-import { assertTenantModuleApi } from "@/shared/lib/access";
+import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
 
 export async function GET(request: Request) {
-  const moduleAccess = await assertTenantModuleApi("checklists", { allowBillingBypass: true });
+  const moduleAccess = await assertEmployeeCapabilityApi("checklists", "view", { allowBillingBypass: true });
   if (!moduleAccess.ok) {
     return NextResponse.json({ error: moduleAccess.error }, { status: moduleAccess.status });
   }

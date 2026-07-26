@@ -39,6 +39,11 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
     tenant.organizationId,
     tenant.membershipId,
   );
+
+  if (!delegatedPermissions.checklists.view) {
+    return null;
+  }
+
   const canCreate = delegatedPermissions.checklists.create;
   const canEdit = delegatedPermissions.checklists.edit;
   const canDelete = delegatedPermissions.checklists.delete;

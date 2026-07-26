@@ -22,9 +22,11 @@ type DelegatedPermissionsState = Record<
 >;
 
 const EMPTY_DELEGATED_PERMISSIONS: DelegatedPermissionsState = {
-  announcements: { view: false, create: false, edit: false, delete: false },
-  checklists: { view: false, create: false, edit: false, delete: false },
-  documents: { view: false, create: false, edit: false, delete: false },
+  // announcements/checklists/documents default to view=true — see the
+  // matching comment in modules/employees/lib/module-permissions.ts.
+  announcements: { view: true, create: false, edit: false, delete: false },
+  checklists: { view: true, create: false, edit: false, delete: false },
+  documents: { view: true, create: false, edit: false, delete: false },
   vendors: { view: false, create: false, edit: false, delete: false },
   ai_assistant: { view: false, create: false, edit: false, delete: false },
   maintenance: { view: false, create: false, edit: false, delete: false },

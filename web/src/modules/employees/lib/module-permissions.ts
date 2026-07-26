@@ -15,9 +15,13 @@ export type EmployeeDelegatedPermissionsMap = Record<EmployeePermissionModuleCod
 
 export function getEmptyEmployeeDelegatedPermissions(): EmployeeDelegatedPermissionsMap {
   return {
-    announcements: { view: false, create: false, edit: false, delete: false },
-    checklists: { view: false, create: false, edit: false, delete: false },
-    documents: { view: false, create: false, edit: false, delete: false },
+    // announcements/checklists/documents default to view=true: these modules
+    // gate viewing on this flag (see the employee portal pages), so a new
+    // employee whose admin never touched delegated permissions should still
+    // see the module by default — the admin can explicitly revoke it after.
+    announcements: { view: true, create: false, edit: false, delete: false },
+    checklists: { view: true, create: false, edit: false, delete: false },
+    documents: { view: true, create: false, edit: false, delete: false },
     vendors: { view: false, create: false, edit: false, delete: false },
     ai_assistant: { view: false, create: false, edit: false, delete: false },
     maintenance: { view: false, create: false, edit: false, delete: false },

@@ -47,8 +47,11 @@ type EmployeeShellProps = {
     ai_assistant: boolean;
     maintenance: boolean;
   };
+  canViewDocuments: boolean;
   canDeleteDocuments: boolean;
+  canViewChecklists: boolean;
   canCreateChecklistReports: boolean;
+  canViewAnnouncements: boolean;
   canViewVendors: boolean;
   canViewMaintenance: boolean;
   canCreateMaintenance: boolean;
@@ -94,8 +97,11 @@ export function EmployeeShell({
   docsCount,
   checklistTemplateNames,
   enabledModules,
+  canViewDocuments,
   canDeleteDocuments,
+  canViewChecklists,
   canCreateChecklistReports,
+  canViewAnnouncements,
   canViewVendors,
   canViewMaintenance,
   canCreateMaintenance,
@@ -306,10 +312,10 @@ export function EmployeeShell({
     const result: EmployeeSidebarItem[] = [
       { href: "/portal/home", label: "Dashboard", icon: LayoutDashboard },
     ];
-    if (enabledModules.announcements) {
+    if (enabledModules.announcements && canViewAnnouncements) {
       result.push({ href: "/portal/announcements", label: "Avisos", icon: Bell });
     }
-    if (enabledModules.checklists) {
+    if (enabledModules.checklists && canViewChecklists) {
       result.push({
         href: "/portal/checklist",
         label: "Checklists",
@@ -319,7 +325,7 @@ export function EmployeeShell({
           : [],
       });
     }
-    if (enabledModules.documents) {
+    if (enabledModules.documents && canViewDocuments) {
       result.push({
         href: "/portal/documents",
         label: "Documentos",
@@ -340,7 +346,7 @@ export function EmployeeShell({
       result.push({ href: "/portal/onboarding", label: "Instrucciones", icon: FileText });
     }
     return result;
-  }, [canCreateChecklistReports, canCreateMaintenance, canDeleteDocuments, canRespondMaintenance, canViewEmployees, canViewMaintenance, canViewVendors, enabledModules.announcements, enabledModules.checklists, enabledModules.documents, enabledModules.maintenance, enabledModules.onboarding, enabledModules.vendors]);
+  }, [canCreateChecklistReports, canCreateMaintenance, canDeleteDocuments, canRespondMaintenance, canViewAnnouncements, canViewChecklists, canViewDocuments, canViewEmployees, canViewMaintenance, canViewVendors, enabledModules.announcements, enabledModules.checklists, enabledModules.documents, enabledModules.maintenance, enabledModules.onboarding, enabledModules.vendors]);
 
   const sidebarWidth = collapsed ? "w-[56px]" : "w-[240px]";
   const sidebarPaddingX = collapsed ? "px-2" : "px-4";

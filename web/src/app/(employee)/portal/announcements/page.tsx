@@ -82,6 +82,10 @@ export default async function EmployeeAnnouncementsPage() {
     tenant.organizationId,
     tenant.membershipId,
   );
+  if (!delegatedPermissions.announcements.view) {
+    return null;
+  }
+
   const canCreate = delegatedPermissions.announcements.create;
   const canEdit = delegatedPermissions.announcements.edit;
   const canDelete = delegatedPermissions.announcements.delete;
