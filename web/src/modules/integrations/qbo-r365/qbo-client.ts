@@ -3,15 +3,12 @@ import {
   recordIntuitApiResponse,
   type IntuitResponseTelemetry,
 } from "./intuit-api-telemetry";
+import { resolveQboApiBaseUrl } from "./qbo-environment";
 
 const QBO_AUTHORIZE_URL = "https://appcenter.intuit.com/connect/oauth2";
 const QBO_TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer";
 const QBO_REVOKE_URL = "https://developer.api.intuit.com/v2/oauth2/tokens/revoke";
 const QBO_REQUEST_TIMEOUT_MS = 20_000;
-const QBO_API_BASE_URL = process.env.QBO_API_BASE_URL?.trim()
-  || (process.env.QBO_ENVIRONMENT === "sandbox"
-    ? "https://sandbox-quickbooks.api.intuit.com"
-    : "https://quickbooks.api.intuit.com");
 
 type QboRequestContext = {
   organizationId?: string | null;
@@ -270,7 +267,7 @@ export async function fetchQboCompanyInfo(input: {
 } & QboRequestContext) {
   const encodedRealmId = encodeURIComponent(input.realmId);
   const response = await fetchWithIntuitTelemetry(
-    `${QBO_API_BASE_URL}/v3/company/${encodedRealmId}/companyinfo/${encodedRealmId}?minorversion=75`,
+    `${resolveQboApiBaseUrl()}/v3/company/${encodedRealmId}/companyinfo/${encodedRealmId}?minorversion=75`,
     {
       headers: {
         Authorization: `Bearer ${input.accessToken}`,
@@ -409,7 +406,7 @@ async function queryQboTable<T>(input: {
     const where = clauses.length > 0 ? ` WHERE ${clauses.join(" AND ")}` : "";
     const query = `select * from ${input.table}${where} startposition ${startPosition} maxresults ${pageSize}`;
 
-    const { response, payload, fault } = await doRequest(QBO_API_BASE_URL, query);
+    const { response, payload, fault } = await doRequest(resolveQboApiBaseUrl(), query);
     throwIfQboAuthorizationFailed(response, payload);
     const message = (fault?.Detail ?? fault?.Message ?? fault?.detail ?? fault?.message ?? "").trim();
 
@@ -540,7 +537,7 @@ export async function fetchQboRawTransaction(input: {
   for (const type of types) {
     const query = `select * from ${type} where Id = '${input.invoiceId}'`;
     const response = await fetchWithIntuitTelemetry(
-      `${QBO_API_BASE_URL}/v3/company/${input.realmId}/query?minorversion=75`,
+      `${resolveQboApiBaseUrl()}/v3/company/${input.realmId}/query?minorversion=75`,
       {
         method: "POST",
         headers: {
@@ -605,7 +602,7 @@ export async function fetchQboCrudoTransaction(input: {
 
   for (const type of types) {
     const query = `select * from ${type} where Id = '${input.invoiceId}'`;
-    const url = `${QBO_API_BASE_URL}/v3/company/${input.realmId}/query?minorversion=75`;
+    const url = `${resolveQboApiBaseUrl()}/v3/company/${input.realmId}/query?minorversion=75`;
     const response = await fetchWithIntuitTelemetry(
       url,
       {
@@ -670,7 +667,7 @@ export async function fetchQboItemSkus(input: {
   accessToken: string;
   realmId: string;
 } & QboRequestContext): Promise<Map<string, string>> {
-  const baseUrl = QBO_API_BASE_URL;
+  const baseUrl = resolveQboApiBaseUrl();
   const skuMap = new Map<string, string>();
   const pageSize = 1000;
   let startPosition = 1;
@@ -738,7 +735,7 @@ export async function fetchQboTransactionByDocNumber(input: {
   for (const type of types) {
     const query = `select * from ${type} where DocNumber = '${safeDocNumber}'`;
     const response = await fetchWithIntuitTelemetry(
-      `${QBO_API_BASE_URL}/v3/company/${input.realmId}/query?minorversion=75`,
+      `${resolveQboApiBaseUrl()}/v3/company/${input.realmId}/query?minorversion=75`,
       {
         method: "POST",
         headers: {
@@ -795,7 +792,7 @@ export async function fetchQboCustomerById(input: {
   realmId: string;
   customerId: string;
 } & QboRequestContext): Promise<QboCustomer | null> {
-  const baseUrl = QBO_API_BASE_URL;
+  const baseUrl = resolveQboApiBaseUrl();
   const response = await fetchWithIntuitTelemetry(
     `${baseUrl}/v3/company/${input.realmId}/customer/${input.customerId}?minorversion=75&include=enhancedAllCustomFields`,
     {
@@ -840,7 +837,7 @@ export async function fetchQboCustomers(input: {
   accessToken: string;
   realmId: string;
 } & QboRequestContext): Promise<QboCustomer[]> {
-  const baseUrl = QBO_API_BASE_URL;
+  const baseUrl = resolveQboApiBaseUrl();
   const pageSize = 1000;
   const output: QboCustomer[] = [];
   let startPosition = 1;

@@ -18,13 +18,12 @@ Las acciones de preview, envío y exportación se anclan al run ejecutado desde 
 
 ## Sandbox QBO (pruebas)
 
-- Toggle activado: usa entorno de pruebas de QuickBooks.
-- Toggle desactivado: usa entorno real de QuickBooks.
-- Alcance: **por proveedor/organización** (no por cliente individual).
-- Auto-detección: si el token de QBO corresponde a un entorno sandbox pero el toggle está en "producción",
-  el sistema detecta automáticamente que hay datos solo en sandbox y cambia a ese endpoint.
-  La variable `effectiveUseSandbox` (en `service.ts`) captura este estado para que también la
-  consulta de ítems (SKU) use el mismo endpoint correcto.
+- El endpoint Accounting se resuelve centralmente en `qbo-environment.ts`.
+- Supabase dev (`uubdslmtfxwraszinpao`) usa siempre `sandbox-quickbooks.api.intuit.com`.
+- Supabase producción conserva `quickbooks.api.intuit.com`, salvo override explícito.
+- Un `QBO_API_BASE_URL` productivo configurado desde dev se rechaza antes de hacer red.
+- No existe un toggle por organización o sync config. `QBO_ENVIRONMENT` es configuración del entorno de ejecución.
+- Los endpoints OAuth compartidos de token/revoke no cambian con esta variable; nunca copiar tokens productivos a dev.
 
 ## Creación de sync config en Developer
 
@@ -114,8 +113,8 @@ usando `SalesItemLineDetail.ItemRef.value`.
 | Archivo | Qué hace |
 |---|---|
 | `qbo-client.ts` → `fetchQboItemSkus()` | Consulta paginada de ítems, devuelve Map |
-| `service.ts` → `runQboR365Sync()` | Llama a `fetchQboItemSkus` con `effectiveUseSandbox` |
-| `service.ts` → `normalizeQboRows()` | Recibe `itemSkuMap` y asigna `sku` a cada línea |
+| `service.ts` → `runQboR365Sync()` | Llama a `fetchQboItemSkus`; el cliente resuelve el entorno centralmente |
+| `pipeline-rules.ts` → `normalizeQboRows()` | Recibe `itemSkuMap` y asigna `sku` a cada línea |
 | `service.ts` → `getInvoiceDetail()` | Expone `sku` y `sourceItemCode` en las líneas |
 
 ### Nombres de ítems sin prefijo de categoría (mayo 2026)

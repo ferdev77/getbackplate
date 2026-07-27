@@ -44,7 +44,8 @@ export async function GET(request: Request) {
     const { error: stripeCleanupError } = await admin
       .from("stripe_processed_events")
       .delete()
-      .lt("processed_at", cutoff);
+      .eq("status", "processed")
+      .lt("completed_at", cutoff);
 
     results.push({
       task: "purgeStripeProcessedEvents",

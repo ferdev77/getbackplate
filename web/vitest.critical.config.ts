@@ -8,7 +8,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./test/network-guard.ts"],
     include: [
-      "src/modules/integrations/qbo-r365/__tests__/{crypto,oauth-state,pipeline-rules,qbo-client,qbo-webhook-payload,r365-csv,webhook-auth}.test.ts",
+      "src/modules/integrations/qbo-r365/__tests__/{crypto,oauth-state,pipeline-rules,qbo-client,qbo-environment,qbo-webhook-payload,r365-csv,webhook-auth}.test.ts",
       "src/modules/integrations/qbo-r365/usage-billing-rules.test.ts",
       "src/modules/organizations/services/plan-module-rules.test.ts",
       "src/shared/lib/__tests__/{document-access,private-document-access,scope-policy}.test.ts",
@@ -17,7 +17,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "html"],
       include: [
-        "src/modules/integrations/qbo-r365/{crypto,oauth-state,pipeline-rules,qbo-client,qbo-webhook-payload,r365-csv,usage-billing-rules,webhook-auth}.ts",
+        "src/modules/integrations/qbo-r365/{crypto,oauth-state,pipeline-rules,qbo-client,qbo-environment,qbo-webhook-payload,r365-csv,usage-billing-rules,webhook-auth}.ts",
         "src/modules/organizations/services/plan-module-rules.ts",
         "src/shared/lib/{document-access,scope-policy}.ts",
       ],

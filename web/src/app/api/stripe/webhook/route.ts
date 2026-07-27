@@ -229,7 +229,13 @@ export async function POST(req: Request) {
   // If another instance already reserved/processed it, Postgres unique key blocks duplicates.
   const { data: reservation, error: reservationError } = await supabase
     .from('stripe_processed_events')
-    .insert({ event_id: event.id })
+    .insert({
+      event_id: event.id,
+      event_type: event.type,
+      stripe_created_at: event.created ? new Date(event.created * 1000).toISOString() : null,
+      status: 'processing',
+      started_at: new Date().toISOString(),
+    })
     .select('event_id')
     .maybeSingle();
 
@@ -1241,12 +1247,14 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error(`[Webhook] Unhandled error processing event ${event.type}:`, err);
 
-    // Mark the event as failed so it won't be retried as a duplicate.
-    // Using UPDATE instead of DELETE prevents a race condition where a DELETE failure
-    // could allow the same event to be processed twice (double charge risk).
+    const errorMessage = err instanceof Error ? err.message : String(err);
     const { error: markFailedError } = await supabase
       .from('stripe_processed_events')
-      .update({ status: 'failed' })
+      .update({
+        status: 'failed',
+        completed_at: new Date().toISOString(),
+        last_error: errorMessage.slice(0, 2000),
+      })
       .eq('event_id', event.id);
 
     if (markFailedError) {
@@ -1254,6 +1262,21 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+
+  const { error: markProcessedError } = await supabase
+    .from('stripe_processed_events')
+    .update({
+      status: 'processed',
+      completed_at: new Date().toISOString(),
+      last_error: null,
+    })
+    .eq('event_id', event.id)
+    .eq('status', 'processing');
+
+  if (markProcessedError) {
+    console.error(`[Webhook] Failed to mark event ${event.id} as processed:`, markProcessedError);
+    return NextResponse.json({ error: 'Failed to finalize webhook event' }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });

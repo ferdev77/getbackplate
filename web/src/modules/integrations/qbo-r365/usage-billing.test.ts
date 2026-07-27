@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   addon: null as Record<string, unknown> | null,
   plan: { invoices_included: 0 } as Record<string, unknown> | null,
   sentCount: 0,
+  errors: {} as Record<string, { message: string } | null>,
   updates: [] as Array<Record<string, unknown>>,
   gte: vi.fn(),
   lt: vi.fn(),
@@ -21,20 +22,20 @@ function queryFor(table: string) {
     }),
     lt: vi.fn(async (column: string, value: string) => {
       mocks.lt(table, column, value);
-      return { count: mocks.sentCount };
+      return { count: mocks.sentCount, error: mocks.errors[`${table}:count`] ?? null };
     }),
     update: vi.fn((values: Record<string, unknown>) => {
       mocks.updates.push(values);
       return query;
     }),
     maybeSingle: vi.fn(async () => {
-      if (table === "module_catalog") return { data: mocks.moduleRow };
-      if (table === "organization_addons") return { data: mocks.addon };
-      if (table === "plans") return { data: mocks.plan };
+      if (table === "module_catalog") return { data: mocks.moduleRow, error: mocks.errors[table] ?? null };
+      if (table === "organization_addons") return { data: mocks.addon, error: mocks.errors[table] ?? null };
+      if (table === "plans") return { data: mocks.plan, error: mocks.errors[table] ?? null };
       throw new Error(`Unexpected maybeSingle query for ${table}`);
     }),
-    then: (resolve: (value: { data: null; error: null }) => unknown) =>
-      Promise.resolve({ data: null, error: null }).then(resolve),
+    then: (resolve: (value: { data: null; error: { message: string } | null }) => unknown) =>
+      Promise.resolve({ data: null, error: mocks.errors[`${table}:update`] ?? null }).then(resolve),
   };
 
   return query;
@@ -54,7 +55,7 @@ vi.mock("@/infrastructure/stripe/client", () => ({
   },
 }));
 
-import { billInvoiceUsageForRenewal } from "./usage-billing";
+import { billInvoiceUsageForRenewal, buildInvoiceUsageIdempotencyKey } from "./usage-billing";
 
 const periodStart = new Date("2026-06-01T00:00:00.000Z");
 const periodEnd = new Date("2026-07-01T00:00:00.000Z");
@@ -82,6 +83,7 @@ describe("billInvoiceUsageForRenewal", () => {
     };
     mocks.plan = { invoices_included: 100 };
     mocks.sentCount = 0;
+    mocks.errors = {};
     mocks.updates.length = 0;
     mocks.invoiceItemCreate.mockResolvedValue({ id: "ii-1" });
   });
@@ -111,7 +113,7 @@ describe("billInvoiceUsageForRenewal", () => {
     expect(mocks.invoiceItemCreate).toHaveBeenCalledWith(expect.objectContaining({
       amount: 900,
       description: "Documents sent to R365 (12 sent, 0 included, 12 × $0.75)",
-    }));
+    }), expect.objectContaining({ idempotencyKey: expect.any(String) }));
   });
 
   it("combines the plan allowance and purchased invoice balance", async () => {
@@ -124,18 +126,17 @@ describe("billInvoiceUsageForRenewal", () => {
     expect(mocks.invoiceItemCreate).toHaveBeenCalledWith(expect.objectContaining({
       amount: 250,
       description: "Documents sent to R365 (125 sent, 120 included, 5 × $0.50)",
-    }));
+    }), expect.any(Object));
   });
 
-  it("does not create a positive charge below the allowance", async () => {
+  it("records a no-charge period without creating a Stripe invoice item", async () => {
     mocks.addon = { ...mocks.addon, invoice_balance: 20 };
     mocks.sentCount = 100;
 
     await bill();
 
-    // Current gap: production still sends a zero-amount invoice item to Stripe.
-    expect(mocks.invoiceItemCreate).toHaveBeenCalledWith(expect.objectContaining({ amount: 0 }));
-    expect(mocks.invoiceItemCreate.mock.calls[0][0].amount).not.toBeGreaterThan(0);
+    expect(mocks.invoiceItemCreate).not.toHaveBeenCalled();
+    expect(mocks.updates).toContainEqual({ last_usage_billed_through: periodEnd.toISOString() });
   });
 
   it("skips a period already covered by the local usage marker", async () => {
@@ -172,7 +173,9 @@ describe("billInvoiceUsageForRenewal", () => {
       subscription: "sub-1",
       amount: 150,
       currency: "usd",
-    }));
+    }), {
+      idempotencyKey: buildInvoiceUsageIdempotencyKey("org-1", periodStart, periodEnd),
+    });
     expect(mocks.updates).toContainEqual({
       last_usage_billed_through: periodEnd.toISOString(),
     });
@@ -186,5 +189,28 @@ describe("billInvoiceUsageForRenewal", () => {
     await expect(bill()).rejects.toThrow("Stripe unavailable");
 
     expect(mocks.updates).toHaveLength(0);
+  });
+
+  it("does not charge or advance the marker when the document count fails", async () => {
+    mocks.addon = { ...mocks.addon, invoice_allowance_override: 0 };
+    mocks.errors["qbo_unified_invoices:count"] = { message: "count unavailable" };
+
+    await expect(bill()).rejects.toThrow("Unable to count delivered documents: count unavailable");
+
+    expect(mocks.invoiceItemCreate).not.toHaveBeenCalled();
+    expect(mocks.updates).toHaveLength(0);
+  });
+
+  it("surfaces marker failures after Stripe uses a deterministic idempotency key", async () => {
+    mocks.addon = { ...mocks.addon, invoice_allowance_override: 0 };
+    mocks.sentCount = 3;
+    mocks.errors["organization_addons:update"] = { message: "write unavailable" };
+
+    await expect(bill()).rejects.toThrow("Unable to advance usage billing marker: write unavailable");
+
+    expect(mocks.invoiceItemCreate).toHaveBeenCalledTimes(1);
+    expect(mocks.invoiceItemCreate.mock.calls[0][1]).toEqual({
+      idempotencyKey: buildInvoiceUsageIdempotencyKey("org-1", periodStart, periodEnd),
+    });
   });
 });

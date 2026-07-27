@@ -270,8 +270,8 @@ When adding new cached queries in `cached-queries.ts`, bump the version suffix
 Run from `web/`:
 
 ```bash
-npm test                         # 405 tests / 51 files as of 2026-07-26
-npm run test:critical            # 129 critical tests with coverage thresholds
+npm test                         # 415 tests / 52 files as of 2026-07-26
+npm run test:critical            # Critical coverage gate, including QBO environment resolution
 npm run verify:rls-isolation:dev # Real PostgreSQL RLS/RPC checks, rollback-only
 npm run verify:migrations:dev    # Local migration files vs dev history
 npx tsc --noEmit --incremental false
@@ -287,4 +287,4 @@ npm run lint
 
 ### Security migration deployment (2026-07-26)
 
-Migrations `20260726000003` through `20260726000009` are applied and tracked in both dev and production. Post-deploy verification confirmed 192/192 versions, unchanged protected row counts, all public tables with RLS, and privileged RPC execution restricted to `service_role`.
+Migrations `20260726000003` through `20260726000011` are applied and tracked in both dev and production. Post-deploy verification confirmed 194/194 versions, unchanged protected row counts, all public tables with RLS, and privileged RPC execution restricted to `service_role`.

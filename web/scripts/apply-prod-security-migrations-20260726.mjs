@@ -12,6 +12,8 @@ const MIGRATIONS = [
   "20260726000007_restore_delegated_hr_scope.sql",
   "20260726000008_restore_delegated_contract_scope.sql",
   "20260726000009_restore_service_user_lookup.sql",
+  "20260726000010_stripe_event_processing_lifecycle.sql",
+  "20260726000011_keep_stripe_status_default_compatible.sql",
 ];
 const databaseUrl = process.env.SUPABASE_DB_POOLER_URL ?? "";
 const apiUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";

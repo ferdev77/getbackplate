@@ -56,6 +56,16 @@
 - Configurar explicitamente `QBO_ENVIRONMENT=sandbox` en dev antes de cualquier prueba de integracion QBO con red.
 - Mantener auditoria post-deploy y control de drift fisico ademas del historial de versiones.
 
+### Actualizacion posterior - guardrails QBO, usage billing y lifecycle Stripe
+
+- `resolveQboApiBaseUrl()` usa el project ref de Supabase como autoridad: dev fuerza `sandbox-quickbooks.api.intuit.com`; produccion conserva `quickbooks.api.intuit.com`; un override productivo explicito desde dev falla antes de hacer red.
+- Usage billing mantiene los periodos actuales, pero ahora valida la suscripcion QBO correcta, no crea invoice items de importe cero, usa una idempotency key deterministica por organizacion/periodo y no avanza el marcador ante errores de conteo o persistencia.
+- El desacople mensual para planes anuales no fue activado: requiere ledger mensual, politica de corte y definicion de cobro mensual independiente para evitar cargos retroactivos o dobles.
+- Eventos Stripe nuevos registran `processing` explicitamente y pasan a `processed` solo al finalizar. Los fallos guardan error; el cleanup elimina unicamente exitos completados y conserva evidencia `failed/processing`.
+- El default SQL de `status` permanece `processed` para compatibilidad durante rolling deploys con instancias de codigo anterior.
+- Migraciones `20260726000010_stripe_event_processing_lifecycle.sql` y `20260726000011_keep_stripe_status_default_compatible.sql`, aplicadas y verificadas en DEV/PROD.
+- Baseline posterior: 415 tests en 52 archivos; 194/194 migraciones en DEV/PROD.
+
 ---
 
 ## 2026-07-01 — Módulo HR: delegación de gestión de empleados a empleados

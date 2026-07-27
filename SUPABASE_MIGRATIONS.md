@@ -2,7 +2,7 @@
 
 Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 
-> **Ultima actualizacion:** 2026-07-26. Hay 192 migraciones en `supabase/migrations/`. DEV y PROD estan sincronizados 192/192. Las migraciones de hardening `20260726000003` a `20260726000009` fueron aplicadas y verificadas en ambos entornos. La fila 114 conserva ademas una copia historica en `web/supabase/migrations/`.
+> **Ultima actualizacion:** 2026-07-26. Hay 194 migraciones en `supabase/migrations/`. DEV y PROD estan sincronizados 194/194. Las migraciones de hardening `20260726000003` a `20260726000011` fueron aplicadas y verificadas en ambos entornos. La fila 114 conserva ademas una copia historica en `web/supabase/migrations/`.
 
 ## Todas las migraciones (orden cronológico)
 
@@ -200,6 +200,8 @@ Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 | 190 | `20260726000007_restore_delegated_hr_scope.sql` | Preserva `employees.view` delegado con interseccion de locaciones |
 | 191 | `20260726000008_restore_delegated_contract_scope.sql` | Extiende el mismo scope delegado a contratos y salarios autorizados |
 | 192 | `20260726000009_restore_service_user_lookup.sql` | Restaura lookup Auth faltante fisicamente y lo limita a `service_role` |
+| 193 | `20260726000010_stripe_event_processing_lifecycle.sql` | Agrega lifecycle durable `processing/processed/failed`, metadata y errores de eventos Stripe |
+| 194 | `20260726000011_keep_stripe_status_default_compatible.sql` | Conserva default compatible durante rolling deploy; el codigo nuevo reserva `processing` explicitamente |
 
 ## Convención de naming
 

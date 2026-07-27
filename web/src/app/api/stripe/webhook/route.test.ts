@@ -85,6 +85,7 @@ describe("POST /api/stripe/webhook", () => {
     mocks.constructEvent.mockReturnValue({
       id: "evt-duplicate",
       type: "checkout.session.completed",
+      created: 1_774_742_400,
       data: { object: { id: "cs-duplicate" } },
     });
     const reservation = {
@@ -107,13 +108,57 @@ describe("POST /api/stripe/webhook", () => {
     await expect(response.json()).resolves.toEqual({ received: true, duplicate: true });
     expect(mocks.from).toHaveBeenCalledOnce();
     expect(mocks.from).toHaveBeenCalledWith("stripe_processed_events");
-    expect(reservation.insert).toHaveBeenCalledWith({ event_id: "evt-duplicate" });
+    expect(reservation.insert).toHaveBeenCalledWith(expect.objectContaining({
+      event_id: "evt-duplicate",
+      event_type: "checkout.session.completed",
+      status: "processing",
+      stripe_created_at: "2026-03-29T00:00:00.000Z",
+      started_at: expect.any(String),
+    }));
     expect(mocks.syncOrganizationPlan).not.toHaveBeenCalled();
     expect(mocks.billingNotification).not.toHaveBeenCalled();
     expect(mocks.planChangeNotification).not.toHaveBeenCalled();
     expect(mocks.billInvoiceUsageForRenewal).not.toHaveBeenCalled();
     expect(mocks.logAuditEvent).not.toHaveBeenCalled();
     expect(mocks.rpc).not.toHaveBeenCalled();
+    consoleInfo.mockRestore();
+  });
+
+  it("marks an event processed only after business handling completes", async () => {
+    mocks.constructEvent.mockReturnValue({
+      id: "evt-success",
+      type: "unhandled.test.event",
+      created: 1_774_742_400,
+      data: { object: {} },
+    });
+    const reservation = {
+      insert: vi.fn(),
+      select: vi.fn(),
+      maybeSingle: vi.fn(),
+    };
+    reservation.insert.mockReturnValue(reservation);
+    reservation.select.mockReturnValue(reservation);
+    reservation.maybeSingle.mockResolvedValue({ data: { event_id: "evt-success" }, error: null });
+    const finalization = {
+      update: vi.fn(),
+      eq: vi.fn(),
+    };
+    finalization.update.mockReturnValue(finalization);
+    finalization.eq.mockReturnValueOnce(finalization).mockResolvedValueOnce({ error: null });
+    mocks.from.mockReturnValueOnce(reservation).mockReturnValueOnce(finalization);
+    const consoleInfo = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const { POST } = await import("./route");
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(200);
+    expect(finalization.update).toHaveBeenCalledWith({
+      status: "processed",
+      completed_at: expect.any(String),
+      last_error: null,
+    });
+    expect(finalization.eq).toHaveBeenNthCalledWith(1, "event_id", "evt-success");
+    expect(finalization.eq).toHaveBeenNthCalledWith(2, "status", "processing");
     consoleInfo.mockRestore();
   });
 });

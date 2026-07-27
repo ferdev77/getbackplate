@@ -11,6 +11,9 @@ const EXPECTED_MISSING = [
   "20260726000006",
   "20260726000007",
   "20260726000008",
+  "20260726000009",
+  "20260726000010",
+  "20260726000011",
 ];
 const databaseUrl = process.env.SUPABASE_DB_POOLER_URL ?? "";
 const apiUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -36,7 +39,8 @@ try {
   );
   const remoteSet = new Set(migrationRows.map((row) => row.version));
   const missing = localVersions.filter((version) => !remoteSet.has(version));
-  const isPreDeploy = JSON.stringify(missing) === JSON.stringify(EXPECTED_MISSING);
+  const expectedSuffix = EXPECTED_MISSING.slice(EXPECTED_MISSING.length - missing.length);
+  const isPreDeploy = missing.length > 0 && JSON.stringify(missing) === JSON.stringify(expectedSuffix);
   const isPostDeploy = missing.length === 0;
   if (!isPreDeploy && !isPostDeploy) {
     throw new Error(`Unexpected production migration drift: ${missing.join(", ") || "none"}`);
@@ -52,11 +56,27 @@ try {
       ('memberships', 'all_locations'),
       ('employee_module_permissions', 'can_view'),
       ('documents', 'access_scope'),
-      ('documents', 'folder_id')
+      ('documents', 'folder_id'),
+      ('stripe_processed_events', 'event_type'),
+      ('stripe_processed_events', 'stripe_created_at'),
+      ('stripe_processed_events', 'started_at'),
+      ('stripe_processed_events', 'completed_at'),
+      ('stripe_processed_events', 'attempt_count'),
+      ('stripe_processed_events', 'last_error')
     )
   `);
-  if (requiredColumns.length !== 7) {
-    throw new Error(`Production schema is missing required columns (${requiredColumns.length}/7 found)`);
+  if (requiredColumns.length !== 13) {
+    throw new Error(`Production schema is missing required columns (${requiredColumns.length}/13 found)`);
+  }
+  const { rows: stripeStatusColumn } = await client.query(`
+    select column_default
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'stripe_processed_events'
+      and column_name = 'status'
+  `);
+  if (!String(stripeStatusColumn[0]?.column_default ?? "").includes("processed")) {
+    throw new Error("Stripe event status default is not rolling-deploy compatible");
   }
 
   const { rows: stats } = await client.query(`
@@ -120,7 +140,8 @@ try {
   console.log(JSON.stringify({
     projectRef: EXPECTED_PROJECT_REF,
     migrations: { local: localVersions.length, production: migrationRows.length, missing },
-    requiredColumns: "7/7",
+    requiredColumns: "13/13",
+    stripeStatusDefault: "processed",
     rlsDisabledTables: rls[0].disabled,
     impactCounts: stats[0],
     privilegedFunctions: functions,

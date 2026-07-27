@@ -56,7 +56,7 @@ npm run dev
 npm run dev                          # Desarrollo local
 npm run lint                         # Lint
 npm run build                        # Build de producción
-npm test                             # Suite Vitest aislada (405 tests al 2026-07-26)
+npm test                             # Suite Vitest aislada (415 tests al 2026-07-26)
 npm run test:critical                # Gate de cobertura para reglas criticas
 npm run verify:rls-isolation:dev     # RLS real, transaccional, solo Supabase dev
 npm run verify:migrations:dev        # Sincronia local vs Supabase dev
@@ -112,7 +112,7 @@ Regla: `supabase/migrations/` es la fuente de verdad. El estado aplicado debe do
 ## Migraciones Supabase
 
 - Ubicación: `supabase/migrations/` (fuente de verdad)
-- Índice completo: [`SUPABASE_MIGRATIONS.md`](SUPABASE_MIGRATIONS.md) - 192 migraciones al 2026-07-26
+- Índice completo: [`SUPABASE_MIGRATIONS.md`](SUPABASE_MIGRATIONS.md) - 194 migraciones al 2026-07-26
 - Scripts de migración operativa: [`scripts/`](scripts/) — ver [`DOCS/4_Operaciones_y_Guias/GUIA_SCRIPTS_PLATAFORMA.md`](DOCS/4_Operaciones_y_Guias/GUIA_SCRIPTS_PLATAFORMA.md)
 
 ```bash
@@ -127,7 +127,7 @@ cd web && npm run verify:migrations:dev
 ```
 ☐ npm run lint        → sin errores
 ☐ npm run build       → sin errores
-☐ npm test            → 405/405 pasando (baseline 2026-07-26)
+☐ npm test            → 415/415 pasando (baseline 2026-07-26)
 ☐ npm run test:critical → umbrales criticos aprobados
 ☐ npm run verify:rls-isolation:dev → RLS real aprobado, sin residuos
 ☐ npm run verify:migrations:dev → local y DEV sincronizados

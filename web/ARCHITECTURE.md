@@ -133,7 +133,7 @@ Si Upstash no está configurado, el rate limiting se desactiva silenciosamente.
 
 ## Estrategia de testing
 
-**Baseline validado el 2026-07-26:** 405 tests Vitest, 129 tests criticos, RLS real aprobado y 192 migraciones sincronizadas en dev/prod.
+**Baseline validado el 2026-07-26:** 415 tests Vitest, gate critico verde, RLS real aprobado y 194 migraciones sincronizadas en dev/prod.
 
 ### Capas
 
