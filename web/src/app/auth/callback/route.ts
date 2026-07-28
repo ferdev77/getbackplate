@@ -181,7 +181,11 @@ export async function GET(request: Request) {
           : null;
 
         if (bridgeToken) {
-          await supabase.auth.signOut();
+          // scope: "local" only clears this domain's cookie — the default
+          // ("global") revokes the refresh token server-side, which would
+          // invalidate the very token just handed to the bridge before the
+          // target domain ever gets to use it.
+          await supabase.auth.signOut({ scope: "local" });
           revalidatePath("/", "layout");
           return NextResponse.redirect(`https://${startHost}/auth/bridge?token=${bridgeToken}`);
         }
