@@ -3,7 +3,10 @@ import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { logAuditEvent } from "@/shared/lib/audit";
+import { logAuditEvent, logAuthEvent } from "@/shared/lib/audit";
+import { AUDIT_REASON_CODES } from "@/shared/lib/audit-taxonomy";
+import { resolveOrganizationIdFromAuthHint } from "@/shared/lib/tenant-auth-branding";
+import { resolvePostLoginRedirect, PostLoginRoutingError } from "@/modules/auth/post-login-routing";
 
 function isSafeRedirectPath(path: string | null): path is string {
   return !!path && path.startsWith("/") && !path.startsWith("//") && !path.startsWith("/\\");
@@ -17,10 +20,33 @@ export async function GET(request: Request) {
   const email = requestUrl.searchParams.get("email");
   const type = requestUrl.searchParams.get("type");
   const org = requestUrl.searchParams.get("org");
+  const oauthError = requestUrl.searchParams.get("error");
   const rawNext = requestUrl.searchParams.get("next");
-  const next = isSafeRedirectPath(rawNext) ? rawNext : type === "recovery" ? "/auth/change-password?reason=recovery" : "/";
+  const billingTrack = requestUrl.searchParams.get("desde") === "integracion" ? "integration" : "platform";
 
   const supabase = await createSupabaseServerClient();
+
+  // A bare `code` with no explicit `next` only happens for a third-party
+  // OAuth sign-in (e.g. Google) started from /api/auth/google/start — every
+  // other caller (password recovery, invite acceptance, magic links) always
+  // sets `next` explicitly. That case needs the same role/MFA resolution as
+  // password login, since there is no fixed destination to fall back to.
+  const isOAuthSignIn = Boolean(code) && !rawNext && !type;
+
+  if (oauthError) {
+    await logAuthEvent({
+      action: "login.failed",
+      outcome: "denied",
+      severity: "low",
+      reasonCode: AUDIT_REASON_CODES.INVALID_CREDENTIALS,
+      metadata: { provider: "google", oauth_error: oauthError },
+    });
+    const cancelUrl = new URL("/auth/login", requestUrl.origin);
+    cancelUrl.searchParams.set("error", "Sign in with Google was canceled.");
+    if (org) cancelUrl.searchParams.set("org", org);
+    return NextResponse.redirect(cancelUrl);
+  }
+
   let authErrorMessage: string | null = null;
 
   if (code) {
@@ -42,6 +68,13 @@ export async function GET(request: Request) {
   }
 
   if (authErrorMessage) {
+    if (isOAuthSignIn) {
+      const failedUrl = new URL("/auth/login", requestUrl.origin);
+      failedUrl.searchParams.set("error", "Your Google session could not be validated. Please try again.");
+      if (org) failedUrl.searchParams.set("org", org);
+      return NextResponse.redirect(failedUrl);
+    }
+
     const redirectOnError = new URL("/auth/forgot-password", requestUrl.origin);
     redirectOnError.searchParams.set(
       "error",
@@ -54,11 +87,11 @@ export async function GET(request: Request) {
     return NextResponse.redirect(redirectOnError);
   }
 
-  if (org) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
+  if (org) {
     if (user?.email) {
       const admin = createSupabaseAdminClient();
       const { data: invitation } = await admin
@@ -101,6 +134,32 @@ export async function GET(request: Request) {
           });
         }
       }
+    }
+  }
+
+  let next = isSafeRedirectPath(rawNext) ? rawNext : type === "recovery" ? "/auth/change-password?reason=recovery" : "/";
+
+  if (isOAuthSignIn && user) {
+    const organizationIdHint = await resolveOrganizationIdFromAuthHint(org);
+    const companyDashboardPath = `/app/dashboard?billingTrack=${billingTrack}`;
+
+    try {
+      next = await resolvePostLoginRedirect({
+        userId: user.id,
+        email: user.email ?? null,
+        organizationIdHint,
+        companyDashboardPath,
+        provider: "google",
+      });
+    } catch (routingError) {
+      if (routingError instanceof PostLoginRoutingError) {
+        await supabase.auth.signOut();
+        const deniedUrl = new URL("/auth/login", requestUrl.origin);
+        deniedUrl.searchParams.set("error", routingError.message);
+        if (org) deniedUrl.searchParams.set("org", org);
+        return NextResponse.redirect(deniedUrl);
+      }
+      throw routingError;
     }
   }
 

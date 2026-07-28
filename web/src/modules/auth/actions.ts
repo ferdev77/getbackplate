@@ -26,7 +26,7 @@ import {
 import { sendEmail } from "@/shared/lib/brevo";
 import { passwordRecoveryTemplate } from "@/shared/lib/email-templates/recovery";
 import { buildRecoveryBridgeUrl } from "@/shared/lib/recovery-link";
-import { isEmailMfaRequired, createEmailMfaChallenge } from "@/modules/auth/mfa.service";
+import { resolvePostLoginRedirect, PostLoginRoutingError } from "@/modules/auth/post-login-routing";
 
 function getEmailDomain(email: string) {
   const parts = email.split("@");
@@ -176,203 +176,23 @@ export async function loginWithPasswordAction(formData: FormData) {
       redirect(`/auth/change-password?reason=first_login&next=${encodeURIComponent(nextAfterPassword)}${orgQuery}`);
     }
 
-    if (superadminRow?.user_id) {
-      await logAuthEvent({
-        action: "login.success",
-        outcome: "success",
-        severity: "low",
-        metadata: {
-          landing: "/superadmin/dashboard",
-          provider: "password",
-          role: "superadmin",
-        },
-      });
-      redirect("/superadmin/dashboard");
-    }
-
-    const { data: memberships, error: membershipsError } = await admin
-      .from("memberships")
-      .select("role_id, organization_id")
-      .eq("user_id", authData.user.id)
-      .eq("status", "active");
-
-    if (membershipsError) {
-      await logAuthEvent({
-        action: "login.failed",
-        outcome: "error",
-        severity: "high",
-        reasonCode: AUDIT_REASON_CODES.MEMBERSHIPS_QUERY_FAILED,
-        metadata: {
-          provider: "password",
-        },
-      });
-      redirect(
-        "/auth/login?error=" +
-          encodeURIComponent("Your account access could not be loaded. Please try again."),
-      );
-    }
-
-    const roleIds = [...new Set((memberships ?? []).map((row) => row.role_id))];
-
-    if (!roleIds.length) {
-      await logAuthEvent({
-        action: "login.failed",
-        outcome: "denied",
-        severity: "medium",
-        reasonCode: AUDIT_REASON_CODES.NO_ACTIVE_MEMBERSHIPS,
-        metadata: {
-          provider: "password",
-        },
-      });
-      redirect(
-        "/auth/login?error=" +
-          encodeURIComponent("Your account does not have assigned access. Contact an administrator."),
-      );
-    }
-
-    const { data: roles, error: rolesError } = await admin
-      .from("roles")
-      .select("id, code")
-      .in("id", roleIds);
-
-    if (rolesError) {
-      await logAuthEvent({
-        action: "login.failed",
-        outcome: "error",
-        severity: "high",
-        reasonCode: AUDIT_REASON_CODES.ROLES_QUERY_FAILED,
-        metadata: {
-          provider: "password",
-        },
-      });
-      redirect(
-        "/auth/login?error=" +
-          encodeURIComponent("Your account role could not be loaded. Please try again."),
-      );
-    }
-
-    const roleCodeById = new Map((roles ?? []).map((role) => [role.id, role.code]));
-    const membershipContexts = (memberships ?? []).map((row) => ({
-      organizationId: row.organization_id,
-      roleCode: roleCodeById.get(row.role_id) ?? "",
-    }));
-    const organizations = [...new Set(membershipContexts.map((row) => row.organizationId))];
-
-    const preferredOrganizationId = await getActiveOrganizationIdFromCookie();
-    const hintMatchesMembership = Boolean(
-      organizationIdHint && organizations.includes(organizationIdHint),
-    );
-    const hasPreferredOrganization = Boolean(
-      preferredOrganizationId && organizations.includes(preferredOrganizationId),
-    );
-
-    if (organizations.length > 1 && !hintMatchesMembership && !hasPreferredOrganization) {
-      await logAuthEvent({
-        action: "login.success",
-        outcome: "success",
-        severity: "low",
-        metadata: {
-          landing: "/auth/select-organization",
-          provider: "password",
-        },
-      });
-      redirect("/auth/select-organization");
-    }
-
-    const resolvedOrganizationId =
-      (hintMatchesMembership
-        ? organizationIdHint
-        : (hasPreferredOrganization ? preferredOrganizationId : organizations[0])) ?? null;
-
-    if (resolvedOrganizationId) {
-      await setActiveOrganizationIdCookie(resolvedOrganizationId);
-    }
-
-    const roleCodesInResolvedOrganization = new Set(
-      membershipContexts
-        .filter((row) => row.organizationId === resolvedOrganizationId)
-        .map((row) => row.roleCode),
-    );
-
-    if (
-      roleCodesInResolvedOrganization.has("company_admin")
-    ) {
-      if (resolvedOrganizationId) {
-        const mfaRequired = await isEmailMfaRequired({
-          organizationId: resolvedOrganizationId,
-          userId: authData.user.id,
-        });
-
-        if (mfaRequired) {
-          const challenge = await createEmailMfaChallenge({
-            userId: authData.user.id,
-            organizationId: resolvedOrganizationId,
-            email: authData.user.email ?? email,
-          });
-
-          if (!challenge.ok) {
-            await logAuthEvent({
-              action: "login.mfa_challenge_failed",
-              outcome: "error",
-              organizationId: resolvedOrganizationId,
-              severity: "high",
-              metadata: { error: challenge.error },
-            });
-            redirect(buildLoginPath({ error: challenge.error, organizationIdHint: organizationHint, billingTrack }));
-          }
-
-          await logAuthEvent({
-            action: "login.mfa_challenge_sent",
-            outcome: "success",
-            organizationId: resolvedOrganizationId,
-            severity: "low",
-            metadata: { provider: "password" },
-          });
-
-          redirect(`/auth/verify-mfa?next=${encodeURIComponent(companyDashboardPath)}`);
-        }
-      }
-
-      await logAuthEvent({
-        action: "login.success",
-        outcome: "success",
-        organizationId: resolvedOrganizationId,
-        severity: "low",
-        metadata: {
-          landing: companyDashboardPath,
-          provider: "password",
-        },
-      });
-      redirect(companyDashboardPath);
-    }
-
-    if (roleCodesInResolvedOrganization.has("employee")) {
-      await logAuthEvent({
-        action: "login.success",
-        outcome: "success",
-        organizationId: resolvedOrganizationId,
-        severity: "low",
-        metadata: {
-          landing: "/portal/home",
-          provider: "password",
-        },
-      });
-      redirect("/portal/home");
-    }
-
-  await logAuthEvent({
-      action: "login.success",
-      outcome: "success",
-      organizationId: resolvedOrganizationId,
-      severity: "low",
-      metadata: {
-        landing: companyDashboardPath,
+    let redirectPath: string;
+    try {
+      redirectPath = await resolvePostLoginRedirect({
+        userId: authData.user.id,
+        email: authData.user.email ?? email,
+        organizationIdHint,
+        companyDashboardPath,
         provider: "password",
-        reason: "fallback_role_routing",
-      },
-    });
+      });
+    } catch (routingError) {
+      if (routingError instanceof PostLoginRoutingError) {
+        redirect(buildLoginPath({ error: routingError.message, organizationIdHint: organizationHint, billingTrack }));
+      }
+      throw routingError;
+    }
 
-    redirect(companyDashboardPath);
+    redirect(redirectPath);
   } catch (error) {
     if (isRedirectError(error)) {
       throw error;

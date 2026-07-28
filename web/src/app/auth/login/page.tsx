@@ -10,6 +10,7 @@ import { ThemeAwareGetBackplateLogo } from "@/shared/ui/theme-aware-getbackplate
 import { PasswordInput } from "@/shared/ui/password-input";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 import { IntuitSignInButton } from "@/shared/ui/intuit-sign-in-button";
+import { GoogleSignInButton } from "@/shared/ui/google-sign-in-button";
 
 type LoginPageProps = {
   searchParams: Promise<{ error?: string; org?: string; desde?: string }>;
@@ -86,6 +87,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <p className="mb-6 text-center text-sm text-[var(--gbp-text2)]">
             Enter your credentials to access the dashboard.
           </p>
+
+          <div className="mb-4">
+            <GoogleSignInButton href={`/api/auth/google/start${orgQuery}${orgQuery ? "&" : "?"}desde=${passwordBillingTrack === "integration" ? "integracion" : "plataforma"}`} />
+          </div>
+          <div className="mb-4 flex items-center gap-3 text-xs text-[var(--gbp-muted)]">
+            <span className="h-px flex-1 bg-[var(--gbp-border)]" />
+            or
+            <span className="h-px flex-1 bg-[var(--gbp-border)]" />
+          </div>
 
           {showIntuitSso ? (
             <>
