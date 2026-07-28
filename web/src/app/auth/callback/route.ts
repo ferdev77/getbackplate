@@ -6,11 +6,10 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { logAuditEvent, logAuthEvent } from "@/shared/lib/audit";
 import { AUDIT_REASON_CODES } from "@/shared/lib/audit-taxonomy";
 import { resolveOrganizationIdFromAuthHint } from "@/shared/lib/tenant-auth-branding";
+import { resolveOrganizationIdFromActiveDomain, normalizeRequestHost } from "@/shared/lib/custom-domains";
 import { resolvePostLoginRedirect, PostLoginRoutingError } from "@/modules/auth/post-login-routing";
-
-function isSafeRedirectPath(path: string | null): path is string {
-  return !!path && path.startsWith("/") && !path.startsWith("//") && !path.startsWith("/\\");
-}
+import { createDomainBridgeToken } from "@/modules/auth/domain-session-bridge";
+import { isSafeRedirectPath } from "@/shared/lib/safe-redirect-path";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -22,6 +21,7 @@ export async function GET(request: Request) {
   const org = requestUrl.searchParams.get("org");
   const oauthError = requestUrl.searchParams.get("error");
   const rawNext = requestUrl.searchParams.get("next");
+  const startHost = normalizeRequestHost(requestUrl.searchParams.get("start_host"));
   const billingTrack = requestUrl.searchParams.get("desde") === "integracion" ? "integration" : "platform";
 
   const supabase = await createSupabaseServerClient();
@@ -160,6 +160,33 @@ export async function GET(request: Request) {
         return NextResponse.redirect(deniedUrl);
       }
       throw routingError;
+    }
+
+    // Google/Supabase only ever redirect back to this one canonical domain
+    // (see /api/auth/google/start). If sign-in actually started on a
+    // tenant's own custom domain, hand the session there now via a
+    // short-lived bridge token instead of leaving the user authenticated on
+    // the wrong host — this is what lets a brand new customer domain work
+    // without registering it anywhere in Google or Supabase.
+    if (startHost && startHost !== requestUrl.hostname) {
+      const bridgeOrganizationId = await resolveOrganizationIdFromActiveDomain(startHost);
+      if (bridgeOrganizationId) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const session = sessionData.session;
+        const bridgeToken = session
+          ? await createDomainBridgeToken({
+              accessToken: session.access_token,
+              refreshToken: session.refresh_token,
+              next,
+            })
+          : null;
+
+        if (bridgeToken) {
+          await supabase.auth.signOut();
+          revalidatePath("/", "layout");
+          return NextResponse.redirect(`https://${startHost}/auth/bridge?token=${bridgeToken}`);
+        }
+      }
     }
   }
 
