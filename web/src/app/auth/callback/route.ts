@@ -23,15 +23,14 @@ export async function GET(request: Request) {
   const rawNext = requestUrl.searchParams.get("next");
   const startHost = normalizeRequestHost(requestUrl.searchParams.get("start_host"));
   const billingTrack = requestUrl.searchParams.get("desde") === "integracion" ? "integration" : "platform";
+  // Set explicitly by /api/auth/google/start. Deliberately not inferred
+  // from "no `next` param present" — a misconfigured Supabase redirect_to
+  // allow-list (falls back to the project's Site URL) or the safety-net
+  // redirect below in proxy.ts can both inject a `next` before this request
+  // ever reaches here, which would otherwise hide a real Google sign-in.
+  const isOAuthSignIn = requestUrl.searchParams.get("auth_provider") === "google";
 
   const supabase = await createSupabaseServerClient();
-
-  // A bare `code` with no explicit `next` only happens for a third-party
-  // OAuth sign-in (e.g. Google) started from /api/auth/google/start — every
-  // other caller (password recovery, invite acceptance, magic links) always
-  // sets `next` explicitly. That case needs the same role/MFA resolution as
-  // password login, since there is no fixed destination to fall back to.
-  const isOAuthSignIn = Boolean(code) && !rawNext && !type;
 
   if (oauthError) {
     await logAuthEvent({

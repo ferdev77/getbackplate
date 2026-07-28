@@ -39,6 +39,12 @@ export async function GET(request: Request) {
   if (organizationHint) callbackUrl.searchParams.set("org", organizationHint);
   callbackUrl.searchParams.set("desde", billingTrack);
   if (startHost) callbackUrl.searchParams.set("start_host", startHost);
+  // Explicit marker so /auth/callback can identify this as a Google sign-in
+  // unambiguously — relying on "no `next` param" alone breaks if Supabase's
+  // redirect_to allow-list is misconfigured and it falls back to the
+  // project's Site URL, or if the safety-net redirect in proxy.ts injects
+  // its own default `next` before this request reaches /auth/callback.
+  callbackUrl.searchParams.set("auth_provider", "google");
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
