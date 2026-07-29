@@ -177,6 +177,31 @@ export function EmployeeDocumentsTree({
 
 
 
+  /**
+   * Marca visualmente el arrastre en curso SIN tocar el DOM de forma sincrona
+   * dentro de onDragStart.
+   *
+   * Estos setState hacen aparecer los carteles punteados ("Soltar aqui para
+   * mover a X"), es decir INSERTAN nodos nuevos en el DOM. Si se ejecutan
+   * sincronicamente dentro de onDragStart, React re-renderiza en el mismo tick
+   * y el navegador cancela el arrastre nativo recien iniciado (se veia como
+   * "se suelta solo apenas muevo"). documents-tree-workspace.tsx (admin) nunca
+   * tuvo el problema justamente porque sus onDragStart solo tocan refs.
+   *
+   * Diferirlo un tick deja que el navegador termine de capturar la imagen de
+   * arrastre y fijar la operacion antes de que el DOM cambie.
+   */
+  function markDragVisualsDeferred(kind: "document" | "folder", id: string) {
+    window.setTimeout(() => {
+      // Si el arrastre ya termino (o fue cancelado) antes del proximo tick,
+      // no reactivamos los carteles.
+      if (dragMetaRef.current.kind !== kind || dragMetaRef.current.id !== id) return;
+      setDraggedDocumentId(kind === "document" ? id : null);
+      setDraggedFolderId(kind === "folder" ? id : null);
+      setIsDraggingColumnsItem(true);
+    }, 0);
+  }
+
   function resetDndState() {
     dragMetaRef.current = { kind: null, id: null };
     setDraggedDocumentId(null);
@@ -615,12 +640,10 @@ export function EmployeeDocumentsTree({
                 onDragStart={(event) => {
                   if (!isFolderOwner(folder)) return;
                   dragMetaRef.current = { kind: "folder", id: folder.id };
-                  setDraggedFolderId(folder.id);
-                  setDraggedDocumentId(null);
-                  setIsDraggingColumnsItem(true);
                   event.dataTransfer.setData("application/x-folder-id", folder.id);
                   event.dataTransfer.effectAllowed = "move";
                   markDndActive();
+                  markDragVisualsDeferred("folder", folder.id);
                   logDnd("dragstart-folder-tree", { folderId: folder.id });
                 }}
                 onDragEnd={resetDndState}
@@ -646,7 +669,7 @@ export function EmployeeDocumentsTree({
               <div>
                 <div className="border-l-[3px] border-[var(--gbp-border)]">
                   {docList.map((doc) => (
-                    <div key={doc.id} className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)] select-none" draggable={isOwner(doc)} onDragStart={(event) => { if (!isOwner(doc)) return; dragMetaRef.current = { kind: "document", id: doc.id }; setDraggedDocumentId(doc.id); setDraggedFolderId(null); setIsDraggingColumnsItem(true); event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; markDndActive(); logDnd("dragstart-doc-tree-nested", { documentId: doc.id }); }} onDragEnd={resetDndState}>
+                    <div key={doc.id} className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)] select-none" draggable={isOwner(doc)} onDragStart={(event) => { if (!isOwner(doc)) return; dragMetaRef.current = { kind: "document", id: doc.id }; event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; markDndActive(); markDragVisualsDeferred("document", doc.id); logDnd("dragstart-doc-tree-nested", { documentId: doc.id }); }} onDragEnd={resetDndState}>
                       <div className="min-w-0 flex-1 flex items-center gap-3" style={{ paddingLeft: `${(depth + 1) * 20}px` }}>
                          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-lg">📄</div>
                          <div className="min-w-0">
@@ -1084,7 +1107,7 @@ export function EmployeeDocumentsTree({
                         {renderFolderTree(null)}
                         {rootDocuments.map((doc) => (
                             <div key={doc.id}>
-                              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)] select-none" draggable={isOwner(doc)} onDragStart={(event) => { if (!isOwner(doc)) return; dragMetaRef.current = { kind: "document", id: doc.id }; setDraggedDocumentId(doc.id); setDraggedFolderId(null); setIsDraggingColumnsItem(true); event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; markDndActive(); logDnd("dragstart-doc-tree-root", { documentId: doc.id }); }} onDragEnd={resetDndState}>
+                              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)] select-none" draggable={isOwner(doc)} onDragStart={(event) => { if (!isOwner(doc)) return; dragMetaRef.current = { kind: "document", id: doc.id }; event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; markDndActive(); markDragVisualsDeferred("document", doc.id); logDnd("dragstart-doc-tree-root", { documentId: doc.id }); }} onDragEnd={resetDndState}>
                                 <div className="min-w-0 flex-1 flex items-center gap-3">
                                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-lg">📄</div>
                                   <div className="min-w-0">
@@ -1190,13 +1213,11 @@ export function EmployeeDocumentsTree({
                                     if (!isFolderOwner(folder)) return;
                                     suppressColumnClickRef.current = true;
                                     dragMetaRef.current = { kind: "folder", id: folder.id };
-                                    setDraggedFolderId(folder.id);
-                                    setDraggedDocumentId(null);
-                                    setIsDraggingColumnsItem(true);
                                     event.dataTransfer.setData("application/x-folder-id", folder.id);
                                     event.dataTransfer.setData("text/plain", folder.id);
                                     event.dataTransfer.effectAllowed = "move";
                                     markDndActive();
+                                    markDragVisualsDeferred("folder", folder.id);
                                     logDnd("dragstart-folder", { folderId: folder.id, columnParentId: column.parentId ?? null });
                                   }}
                                   onDragEnd={() => {
@@ -1295,9 +1316,7 @@ export function EmployeeDocumentsTree({
                                     if (!isOwner(doc)) return;
                                     suppressColumnClickRef.current = true;
                                     dragMetaRef.current = { kind: "document", id: doc.id };
-                                    setDraggedDocumentId(doc.id);
-                                    setDraggedFolderId(null);
-                                    setIsDraggingColumnsItem(true);
+                                    markDragVisualsDeferred("document", doc.id);
                                     event.dataTransfer.setData("application/x-document-id", doc.id);
                                     event.dataTransfer.setData("text/plain", doc.id);
                                     event.dataTransfer.effectAllowed = "move";
@@ -1467,7 +1486,6 @@ export function EmployeeDocumentsTree({
       {dndDebugEnabled ? (
         <div className="fixed bottom-3 right-3 z-[1300] max-h-[50vh] w-[360px] overflow-y-auto rounded-xl border border-amber-400 bg-black/90 p-3 font-mono text-[11px] text-amber-200 shadow-2xl">
           <p className="mb-2 font-bold text-amber-300">Registro de arrastrar-y-soltar (dndDebug)</p>
-          <p className="mb-2 text-amber-200/70">Auto-refresh de fondo DESACTIVADO para esta prueba.</p>
           {dndDebugLog.length === 0 ? (
             <p className="text-amber-200/70">Todavía no hay eventos. Intentá arrastrar un archivo o carpeta.</p>
           ) : (
