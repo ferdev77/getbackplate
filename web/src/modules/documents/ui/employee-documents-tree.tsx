@@ -149,6 +149,7 @@ export function EmployeeDocumentsTree({
   const previousColumnCountRef = useRef(1);
   const suppressColumnClickRef = useRef(false);
   const dragMetaRef = useRef<{ kind: "document" | "folder" | null; id: string | null }>({ kind: null, id: null });
+  const dragOverSeenRef = useRef(false);
   // ?dndDebug=1 prende el registro de arrastrar-y-soltar en consola tambien en
   // produccion (queda guardado en localStorage para no tener que repetir el
   // parametro en cada visita); nadie mas lo ve porque no hay ningun link a el.
@@ -168,6 +169,7 @@ export function EmployeeDocumentsTree({
 
   function logDnd(event: string, details: Record<string, unknown>) {
     if (!dndDebugEnabled) return;
+    if (event.startsWith("dragstart")) dragOverSeenRef.current = false;
     console.debug(`[documents-dnd:employee] ${event}`, details);
     setDndDebugLog((prev) => [{ event, details, at: new Date().toLocaleTimeString() }, ...prev].slice(0, 15));
   }
@@ -199,6 +201,12 @@ export function EmployeeDocumentsTree({
     resetDndState,
     isDragActive: () => Boolean(draggedDocumentId || draggedFolderId || dragMetaRef.current.kind),
     onDeferredRefresh: () => router.refresh(),
+    onDebugGlobalDragEnd: (wasActive) => {
+      // Si esto llega con wasActive=true, el propio onDragEnd del elemento
+      // arrastrado nunca se ejecuto: el nodo DOM se destruyo a mitad del
+      // arrastre (re-render), no fue el usuario soltando el mouse.
+      logDnd("global-safety-net:dragend", { wasActive, sourceNodeDestroyedMidDrag: wasActive });
+    },
   });
 
   const {
@@ -1118,6 +1126,10 @@ export function EmployeeDocumentsTree({
                             className="w-[300px] shrink-0 bg-[var(--gbp-bg)] p-3"
                             onDragOver={(event) => {
                               event.preventDefault();
+                              if (!dragOverSeenRef.current) {
+                                dragOverSeenRef.current = true;
+                                logDnd("dragover-column", { isRootColumn, columnParentId: column.parentId ?? null });
+                              }
                               if (isRootColumn) {
                                 setDropRootColumn(true);
                               } else {
@@ -1220,6 +1232,10 @@ export function EmployeeDocumentsTree({
                                   onDragOver={(event) => {
                                     event.preventDefault();
                                     event.stopPropagation();
+                                    if (!dragOverSeenRef.current) {
+                                      dragOverSeenRef.current = true;
+                                      logDnd("dragover-folder-target", { targetFolderId: folder.id });
+                                    }
                                     setDropFolderId(folder.id);
                                     setDropRootColumn(false);
                                     setDropColumnTargetId(null);
