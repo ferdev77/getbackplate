@@ -42,6 +42,12 @@ const ids = {
   documentAndScope: randomUUID(),
   documentDirectUser: randomUUID(),
   documentBranchOnly: randomUUID(),
+  employeeMultiLoc: randomUUID(),
+  announcementAndScope: randomUUID(),
+  announcementDirectUser: randomUUID(),
+  announcementSecondaryLocation: randomUUID(),
+  checklistAndScope: randomUUID(),
+  checklistDirectUser: randomUUID(),
 };
 
 const client = new pg.Client({ connectionString: databaseUrl, ssl: { rejectUnauthorized: false } });
@@ -77,9 +83,21 @@ async function canReadDocument(userId, documentId) {
   });
 }
 
+// Lee a traves de la politica RLS real de cada tabla, no llamando a la funcion
+// can_read_* directamente: asi se verifica el overload que la politica elige.
+async function canReadRow(table, userId, rowId) {
+  return asUser(userId, async () => {
+    const { rows } = await client.query(
+      `select exists(select 1 from public.${pg.escapeIdentifier(table)} where id = $1) as allowed`,
+      [rowId],
+    );
+    return rows[0].allowed;
+  });
+}
+
 async function createFixtures() {
   const instanceId = "00000000-0000-0000-0000-000000000000";
-  const users = [ids.admin, ids.employeeA, ids.employeeMismatch, ids.employeeOutOfScope, ids.employeeB];
+  const users = [ids.admin, ids.employeeA, ids.employeeMismatch, ids.employeeOutOfScope, ids.employeeB, ids.employeeMultiLoc];
   for (const [index, userId] of users.entries()) {
     await client.query(`
       insert into auth.users (
@@ -119,6 +137,14 @@ async function createFixtures() {
       ($1,$2,$3,$4,'active'), ($1,$5,$6,$4,'active'), ($1,$7,$6,$4,'active'),
       ($1,$8,$6,$9,'active'), ($10,$11,$6,$12,'active')
   `, [ids.organizationA, ids.admin, roleByCode.company_admin, ids.branchA, ids.employeeA, roleByCode.employee, ids.employeeMismatch, ids.employeeOutOfScope, ids.branchA2, ids.organizationB, ids.employeeB, ids.branchB]);
+
+  // Empleado multi-sucursal: su sucursal principal es A2, pero tiene A como
+  // sucursal secundaria. Sin ficha de empleado a proposito, para no alterar las
+  // aserciones de visibilidad de employees/employee_contracts.
+  await client.query(`
+    insert into public.memberships (organization_id, user_id, role_id, branch_id, location_scope_ids, status)
+    values ($1,$2,$3,$4,$5::uuid[],'active')
+  `, [ids.organizationA, ids.employeeMultiLoc, roleByCode.employee, ids.branchA2, [ids.branchA]]);
   await client.query(`
     insert into public.employees (id, organization_id, branch_id, user_id, first_name, last_name, position, department, department_id)
     values
@@ -151,6 +177,26 @@ async function createFixtures() {
     position_ids: [ids.positionA],
   });
   const directScope = JSON.stringify({ users: [ids.employeeA], locations: [], department_ids: [], position_ids: [] });
+
+  // Avisos y checklists: mismas dos formas de alcance que documentos, para que
+  // la Regla de Oro quede protegida en los tres modulos y no solo en uno.
+  // can_read_announcement corta antes si created_by es el lector, por eso los
+  // crea el admin.
+  const primaryLocationScope = JSON.stringify({ users: [], locations: [ids.branchA], department_ids: [], position_ids: [] });
+  await client.query(`
+    insert into public.announcements (id, organization_id, branch_id, created_by, title, body, target_scope)
+    values
+      ($1,$2,null,$3,'AND scope','body',$4::jsonb),
+      ($5,$2,null,$3,'Direct user','body',$6::jsonb),
+      ($7,$2,null,$3,'Primary location only','body',$8::jsonb)
+  `, [ids.announcementAndScope, ids.organizationA, ids.admin, andScope, ids.announcementDirectUser, directScope, ids.announcementSecondaryLocation, primaryLocationScope]);
+
+  await client.query(`
+    insert into public.checklist_templates (id, organization_id, branch_id, department_id, name, target_scope)
+    values
+      ($1,$2,null,null,'AND scope',$3::jsonb),
+      ($4,$2,null,null,'Direct user',$5::jsonb)
+  `, [ids.checklistAndScope, ids.organizationA, andScope, ids.checklistDirectUser, directScope]);
   await client.query(`
     insert into public.documents (id, organization_id, branch_id, owner_user_id, title, file_path, status, access_scope)
     values
@@ -179,6 +225,26 @@ async function verify() {
   assert.equal(await canReadDocument(ids.employeeMismatch, ids.documentDirectUser), false, "direct user scope must remain private");
   assert.equal(await canReadDocument(ids.employeeA, ids.documentBranchOnly), true, "legacy branch-only documents should remain visible in the assigned branch");
   assert.equal(await canReadDocument(ids.employeeB, ids.documentBranchOnly), false, "branch-only documents must remain tenant isolated");
+
+  // Regla de Oro de Alcance en avisos y checklists. Antes solo se verificaba
+  // sobre documentos, y por eso ambos modulos se desviaron sin ser detectados:
+  // resolvian las dimensiones con OR y announcements seguia atado a un overload
+  // de marzo sin soporte multi-sucursal.
+  assert.equal(await canReadRow("announcements", ids.employeeA, ids.announcementAndScope), true, "announcements: all populated dimensions should match");
+  assert.equal(await canReadRow("announcements", ids.employeeMismatch, ids.announcementAndScope), false, "announcements: one matching dimension must not bypass the others");
+  assert.equal(await canReadRow("announcements", ids.employeeA, ids.announcementDirectUser), true, "announcements: direct user scope should grant access");
+  assert.equal(await canReadRow("announcements", ids.employeeMismatch, ids.announcementDirectUser), false, "announcements: direct user scope must remain private");
+  assert.equal(await canReadRow("announcements", ids.employeeB, ids.announcementAndScope), false, "announcements must remain tenant isolated");
+  // La politica usa can_read_announcement/5, que hasta 2026-07-29 resolvia una
+  // unica sucursal efectiva y dejaba fuera a los empleados multi-sucursal.
+  assert.equal(await canReadRow("announcements", ids.employeeMultiLoc, ids.announcementSecondaryLocation), true, "announcements must reach an employee whose secondary location matches");
+  assert.equal(await canReadRow("announcements", ids.employeeB, ids.announcementSecondaryLocation), false, "location-scoped announcements must remain tenant isolated");
+
+  assert.equal(await canReadRow("checklist_templates", ids.employeeA, ids.checklistAndScope), true, "checklists: all populated dimensions should match");
+  assert.equal(await canReadRow("checklist_templates", ids.employeeMismatch, ids.checklistAndScope), false, "checklists: one matching dimension must not bypass the others");
+  assert.equal(await canReadRow("checklist_templates", ids.employeeA, ids.checklistDirectUser), true, "checklists: direct user scope should grant access");
+  assert.equal(await canReadRow("checklist_templates", ids.employeeMismatch, ids.checklistDirectUser), false, "checklists: direct user scope must remain private");
+  assert.equal(await canReadRow("checklist_templates", ids.employeeB, ids.checklistAndScope), false, "checklists must remain tenant isolated");
 
   await asUser(ids.employeeB, async () => {
     const companyUsers = await client.query("select * from public.get_company_users($1)", [ids.organizationA]);
@@ -239,7 +305,7 @@ try {
   await client.query("set local statement_timeout = '30s'");
   await createFixtures();
   await verify();
-  console.log("RLS dev verification passed: isolated HR, contracts, document scopes, and privileged RPC grants.");
+  console.log("RLS dev verification passed: isolated HR, contracts, document/announcement/checklist scopes, and privileged RPC grants.");
 } finally {
   await client.query("rollback");
   try {

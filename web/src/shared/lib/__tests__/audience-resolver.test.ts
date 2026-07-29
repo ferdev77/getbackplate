@@ -91,6 +91,83 @@ describe("resolveAudienceContacts", () => {
     });
   });
 
+  // Regla de Oro: OR dentro de una dimension, AND entre dimensiones pobladas.
+  // Antes esto se resolvia todo con OR, asi que agregar un filtro no reducia
+  // la audiencia. Ningun test cubria dos dimensiones a la vez.
+  describe("dimensiones combinadas (AND)", () => {
+    const empleados = [
+      // Sucursal correcta y departamento correcto.
+      { user_id: "u-ambas", branch_id: "b1", department_id: "d1", position: null, phone: null, phone_country_code: null },
+      // Sucursal correcta pero otro departamento.
+      { user_id: "u-solo-ubic", branch_id: "b1", department_id: "d2", position: null, phone: null, phone_country_code: null },
+      // Departamento correcto pero otra sucursal.
+      { user_id: "u-solo-depto", branch_id: "b2", department_id: "d1", position: null, phone: null, phone_country_code: null },
+    ];
+
+    it("requires every populated dimension, not just one", async () => {
+      const supabase = buildSupabaseMock({ employees: empleados, memberships: [], profiles: [], positions: [] });
+
+      const result = await resolveAudienceContacts({
+        supabase,
+        organizationId: "org1",
+        scope: { ...emptyScope, locations: ["b1"], department_ids: ["d1"] },
+      });
+
+      expect(result.userIds).toContain("u-ambas");
+      expect(result.userIds).not.toContain("u-solo-ubic");
+      expect(result.userIds).not.toContain("u-solo-depto");
+    });
+
+    it("keeps a listed user even when the filters exclude them", async () => {
+      const supabase = buildSupabaseMock({ employees: empleados, memberships: [], profiles: [], positions: [] });
+
+      const result = await resolveAudienceContacts({
+        supabase,
+        organizationId: "org1",
+        scope: { ...emptyScope, locations: ["b1"], department_ids: ["d1"], users: ["u-solo-depto"] },
+      });
+
+      expect(result.userIds).toContain("u-ambas");
+      expect(result.userIds).toContain("u-solo-depto");
+      expect(result.userIds).not.toContain("u-solo-ubic");
+    });
+
+    it("matches any value inside a single dimension (OR within a dimension)", async () => {
+      const supabase = buildSupabaseMock({ employees: empleados, memberships: [], profiles: [], positions: [] });
+
+      const result = await resolveAudienceContacts({
+        supabase,
+        organizationId: "org1",
+        scope: { ...emptyScope, locations: ["b1", "b2"] },
+      });
+
+      expect(result.userIds).toEqual(expect.arrayContaining(["u-ambas", "u-solo-ubic", "u-solo-depto"]));
+    });
+  });
+
+  describe("alcance de solo personas", () => {
+    it("does not broadcast to the whole organization", async () => {
+      const supabase = buildSupabaseMock({
+        employees: [
+          { user_id: "u-listado", branch_id: "b1", department_id: null, position: null, phone: null, phone_country_code: null },
+          { user_id: "u-otro", branch_id: "b1", department_id: null, position: null, phone: null, phone_country_code: null },
+        ],
+        memberships: [{ user_id: "u-listado" }, { user_id: "u-otro" }],
+        profiles: [],
+        positions: [],
+      });
+
+      const result = await resolveAudienceContacts({
+        supabase,
+        organizationId: "org1",
+        scope: { ...emptyScope, users: ["u-listado"] },
+      });
+
+      expect(result.userIds).toContain("u-listado");
+      expect(result.userIds).not.toContain("u-otro");
+    });
+  });
+
   describe("user scope", () => {
     it("always includes explicitly scoped users", async () => {
       const supabase = buildSupabaseMock({

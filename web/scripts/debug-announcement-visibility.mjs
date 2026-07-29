@@ -51,7 +51,7 @@ async function main() {
        where m.organization_id = $1 and m.status = 'active'
      ), pos as (
        select e.user_id,
-              coalesce(array_agg(dp.id::text) filter (where dp.id is not null), '{}'::text[]) as position_ids
+              coalesce(array_agg(dp.id) filter (where dp.id is not null), '{}'::uuid[]) as position_ids
        from emp e
        left join public.department_positions dp
          on dp.organization_id = $1
@@ -81,7 +81,7 @@ async function main() {
                    or (aud.user_id is null and aud.branch_id is not null and mem.branch_id is not null and aud.branch_id = mem.branch_id)
               )
             end as audience_ok,
-            public.announcement_scope_match($3::jsonb, emp.user_id, mem.branch_id, emp.department_id, pos.position_ids) as scope_ok
+            public.announcement_scope_match($3::jsonb, emp.user_id, array_remove(array[mem.branch_id], null), emp.department_id, pos.position_ids) as scope_ok
      from emp
      left join mem on mem.user_id = emp.user_id
      left join pos on pos.user_id = emp.user_id

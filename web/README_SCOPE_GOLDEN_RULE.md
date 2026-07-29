@@ -81,22 +81,45 @@ Todos los formularios que configuran alcance deben mostrar:
 - En lectura, los valores dentro de una dimension usan OR y las dimensiones pobladas usan AND.
 - El runner `npm run verify:rls-isolation:dev` protege esta regla contra regresiones SQL.
 
-## Desvios conocidos (2026-07-29)
+## Estado de cumplimiento (2026-07-29)
 
-Verificado con sondas directas contra las funciones de Postgres en dev:
+Verificado con sondas directas contra las funciones de Postgres en dev y con
+`npm run verify:rls-isolation:dev`, que ahora cubre los tres modulos:
 
 | Capa | Solo personas = privado | Dimensiones pobladas con AND |
 | --- | --- | --- |
 | `current_user_matches_document_scope` (documentos y carpetas) | Cumple | Cumple |
-| `announcement_scope_match` / `checklist_scope_match` | Cumple | **No cumple: usa OR** |
+| `announcement_scope_match` / `checklist_scope_match` | Cumple | Cumple |
 | `scope-policy.ts` (lectura en la app) | Cumple | Cumple |
-| `audience-resolver.ts` (destinatarios de notificaciones) | Cumple | **No cumple: usa OR** |
+| `audience-resolver.ts` (destinatarios de notificaciones) | Cumple | Cumple |
 
-El desvio de OR en avisos y checklists hace que cumplir una sola dimension
-alcance para entrar (por ejemplo, estar en la ubicacion correcta pero en otro
-departamento). El runner de RLS solo cubre documentos, por eso no lo detecta.
-Pendiente de decision de producto antes de corregirlo, porque quita acceso a
-gente que hoy lo tiene.
+### Desvios corregidos
+
+- `scope-policy.ts` trataba un alcance de solo personas como difusion
+  (corregido 2026-07-29, commit `0aec2d8d`).
+- `announcement_scope_match` / `checklist_scope_match` resolvian las dimensiones
+  con OR: cumplir la ubicacion alcanzaba aunque el departamento o el puesto no
+  coincidieran, con lo que agregar un filtro no reducia nada.
+- `can_read_announcement/5` — la que usa realmente la politica
+  `announcements_tenant_select` — habia quedado en la version de marzo:
+  calculaba una unica sucursal efectiva y pasaba `text[]` de puestos, con lo que
+  se ataba a un overload muerto. Un empleado multi-sucursal no veia avisos
+  alcanzados por sus sucursales secundarias. Los runners verificaban
+  `can_read_announcement/4`, que la politica no usa: por eso paso inadvertido.
+  Ahora la de 4 delega en la de 5, asi que los runners prueban el camino real.
+- Los overloads muertos `*_scope_match(jsonb, uuid, uuid, uuid, text[])` fueron
+  eliminados para que no puedan volver a capturar una llamada por resolucion de
+  tipos.
+
+Los tres ultimos se corrigieron en la migracion
+`20260729000002_scope_and_semantics_announcements_checklists.sql`.
+
+### Como no volver a desviarse
+
+`verify:rls-isolation:dev` afirma, para documentos, avisos y checklists, que
+cumplir una sola dimension no saltea las otras y que un alcance de solo personas
+sigue siendo privado. Cualquier funcion nueva de lectura por alcance deberia
+sumarse a ese runner.
 
 ## Cobertura
 

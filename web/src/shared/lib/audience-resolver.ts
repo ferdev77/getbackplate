@@ -56,6 +56,29 @@ export type AudienceResolverInput = {
 type MembershipScope = { branchIds: Set<string>; allLocations: boolean };
 
 /**
+ * Regla de Oro de Alcance (web/README_SCOPE_GOLDEN_RULE.md): dentro de una
+ * dimension los valores usan OR, y las dimensiones pobladas se combinan con
+ * AND. Antes esto resolvia todo con OR, asi que cumplir una sola dimension
+ * bastaba para entrar en la audiencia y agregar un filtro no reducia nada:
+ * un aviso para "Sucursal Centro + departamento Cocina" se notificaba a toda
+ * la sucursal. Espeja announcement_scope_match / checklist_scope_match.
+ */
+function matchesScopeDimensions(params: {
+  hasLocationFilter: boolean;
+  hasDepartmentFilter: boolean;
+  hasPositionFilter: boolean;
+  byLocation: boolean;
+  byDepartment: boolean;
+  byPosition: boolean;
+}) {
+  return (
+    (!params.hasLocationFilter || params.byLocation) &&
+    (!params.hasDepartmentFilter || params.byDepartment) &&
+    (!params.hasPositionFilter || params.byPosition)
+  );
+}
+
+/**
  * Combina el alcance de sucursal de la membresia (login) con el de la
  * ficha propia (employees u organization_user_profiles) de una persona,
  * igual que ya hacen las funciones RLS de documentos/anuncios/checklists/
@@ -91,8 +114,10 @@ export async function resolveAudienceContacts(input: AudienceResolverInput): Pro
   const { supabase, organizationId, scope, templateBranchId } = input;
   const { locations, department_ids, position_ids, users } = scope;
 
-  const hasSpecificScope =
-    locations.length > 0 || department_ids.length > 0 || position_ids.length > 0 || users.length > 0;
+  const hasFilters = locations.length > 0 || department_ids.length > 0 || position_ids.length > 0;
+  // Un alcance de solo personas es privado: sin filtros, la lista ES el
+  // alcance y no una excepcion sobre una base.
+  const isBroadcast = !hasFilters && users.length === 0;
 
   const [{ data: employees }, { data: positionRows }, { data: memberships }, { data: profiles }, { data: orgBranches }] =
     await Promise.all([
@@ -163,7 +188,6 @@ export async function resolveAudienceContacts(input: AudienceResolverInput): Pro
       allOrgBranchIds,
     });
 
-    const byTemplateBranch = Boolean(templateBranchId) && effectiveBranchIds.has(templateBranchId!);
     const byLocation = locations.length > 0 && locations.some((id) => effectiveBranchIds.has(id));
     const byDepartment =
       department_ids.length > 0 && Boolean(emp.department_id) && department_ids.includes(emp.department_id!);
@@ -173,9 +197,23 @@ export async function resolveAudienceContacts(input: AudienceResolverInput): Pro
     const byPosition = position_ids.length > 0 && empPositionIds.some((id) => position_ids.includes(id));
     const byUser = users.length > 0 && users.includes(emp.user_id);
 
-    const isInAudience = hasSpecificScope
-      ? byLocation || byDepartment || byPosition || byUser
-      : byTemplateBranch || !templateBranchId;
+    // La sucursal propia de la plantilla filtra antes que el alcance, igual que
+    // el corte temprano de can_read_announcement / can_read_checklist_template.
+    const passesTemplateBranch = !templateBranchId || effectiveBranchIds.has(templateBranchId);
+
+    const isInAudience =
+      byUser ||
+      (passesTemplateBranch &&
+        (hasFilters
+          ? matchesScopeDimensions({
+              hasLocationFilter: locations.length > 0,
+              hasDepartmentFilter: department_ids.length > 0,
+              hasPositionFilter: position_ids.length > 0,
+              byLocation,
+              byDepartment,
+              byPosition,
+            })
+          : isBroadcast));
 
     if (isInAudience) recipientUserIds.add(emp.user_id);
   }
@@ -191,7 +229,6 @@ export async function resolveAudienceContacts(input: AudienceResolverInput): Pro
       allOrgBranchIds,
     });
 
-    const byTemplateBranch = Boolean(templateBranchId) && effectiveBranchIds.has(templateBranchId!);
     const byLocation = locations.length > 0 && locations.some((id) => effectiveBranchIds.has(id));
     const byDepartment =
       department_ids.length > 0 && Boolean(profile.department_id) && department_ids.includes(profile.department_id!);
@@ -199,14 +236,26 @@ export async function resolveAudienceContacts(input: AudienceResolverInput): Pro
       position_ids.length > 0 && Boolean(profile.position_id) && position_ids.includes(profile.position_id!);
     const byUser = users.length > 0 && users.includes(profile.user_id);
 
-    const isInAudience = hasSpecificScope
-      ? byLocation || byDepartment || byPosition || byUser
-      : byTemplateBranch || !templateBranchId;
+    const passesTemplateBranch = !templateBranchId || effectiveBranchIds.has(templateBranchId);
+
+    const isInAudience =
+      byUser ||
+      (passesTemplateBranch &&
+        (hasFilters
+          ? matchesScopeDimensions({
+              hasLocationFilter: locations.length > 0,
+              hasDepartmentFilter: department_ids.length > 0,
+              hasPositionFilter: position_ids.length > 0,
+              byLocation,
+              byDepartment,
+              byPosition,
+            })
+          : isBroadcast));
 
     if (isInAudience) recipientUserIds.add(profile.user_id);
   }
 
-  if (!hasSpecificScope && !templateBranchId) {
+  if (isBroadcast && !templateBranchId) {
     for (const userId of membershipUserIds) recipientUserIds.add(userId);
   }
 
