@@ -161,7 +161,7 @@ export function EmployeeDocumentsTree({
     }
     return window.localStorage.getItem("gbp-dnd-debug") === "1";
   });
-  const dndDebugSnapshotRef = useRef<{ event: string; details: Record<string, unknown>; at: string } | null>(null);
+  const [dndDebugLog, setDndDebugLog] = useState<Array<{ event: string; details: Record<string, unknown>; at: string }>>([]);
   const prevDocumentsKeyRef = useRef("");
   const prevFoldersKeyRef = useRef("");
   const deferredPropsRef = useRef<{ documents?: DocumentRow[]; folders?: FolderRow[] } | null>(null);
@@ -169,7 +169,7 @@ export function EmployeeDocumentsTree({
   function logDnd(event: string, details: Record<string, unknown>) {
     if (!dndDebugEnabled) return;
     console.debug(`[documents-dnd:employee] ${event}`, details);
-    dndDebugSnapshotRef.current = { event, details, at: new Date().toLocaleTimeString() };
+    setDndDebugLog((prev) => [{ event, details, at: new Date().toLocaleTimeString() }, ...prev].slice(0, 15));
   }
 
 
@@ -1446,7 +1446,24 @@ export function EmployeeDocumentsTree({
         />
       ) : null}
 
-
+      {dndDebugEnabled ? (
+        <div className="fixed bottom-3 right-3 z-[1300] max-h-[50vh] w-[360px] overflow-y-auto rounded-xl border border-amber-400 bg-black/90 p-3 font-mono text-[11px] text-amber-200 shadow-2xl">
+          <p className="mb-2 font-bold text-amber-300">Registro de arrastrar-y-soltar (dndDebug)</p>
+          {dndDebugLog.length === 0 ? (
+            <p className="text-amber-200/70">Todavía no hay eventos. Intentá arrastrar un archivo o carpeta.</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {dndDebugLog.map((entry, index) => (
+                <li key={index} className="border-b border-amber-400/20 pb-1.5">
+                  <span className="text-amber-400">[{entry.at}]</span> {entry.event}
+                  <br />
+                  <span className="break-all text-amber-200/80">{JSON.stringify(entry.details)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
     </>
   );
 }
