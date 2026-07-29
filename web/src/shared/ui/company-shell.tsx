@@ -2239,6 +2239,7 @@ export function CompanyShell({
         documentsModalCatalog ? (
           <DocumentFolderModal
             onClose={() => setDocumentFolderModalOpen(false)}
+            onCreated={() => router.push("/app/documents")}
             folders={documentsModalCatalog.folders}
             branches={documentsModalCatalog.branches}
             departments={documentsModalCatalog.departments}
@@ -2252,6 +2253,7 @@ export function CompanyShell({
         documentsModalCatalog ? (
           <UploadDocumentModal
             onClose={() => setDocumentUploadModalOpen(false)}
+            onUploaded={() => router.push("/app/documents")}
             folders={documentsModalCatalog.folders}
             branches={documentsModalCatalog.branches}
             departments={documentsModalCatalog.departments}

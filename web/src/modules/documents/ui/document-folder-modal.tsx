@@ -14,6 +14,7 @@ type Employee = { id: string; user_id: string | null; first_name: string; last_n
 
 type DocumentFolderModalProps = {
   onClose?: () => void;
+  onCreated?: () => void;
   folders: Folder[];
   branches: Branch[];
   departments: Department[];
@@ -28,6 +29,7 @@ type DocumentFolderModalProps = {
 
 export function DocumentFolderModal({
   onClose,
+  onCreated,
   folders,
   branches,
   departments,
@@ -87,6 +89,7 @@ export function DocumentFolderModal({
         } else {
           router.push(redirectPath);
         }
+        onCreated?.();
         router.refresh();
       });
     } catch {

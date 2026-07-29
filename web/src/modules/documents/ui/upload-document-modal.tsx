@@ -17,6 +17,7 @@ type RecentDocument = { id: string; title: string; branch_id: string | null; cre
 
 type Props = {
   onClose?: () => void;
+  onUploaded?: () => void;
   folders: Folder[];
   branches: Branch[];
   departments: Department[];
@@ -33,6 +34,7 @@ type Props = {
 
 export function UploadDocumentModal({
   onClose,
+  onUploaded,
   folders,
   branches,
   departments,
@@ -134,6 +136,7 @@ export function UploadDocumentModal({
 
     completeTimerRef.current = setTimeout(() => {
       closeModal();
+      onUploaded?.();
       startTransition(() => {
         router.refresh();
       });
