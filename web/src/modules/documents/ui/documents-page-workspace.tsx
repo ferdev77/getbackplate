@@ -65,8 +65,15 @@ export function DocumentsPageWorkspace({
   const normalizedAction = String(initialAction ?? "").trim().toLowerCase();
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(normalizedAction === "create-folder");
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(normalizedAction === "upload");
+  const [syncedAction, setSyncedAction] = useState(normalizedAction);
   const [viewMode, setViewMode] = useState<"tree" | "columns">(initialViewMode);
   const [hydratedViewModeKey, setHydratedViewModeKey] = useState<string | null>(null);
+
+  if (normalizedAction !== syncedAction) {
+    setSyncedAction(normalizedAction);
+    if (normalizedAction === "create-folder") setIsFolderModalOpen(true);
+    if (normalizedAction === "upload") setIsUploadModalOpen(true);
+  }
 
   useEffect(() => {
     if (typeof window === "undefined") return;
