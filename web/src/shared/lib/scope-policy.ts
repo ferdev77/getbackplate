@@ -66,10 +66,30 @@ export function matchesAudienceFilters(scope: AudienceScope, subject: ScopeSubje
   return locationOk && departmentOk && positionOk;
 }
 
+/**
+ * Un alcance armado SOLO con personas (sin ubicacion/departamento/puesto) es
+ * privado: lo ven unicamente las personas listadas.
+ *
+ * Sin esto, `matchesAudienceFilters` no encuentra ningun filtro activo y
+ * devuelve true para cualquiera, con lo que elegir a una persona terminaba
+ * publicando el recurso a toda la organizacion — lo contrario de lo que el
+ * formulario da a entender.
+ *
+ * Es la regla que ya aplican `current_user_matches_document_scope` en Postgres
+ * ("a user-only scope remains private when the current user is not listed") y
+ * `resolveAudienceContacts` al resolver destinatarios de notificaciones.
+ */
+export function isUserOnlyScope(scope: AudienceScope) {
+  return scope.users.length > 0 && !hasScopeFilters(scope);
+}
+
 export function canSubjectAccessScope(scopeValue: unknown, subject: ScopeSubject) {
   const scope = parseAudienceScope(scopeValue);
   if (isAudienceUserOverride(scope, subject)) {
     return true;
+  }
+  if (isUserOnlyScope(scope)) {
+    return false;
   }
   return matchesAudienceFilters(scope, subject);
 }

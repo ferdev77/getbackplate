@@ -264,6 +264,57 @@ describe("canSubjectAccessScope", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Regla de oro: un alcance de solo personas es privado.
+// Espeja la asercion del runner de RLS ("direct user scope must remain
+// private") y lo que ya hace current_user_matches_document_scope en Postgres.
+describe("canSubjectAccessScope — alcance de solo personas", () => {
+  const userOnlyScope = { ...emptyScope, users: ["u-listed"] };
+
+  it("grants access to a listed user", () => {
+    expect(canSubjectAccessScope(userOnlyScope, { ...basicSubject, userId: "u-listed" })).toBe(true);
+  });
+
+  it("denies everyone else instead of falling back to broadcast", () => {
+    expect(canSubjectAccessScope(userOnlyScope, { ...basicSubject, userId: "u-other" })).toBe(false);
+  });
+
+  it("stays private regardless of the subject location, department or position", () => {
+    expect(
+      canSubjectAccessScope(userOnlyScope, {
+        userId: "u-other",
+        locationId: "loc-any",
+        departmentId: "dept-any",
+        positionIds: ["pos-any"],
+      }),
+    ).toBe(false);
+  });
+
+  it("keeps broadcast when there are neither filters nor users", () => {
+    expect(canSubjectAccessScope(emptyScope, { ...basicSubject, userId: "u-other" })).toBe(true);
+  });
+
+  it("keeps users additive when at least one filter is set", () => {
+    const scope = { ...emptyScope, locations: ["loc1"], users: ["u-listed"] };
+    // Alcanzado por el filtro, sin estar en la lista.
+    expect(canSubjectAccessScope(scope, { ...basicSubject, userId: "u-other" })).toBe(true);
+    // En la lista, aunque el filtro no lo alcance.
+    expect(
+      canSubjectAccessScope(scope, { ...basicSubject, userId: "u-listed", locationId: "loc-other" }),
+    ).toBe(true);
+    // Ni en la lista ni alcanzado por el filtro.
+    expect(
+      canSubjectAccessScope(scope, { ...basicSubject, userId: "u-other", locationId: "loc-other" }),
+    ).toBe(false);
+  });
+
+  it("stays private when the only filter dimension carried is users, even with department or position empty arrays", () => {
+    const scope = { locations: [], department_ids: [], position_ids: [], users: ["u-listed", "u-second"] };
+    expect(canSubjectAccessScope(scope, { ...basicSubject, userId: "u-second" })).toBe(true);
+    expect(canSubjectAccessScope(scope, { ...basicSubject, userId: "u-third" })).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 describe("enforceLocationPolicy", () => {
   it("returns ok with requested locations when all are allowed", () => {
     const result = enforceLocationPolicy({

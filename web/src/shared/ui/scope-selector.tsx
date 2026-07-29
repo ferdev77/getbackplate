@@ -123,6 +123,14 @@ export function ScopeSelector({
   );
 
   const usersReachedByFilters = useMemo(() => {
+    // Un alcance de solo personas es privado (ver isUserOnlyScope en
+    // scope-policy.ts): sin filtros marcados no hay base que alcanzar, asi que
+    // el resumen no debe contar a toda la organizacion.
+    const hasFilters = selectedLocations.size > 0 || selectedDepartments.size > 0 || selectedPositions.size > 0;
+    if (!hasFilters) {
+      return selectedUsers.size > 0 ? [] : usersWithAccess;
+    }
+
     return usersWithAccess.filter((user) => {
       const locationOk = selectedLocations.size === 0
         ? true
@@ -136,7 +144,7 @@ export function ScopeSelector({
 
       return locationOk && departmentOk && positionOk;
     });
-  }, [selectedDepartments, selectedDepartmentNames, selectedLocations, selectedLocationNames, selectedPositions, selectedPositionNames, usersWithAccess]);
+  }, [selectedDepartments, selectedDepartmentNames, selectedLocations, selectedLocationNames, selectedPositions, selectedPositionNames, selectedUsers, usersWithAccess]);
 
   const reachedUserIds = useMemo(
     () => new Set(usersReachedByFilters.map((user) => user.user_id).filter(Boolean) as string[]),

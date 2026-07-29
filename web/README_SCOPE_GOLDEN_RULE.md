@@ -32,14 +32,20 @@ El alcance final siempre se resuelve asi:
 - `users` siempre suma alcance como excepcion explicita.
 - Un usuario incluido en `users` recibe acceso aunque no cumpla filtros de depto/puesto.
 - Regla para contexto empleado: solo se pueden agregar usuarios que pertenezcan a sus ubicaciones permitidas.
+- **Excepcion — alcance de solo personas:** si `users` tiene contenido y no hay
+  ningun filtro de ubicacion/depto/puesto, el alcance es **privado**: lo ven
+  unicamente las personas listadas. Sin filtros no hay base que ampliar, asi
+  que la lista pasa a ser el alcance completo y no una excepcion sobre una base.
 
 ## Comportamiento de lectura
 
 Para un usuario que intenta ver un recurso:
 
 1. Si esta en `users` => acceso permitido.
-2. Si no hay filtros de ubicacion/depto/puesto => acceso permitido.
-3. Si hay filtros:
+2. Si `users` tiene contenido y no hay filtros de ubicacion/depto/puesto
+   => acceso denegado a todo el que no este listado (alcance de solo personas).
+3. Si no hay filtros ni usuarios => acceso permitido (difusion).
+4. Si hay filtros:
    - Debe cumplir ubicacion (si fue definida), y
    - Debe cumplir departamento (si fue definido), y
    - Debe cumplir puesto (si fue definido).
@@ -74,6 +80,23 @@ Todos los formularios que configuran alcance deben mostrar:
 - En rutas de empleado, validacion extra de `users` para bloquear usuarios fuera de sus ubicaciones permitidas.
 - En lectura, los valores dentro de una dimension usan OR y las dimensiones pobladas usan AND.
 - El runner `npm run verify:rls-isolation:dev` protege esta regla contra regresiones SQL.
+
+## Desvios conocidos (2026-07-29)
+
+Verificado con sondas directas contra las funciones de Postgres en dev:
+
+| Capa | Solo personas = privado | Dimensiones pobladas con AND |
+| --- | --- | --- |
+| `current_user_matches_document_scope` (documentos y carpetas) | Cumple | Cumple |
+| `announcement_scope_match` / `checklist_scope_match` | Cumple | **No cumple: usa OR** |
+| `scope-policy.ts` (lectura en la app) | Cumple | Cumple |
+| `audience-resolver.ts` (destinatarios de notificaciones) | Cumple | **No cumple: usa OR** |
+
+El desvio de OR en avisos y checklists hace que cumplir una sola dimension
+alcance para entrar (por ejemplo, estar en la ubicacion correcta pero en otro
+departamento). El runner de RLS solo cubre documentos, por eso no lo detecta.
+Pendiente de decision de producto antes de corregirlo, porque quita acceso a
+gente que hoy lo tiene.
 
 ## Cobertura
 
