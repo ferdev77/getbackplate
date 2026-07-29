@@ -1,6 +1,6 @@
 "use client";
 
-import { Pin, Smartphone, Clock3, Mail, Bell } from "lucide-react";
+import { Pin, Smartphone, Clock3, Mail } from "lucide-react";
 import { useActionState, useEffect, useState, startTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -280,9 +280,6 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
                   >
                     <Mail className="h-3.5 w-3.5" /> Email
                   </button>
-                  <span className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--gbp-text2)]">
-                    <Bell className="h-3.5 w-3.5" /> Push (siempre activo)
-                  </span>
                 </div>
                 {notifySms ? <input type="hidden" name="notify_channel" value="sms" /> : null}
                 {notifyEmail ? <input type="hidden" name="notify_channel" value="email" /> : null}

@@ -29,6 +29,15 @@ const MODULES: Array<{ code: DelegatedPermissionModuleCode; label: string }> = [
 
 const CAPABILITIES: DelegatedPermissionCapability[] = ["view", "create", "edit", "delete"];
 
+const AUTO_VIEW_CASCADE_MODULES: DelegatedPermissionModuleCode[] = [
+  "announcements",
+  "checklists",
+  "documents",
+  "vendors",
+  "maintenance",
+  "employees",
+];
+
 const CAPABILITY_LABELS: Record<DelegatedPermissionCapability, string> = {
   view: "Ver",
   create: "Crear",
@@ -137,11 +146,11 @@ export function DelegatedPermissionsSection({ delegatedPermissions, setDelegated
 
       <p className="mb-5 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-3 text-xs text-[var(--gbp-text2)]">
         Estos permisos aplican al portal de empleado. Editar y eliminar solo se permitirá sobre contenido creado por este usuario.
+        En todos los módulos (salvo Asistente IA), habilitar Crear, Editar o Eliminar activa <strong>Ver</strong> automáticamente, y desactivar Ver apaga el resto.
         En Documentos, <strong>Subir</strong> habilita carga de archivos y organización visual (filtros/orden) de sus propios documentos.
-        En <strong>Proveedores</strong>, <strong>Ver</strong> habilita el acceso a la pantalla y luego podés delegar Crear, Editar o Eliminar.
         En <strong>Asistente IA</strong>, el permiso <strong>Usar IA</strong> habilita el asistente en el panel del empleado.
         En <strong>Mantenimiento</strong>, Crear o Responder activan Ver request automaticamente.
-        En <strong>Recursos Humanos</strong>, el permiso <strong>Ver empleados</strong> se activa automáticamente al habilitar Crear, Editar o Eliminar. El empleado solo gestiona usuarios dentro de sus locaciones asignadas.
+        En <strong>Recursos Humanos</strong>, el empleado solo gestiona usuarios dentro de sus locaciones asignadas.
       </p>
 
       <div className="space-y-4">
@@ -163,10 +172,10 @@ export function DelegatedPermissionsSection({ delegatedPermissions, setDelegated
                           [moduleItem.code]: {
                             ...prev[moduleItem.code],
                             [capability]: !prev[moduleItem.code][capability],
-                            ...((moduleItem.code === "vendors" || moduleItem.code === "maintenance" || moduleItem.code === "employees") && capability !== "view" && !prev[moduleItem.code][capability]
+                            ...(AUTO_VIEW_CASCADE_MODULES.includes(moduleItem.code) && capability !== "view" && !prev[moduleItem.code][capability]
                               ? { view: true }
                               : {}),
-                            ...((moduleItem.code === "vendors" || moduleItem.code === "maintenance" || moduleItem.code === "employees") && capability === "view" && prev[moduleItem.code].view
+                            ...(AUTO_VIEW_CASCADE_MODULES.includes(moduleItem.code) && capability === "view" && prev[moduleItem.code].view
                               ? { create: false, edit: false, delete: false }
                               : {}),
                             ...(moduleItem.code === "ai_assistant" ? { edit: false, delete: false } : {}),
