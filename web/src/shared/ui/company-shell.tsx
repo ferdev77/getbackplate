@@ -261,6 +261,10 @@ export function CompanyShell({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
+  // Links to /support use Next.js client-side routing, which never updates
+  // document.referrer (no real page load happens) — the support page's
+  // "return to where you came from" logic needs this passed explicitly.
+  const supportReturnTo = `/support?returnTo=${encodeURIComponent(`${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`)}`;
   const [menuOpen, setMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -1776,7 +1780,7 @@ export function CompanyShell({
              </div>
              <Link
                prefetch={false}
-               href="/support"
+               href={supportReturnTo}
                className={`mt-1.5 flex h-9 items-center justify-center gap-1.5 rounded-md border text-xs font-semibold transition ${isDarkTheme ? "border-white/15 bg-white/5 text-[var(--gbp-text2)] hover:bg-white/10 hover:text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-bg2)] hover:text-[var(--gbp-text)]"} ${collapsed ? "w-9" : "w-full"}`}
              >
                <LifeBuoy className="h-3.5 w-3.5 shrink-0" />
@@ -2745,7 +2749,7 @@ export function CompanyShell({
               </div>
               <Link
                 prefetch={false}
-                href="/support"
+                href={supportReturnTo}
                 onClick={() => setMenuOpen(false)}
                 className={`mt-1.5 flex h-10 w-full items-center justify-center gap-1.5 rounded-md border text-xs font-semibold transition ${isDarkTheme ? "border-white/15 bg-white/5 text-[var(--gbp-text2)] hover:bg-white/10 hover:text-white" : "border-black/10 bg-black/5 text-[var(--gbp-text2)] hover:bg-black/10 hover:text-[var(--gbp-text)]"}`}
               >
