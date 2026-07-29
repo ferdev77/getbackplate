@@ -93,6 +93,8 @@ Verificado con sondas directas contra las funciones de Postgres en dev y con
 | `scope-policy.ts` (lectura en la app) | Cumple | Cumple |
 | `audience-resolver.ts` (destinatarios de notificaciones) | Cumple | Cumple |
 
+Ya no quedan desvios abiertos.
+
 ### Desvios corregidos
 
 - `scope-policy.ts` trataba un alcance de solo personas como difusion
@@ -114,12 +116,29 @@ Verificado con sondas directas contra las funciones de Postgres en dev y con
 Los tres ultimos se corrigieron en la migracion
 `20260729000002_scope_and_semantics_announcements_checklists.sql`.
 
+- `current_user_matches_document_scope` condicionaba la privacidad del alcance
+  de solo personas a que el documento no tuviera sucursal propia. Un documento
+  dirigido a una persona pero atado a una sucursal quedaba visible para toda esa
+  sucursal. Corregido en `20260729000003_unify_scope_rules.sql`.
+- `announcement_audiences` era un segundo sistema de audiencia en paralelo a
+  `target_scope`. Nunca restringio nada, porque siempre se insertaba una fila
+  comodin que `can_read_announcement` daba por cumplida para cualquier lector.
+  Se elimino el filtro y la escritura en la misma migracion.
+- `audience-resolver.ts` tenia su propia copia de la regla. Ahora delega en
+  `canSubjectAccessScopeInAnyLocation` de `scope-policy.ts`, la misma funcion
+  que usa la lectura, para que no puedan volver a diferir.
+
 ### Como no volver a desviarse
 
 `verify:rls-isolation:dev` afirma, para documentos, avisos y checklists, que
-cumplir una sola dimension no saltea las otras y que un alcance de solo personas
-sigue siendo privado. Cualquier funcion nueva de lectura por alcance deberia
-sumarse a ese runner.
+cumplir una sola dimension no saltea las otras, que un alcance de solo personas
+sigue siendo privado (con y sin sucursal propia) y que el multi-sucursal llega.
+Cualquier funcion nueva de lectura por alcance deberia sumarse a ese runner.
+
+Desde 2026-07-29 ese runner corre en CI (job `rls-scope` en
+`.github/workflows/ci.yml`). Requiere los secrets `SUPABASE_DB_POOLER_URL_DEV` y
+`NEXT_PUBLIC_SUPABASE_URL_DEV`; si faltan, el job avisa y se saltea. **Mientras
+no esten cargados, la regla no esta protegida automaticamente.**
 
 ## Cobertura
 
