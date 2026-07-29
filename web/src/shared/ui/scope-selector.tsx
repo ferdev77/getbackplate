@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-type ScopeSelectorProps = {
+export type ScopeSelectorProps = {
   namespace: string;
   branches: Array<{ id: string; name: string }>;
   departments: Array<{ id: string; name: string }>;
@@ -425,4 +425,18 @@ export function ScopeSelector({
       ))}
     </>
   );
+}
+
+type ScopeSelectorOrInheritedProps = ScopeSelectorProps & {
+  inherited: boolean;
+  inheritedMessage: string;
+};
+
+// Un solo lugar decide "muestro el selector o el aviso de herencia": evita que
+// cada modal de Documentos repita esta misma rama y se desincronicen entre si.
+export function ScopeSelectorOrInherited({ inherited, inheritedMessage, ...scopeSelectorProps }: ScopeSelectorOrInheritedProps) {
+  if (inherited) {
+    return <p className="mt-1 text-xs text-[var(--gbp-text2)]">{inheritedMessage}</p>;
+  }
+  return <ScopeSelector {...scopeSelectorProps} />;
 }

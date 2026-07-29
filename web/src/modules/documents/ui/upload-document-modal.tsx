@@ -5,7 +5,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState, startTransition } from
 import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { ScopeSelector } from "@/shared/ui/scope-selector";
+import { ScopeSelectorOrInherited } from "@/shared/ui/scope-selector";
 import { SubmitButton } from "@/shared/ui/submit-button";
 
 type Folder = { id: string; name: string };
@@ -166,31 +166,25 @@ export function UploadDocumentModal({
 
                 <div className="mb-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
                   <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Quienes pueden ver este archivo</p>
-                  {hideScopeSelector ? (
-                    <p className="mt-1 text-xs text-[var(--gbp-text2)]">{scopeLockedMessage}</p>
-                  ) : selectedFolderId ? (
-                    <p className="mt-1 text-xs text-[var(--gbp-text2)]">
-                      Este archivo heredará automáticamente los permisos de la carpeta seleccionada.
-                    </p>
-                  ) : (
-                    <>
-                      <p className="mt-1 text-xs text-[var(--gbp-text2)]">Define acceso por locación, departamento, puesto o usuario. Esta configuración aplica cuando el archivo está en raíz.</p>
-                      <ScopeSelector
-                        namespace="upload-modal"
-                        branches={branches}
-                        departments={departments}
-                        positions={positions}
-                        users={employees}
-                        locationInputName="location_scope"
-                        departmentInputName="department_scope"
-                        positionInputName="position_scope"
-                        userInputName="user_scope"
-                        allowedLocationIds={allowedLocationIds}
-                        lockLocationSelection={lockLocationSelection}
-                        locationHelperText={lockLocationSelection ? "Tu alcance base queda limitado a tus locaciones asignadas." : undefined}
-                      />
-                    </>
-                  )}
+                  {!hideScopeSelector && !selectedFolderId ? (
+                    <p className="mt-1 text-xs text-[var(--gbp-text2)]">Define acceso por locación, departamento, puesto o usuario. Esta configuración aplica cuando el archivo está en raíz.</p>
+                  ) : null}
+                  <ScopeSelectorOrInherited
+                    inherited={hideScopeSelector || Boolean(selectedFolderId)}
+                    inheritedMessage={hideScopeSelector ? scopeLockedMessage : "Este archivo heredará automáticamente los permisos de la carpeta seleccionada."}
+                    namespace="upload-modal"
+                    branches={branches}
+                    departments={departments}
+                    positions={positions}
+                    users={employees}
+                    locationInputName="location_scope"
+                    departmentInputName="department_scope"
+                    positionInputName="position_scope"
+                    userInputName="user_scope"
+                    allowedLocationIds={allowedLocationIds}
+                    lockLocationSelection={lockLocationSelection}
+                    locationHelperText={lockLocationSelection ? "Tu alcance base queda limitado a tus locaciones asignadas." : undefined}
+                  />
                 </div>
 
                 <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Descripción (opcional)</label>
