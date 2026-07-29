@@ -122,13 +122,25 @@ export function ScopeSelector({
     [positionNameById, selectedPositions],
   );
 
+  const hasFilters = selectedLocations.size > 0 || selectedDepartments.size > 0 || selectedPositions.size > 0;
+
+  // Sin filtros ni personas el recurso es de difusion; con personas y sin
+  // filtros es privado para esas personas (ver isUserOnlyScope en
+  // scope-policy.ts). Los dos estados se muestran aparte en el resumen.
+  const isBroadcast = !hasFilters && selectedUsers.size === 0;
+
+  /**
+   * "Alcanzado por filtros" significa alcanzado por un filtro realmente marcado.
+   * Cuando no hay ninguno, nadie lo esta.
+   *
+   * Antes, sin filtros, esto devolvia a toda la organizacion y la lista salia
+   * con todos tildados. Como el tilde ya estaba puesto, hacer clic en una
+   * persona se interpretaba como destildarla y no como elegirla, asi que era
+   * imposible armar un alcance de solo personas desde la pantalla.
+   */
   const usersReachedByFilters = useMemo(() => {
-    // Un alcance de solo personas es privado (ver isUserOnlyScope en
-    // scope-policy.ts): sin filtros marcados no hay base que alcanzar, asi que
-    // el resumen no debe contar a toda la organizacion.
-    const hasFilters = selectedLocations.size > 0 || selectedDepartments.size > 0 || selectedPositions.size > 0;
     if (!hasFilters) {
-      return selectedUsers.size > 0 ? [] : usersWithAccess;
+      return [];
     }
 
     return usersWithAccess.filter((user) => {
@@ -144,7 +156,7 @@ export function ScopeSelector({
 
       return locationOk && departmentOk && positionOk;
     });
-  }, [selectedDepartments, selectedDepartmentNames, selectedLocations, selectedLocationNames, selectedPositions, selectedPositionNames, selectedUsers, usersWithAccess]);
+  }, [hasFilters, selectedDepartments, selectedDepartmentNames, selectedLocations, selectedLocationNames, selectedPositions, selectedPositionNames, usersWithAccess]);
 
   const reachedUserIds = useMemo(
     () => new Set(usersReachedByFilters.map((user) => user.user_id).filter(Boolean) as string[]),
@@ -351,10 +363,23 @@ export function ScopeSelector({
       <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Usuarios agregados manualmente (suman alcance)</label>
       <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
         <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-[var(--gbp-text2)]">
-          <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2 py-0.5">Por filtros: {usersReachedByFilters.length}</span>
-          <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2 py-0.5">Agregados: {usersAddedByOverride.length}</span>
-          <span className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[var(--gbp-accent)]">Total: {usersReachedByFilters.length + usersAddedByOverride.length}</span>
+          {isBroadcast ? (
+            <span className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 font-semibold text-[var(--gbp-accent)]">
+              Sin filtros ni personas: lo verá toda la organización ({usersWithAccess.length})
+            </span>
+          ) : (
+            <>
+              <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2 py-0.5">Por filtros: {usersReachedByFilters.length}</span>
+              <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2 py-0.5">Agregados: {usersAddedByOverride.length}</span>
+              <span className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[var(--gbp-accent)]">Total: {usersReachedByFilters.length + usersAddedByOverride.length}</span>
+            </>
+          )}
         </div>
+        {!hasFilters && selectedUsers.size > 0 ? (
+          <p className="mb-2 text-[11px] text-[var(--gbp-text2)]">
+            Sin filtros marcados, solo las personas elegidas tendrán acceso.
+          </p>
+        ) : null}
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
