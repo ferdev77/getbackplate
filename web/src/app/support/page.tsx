@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
 import { getAuthenticatedSupportIdentity } from "@/modules/support/authenticated-support-identity";
+import { isSafeRedirectPath } from "@/shared/lib/safe-redirect-path";
 import { SupportForm } from "./support-form";
 
 export const metadata: Metadata = {
@@ -9,7 +10,13 @@ export const metadata: Metadata = {
   description: "Contact GetBackplate support or submit a data access, export, correction, or deletion request.",
 };
 
-export default async function SupportPage() {
+type SupportPageProps = {
+  searchParams: Promise<{ returnTo?: string }>;
+};
+
+export default async function SupportPage({ searchParams }: SupportPageProps) {
+  const params = await searchParams;
+  const returnTo = isSafeRedirectPath(params.returnTo) ? params.returnTo : null;
   const identityResolution = await getAuthenticatedSupportIdentity().catch(() => ({ kind: "unresolved" as const }));
   return (
     <main className="min-h-screen bg-[#f7f4ef] px-5 py-12 text-slate-950 sm:py-20">
@@ -23,6 +30,7 @@ export default async function SupportPage() {
           <SupportForm
             identity={identityResolution.kind === "resolved" ? identityResolution.identity : null}
             identityBlocked={identityResolution.kind === "unresolved" || identityResolution.kind === "error"}
+            returnTo={returnTo}
           />
         </div>
         <p className="mt-6 text-center text-xs text-slate-500"><Link href="/legal/integration/privacy" className="underline">Integration Privacy Policy</Link> · <Link href="/trust" className="underline">Trust Center</Link></p>

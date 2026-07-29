@@ -6,19 +6,27 @@ import type { AuthenticatedSupportIdentity } from "@/modules/support/support-req
 export function SupportForm({
   identity,
   identityBlocked,
+  returnTo,
 }: {
   identity: AuthenticatedSupportIdentity | null;
   identityBlocked: boolean;
+  returnTo?: string | null;
 }) {
   const [status, setStatus] = useState<{ kind: "idle" | "sending" | "success" | "error"; message?: string }>({ kind: "idle" });
   const returnToRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // Only auto-return to a page on our own origin — never redirect off-site.
-    if (document.referrer && document.referrer.startsWith(window.location.origin)) {
+    // Prefer the explicit ?returnTo= set by in-app links (company-shell.tsx)
+    // — links there use Next.js client-side routing, which never updates
+    // document.referrer since no real page load happens. Referrer sniffing
+    // stays as a fallback for entry points that are plain <a> tags (e.g.
+    // the privacy policy pages), where a real navigation does occur.
+    if (returnTo) {
+      returnToRef.current = returnTo;
+    } else if (document.referrer && document.referrer.startsWith(window.location.origin)) {
       returnToRef.current = document.referrer;
     }
-  }, []);
+  }, [returnTo]);
 
   useEffect(() => {
     if (status.kind !== "success" || !returnToRef.current) return;
