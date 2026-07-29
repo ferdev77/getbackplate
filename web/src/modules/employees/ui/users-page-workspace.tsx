@@ -41,6 +41,13 @@ export function UsersPageWorkspace({
 }: UsersPageWorkspaceProps) {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(initialModalOpen);
+  const [syncedModalOpen, setSyncedModalOpen] = useState(initialModalOpen);
+  if (initialModalOpen !== syncedModalOpen) {
+    setSyncedModalOpen(initialModalOpen);
+    if (initialModalOpen) {
+      setIsModalOpen(true);
+    }
+  }
   const [deferredSnapshot, setDeferredSnapshot] = useState<{
     users: UserRow[];
     branches: Array<{ id: string; name: string }>;

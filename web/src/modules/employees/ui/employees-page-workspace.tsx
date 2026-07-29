@@ -95,6 +95,14 @@ export function EmployeesPageWorkspace({
 }: EmployeesPageWorkspaceProps) {
   const router = useRouter();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(initialModalOpen && initialModalMode === "create");
+  const [syncedModalKey, setSyncedModalKey] = useState(`${initialModalOpen}:${initialModalMode}`);
+  const modalKey = `${initialModalOpen}:${initialModalMode}`;
+  if (modalKey !== syncedModalKey) {
+    setSyncedModalKey(modalKey);
+    if (initialModalOpen && initialModalMode === "create") {
+      setIsCreateModalOpen(true);
+    }
+  }
   const [deferredSnapshot, setDeferredSnapshot] = useState<{
     employees: EmployeeRow[];
     branches: Array<{ id: string; name: string }>;
