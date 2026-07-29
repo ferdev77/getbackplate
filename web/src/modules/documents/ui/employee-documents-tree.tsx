@@ -609,7 +609,7 @@ export function EmployeeDocumentsTree({
                     });
                   }
                 }}
-                className="flex min-w-0 flex-1 items-center gap-2 text-left cursor-pointer"
+                className="flex min-w-0 flex-1 items-center gap-2 text-left cursor-pointer select-none"
                 style={{ paddingLeft: `${depth * 20}px` }}
                 draggable={isFolderOwner(folder)}
                 onDragStart={(event) => {
@@ -646,7 +646,7 @@ export function EmployeeDocumentsTree({
               <div>
                 <div className="border-l-[3px] border-[var(--gbp-border)]">
                   {docList.map((doc) => (
-                    <div key={doc.id} className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]" draggable={isOwner(doc)} onDragStart={(event) => { if (!isOwner(doc)) return; dragMetaRef.current = { kind: "document", id: doc.id }; setDraggedDocumentId(doc.id); setDraggedFolderId(null); setIsDraggingColumnsItem(true); event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; markDndActive(); logDnd("dragstart-doc-tree-nested", { documentId: doc.id }); }} onDragEnd={resetDndState}>
+                    <div key={doc.id} className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)] select-none" draggable={isOwner(doc)} onDragStart={(event) => { if (!isOwner(doc)) return; dragMetaRef.current = { kind: "document", id: doc.id }; setDraggedDocumentId(doc.id); setDraggedFolderId(null); setIsDraggingColumnsItem(true); event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; markDndActive(); logDnd("dragstart-doc-tree-nested", { documentId: doc.id }); }} onDragEnd={resetDndState}>
                       <div className="min-w-0 flex-1 flex items-center gap-3" style={{ paddingLeft: `${(depth + 1) * 20}px` }}>
                          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-lg">📄</div>
                          <div className="min-w-0">
@@ -1084,7 +1084,7 @@ export function EmployeeDocumentsTree({
                         {renderFolderTree(null)}
                         {rootDocuments.map((doc) => (
                             <div key={doc.id}>
-                              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)]" draggable={isOwner(doc)} onDragStart={(event) => { if (!isOwner(doc)) return; dragMetaRef.current = { kind: "document", id: doc.id }; setDraggedDocumentId(doc.id); setDraggedFolderId(null); setIsDraggingColumnsItem(true); event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; markDndActive(); logDnd("dragstart-doc-tree-root", { documentId: doc.id }); }} onDragEnd={resetDndState}>
+                              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--gbp-border)] px-4 py-3 transition-colors hover:bg-[var(--gbp-bg)] select-none" draggable={isOwner(doc)} onDragStart={(event) => { if (!isOwner(doc)) return; dragMetaRef.current = { kind: "document", id: doc.id }; setDraggedDocumentId(doc.id); setDraggedFolderId(null); setIsDraggingColumnsItem(true); event.dataTransfer.setData("application/x-document-id", doc.id); event.dataTransfer.effectAllowed = "move"; markDndActive(); logDnd("dragstart-doc-tree-root", { documentId: doc.id }); }} onDragEnd={resetDndState}>
                                 <div className="min-w-0 flex-1 flex items-center gap-3">
                                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] text-lg">📄</div>
                                   <div className="min-w-0">
@@ -1256,11 +1256,12 @@ export function EmployeeDocumentsTree({
                                     if (!draggedDocId) return;
                                     void moveDocumentToFolder(draggedDocId, folder.id);
                                   }}
-                                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left cursor-pointer ${dropFolderId === folder.id || column.selectedFolderId === folder.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] hover:bg-[var(--gbp-bg)]"}`}
+                                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left cursor-pointer select-none ${dropFolderId === folder.id || column.selectedFolderId === folder.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] hover:bg-[var(--gbp-bg)]"}`}
                                 >
                                   <span className="flex min-w-0 flex-col">
                                     <span className="flex min-w-0 items-center gap-2">
                                       <span
+                                        draggable={false}
                                         className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded ${isFolderOwner(folder) ? "cursor-grab text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text2)] active:cursor-grabbing" : "cursor-not-allowed text-[var(--gbp-border2)]"}`}
                                         title={isFolderOwner(folder) ? "Arrastrar carpeta" : "Solo puedes mover carpetas que creaste"}
                                       >
@@ -1323,10 +1324,11 @@ export function EmployeeDocumentsTree({
                                       setSelectedColumnDocId(doc.id);
                                     }
                                   }}
-                                  className={`w-full rounded-lg border px-3 py-2 text-left cursor-pointer ${selectedColumnDocId === doc.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] hover:bg-[var(--gbp-bg)]"}`}
+                                  className={`w-full rounded-lg border px-3 py-2 text-left cursor-pointer select-none ${selectedColumnDocId === doc.id ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] hover:bg-[var(--gbp-bg)]"}`}
                                 >
                                   <span className="flex min-w-0 items-center gap-2">
                                     <span
+                                      draggable={false}
                                       className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded ${isOwner(doc) ? "cursor-grab text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text2)] active:cursor-grabbing" : "cursor-not-allowed text-[var(--gbp-border2)]"}`}
                                       title={isOwner(doc) ? "Arrastrar archivo" : "Solo puedes mover archivos que subiste"}
                                     >
