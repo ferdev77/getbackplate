@@ -23,6 +23,7 @@ type EmployeeRow = {
   location_scope_ids: string[] | null;
   department_id: string | null;
   position: string | null;
+  position_id: string | null;
   phone_country_code: string | null;
   phone: string | null;
 };
@@ -137,7 +138,7 @@ export async function resolveAudienceContacts(input: AudienceResolverInput): Pro
     await Promise.all([
       supabase
         .from("employees")
-        .select("user_id, branch_id, all_locations, location_scope_ids, department_id, position, phone_country_code, phone, status")
+        .select("user_id, branch_id, all_locations, location_scope_ids, department_id, position, position_id, phone_country_code, phone, status")
         .eq("organization_id", organizationId)
         .eq("status", "active")
         .not("user_id", "is", null),
@@ -202,9 +203,13 @@ export async function resolveAudienceContacts(input: AudienceResolverInput): Pro
       allOrgBranchIds,
     });
 
-    const empPositionIds = emp.position
-      ? (positionIdsByName.get(emp.position.trim().toLowerCase()) ?? [])
-      : [];
+    // Referencia real si esta cargada; si no, resolucion por nombre (heredado),
+    // igual que las funciones de alcance en Postgres.
+    const empPositionIds = emp.position_id
+      ? [emp.position_id]
+      : emp.position
+        ? (positionIdsByName.get(emp.position.trim().toLowerCase()) ?? [])
+        : [];
 
     if (
       isInAudience({

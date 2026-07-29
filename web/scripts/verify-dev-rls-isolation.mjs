@@ -146,14 +146,17 @@ async function createFixtures() {
     insert into public.memberships (organization_id, user_id, role_id, branch_id, location_scope_ids, status)
     values ($1,$2,$3,$4,$5::uuid[],'active')
   `, [ids.organizationA, ids.employeeMultiLoc, roleByCode.employee, ids.branchA2, [ids.branchA]]);
+  // employeeA lleva el texto del puesto DESACTUALIZADO ("Chefs") pero position_id
+  // apuntando al puesto real. Si el alcance por puesto volviera a resolverse por
+  // nombre, dejaria de alcanzarlo y la asercion de andScope fallaria.
   await client.query(`
-    insert into public.employees (id, organization_id, branch_id, user_id, first_name, last_name, position, department, department_id)
+    insert into public.employees (id, organization_id, branch_id, user_id, first_name, last_name, position, position_id, department, department_id)
     values
-      ($1,$2,$3,$4,'Employee','A','Chef','Kitchen',$5),
-      ($6,$2,$3,$7,'Employee','Mismatch','Server','Service',$8),
-      ($9,$2,$10,$11,'Employee','Out of scope','Chef','Kitchen',$5),
-      ($12,$13,$14,$15,'Employee','B','Chef','Kitchen',$16)
-  `, [ids.employeeRowA, ids.organizationA, ids.branchA, ids.employeeA, ids.departmentA, ids.employeeRowMismatch, ids.employeeMismatch, ids.departmentMismatch, ids.employeeRowOutOfScope, ids.branchA2, ids.employeeOutOfScope, ids.employeeRowB, ids.organizationB, ids.branchB, ids.employeeB, ids.departmentB]);
+      ($1,$2,$3,$4,'Employee','A','Chefs',$17,'Kitchen',$5),
+      ($6,$2,$3,$7,'Employee','Mismatch','Server',null,'Service',$8),
+      ($9,$2,$10,$11,'Employee','Out of scope','Chef',null,'Kitchen',$5),
+      ($12,$13,$14,$15,'Employee','B','Chef',null,'Kitchen',$16)
+  `, [ids.employeeRowA, ids.organizationA, ids.branchA, ids.employeeA, ids.departmentA, ids.employeeRowMismatch, ids.employeeMismatch, ids.departmentMismatch, ids.employeeRowOutOfScope, ids.branchA2, ids.employeeOutOfScope, ids.employeeRowB, ids.organizationB, ids.branchB, ids.employeeB, ids.departmentB, ids.positionA]);
   await client.query(`
     insert into public.employee_contracts (id, organization_id, employee_id, contract_type, contract_status, salary_amount, salary_currency)
     values

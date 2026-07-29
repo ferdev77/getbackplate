@@ -714,6 +714,9 @@ export async function POST(request: Request) {
         email,
         phone,
         position,
+        // Referencia real al puesto. `position` se conserva como copia para las
+        // pantallas que muestran el nombre; el alcance usa position_id.
+        position_id: positionId,
         department,
         department_id: departmentId,
         hired_at: hiredAt,
@@ -1136,6 +1139,7 @@ export async function POST(request: Request) {
       email,
       phone,
       position,
+      position_id: positionId,
       department,
       department_id: departmentId,
       hired_at: hiredAt,
