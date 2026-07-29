@@ -1465,6 +1465,7 @@ export function EmployeeDocumentsTree({
       {dndDebugEnabled ? (
         <div className="fixed bottom-3 right-3 z-[1300] max-h-[50vh] w-[360px] overflow-y-auto rounded-xl border border-amber-400 bg-black/90 p-3 font-mono text-[11px] text-amber-200 shadow-2xl">
           <p className="mb-2 font-bold text-amber-300">Registro de arrastrar-y-soltar (dndDebug)</p>
+          <p className="mb-2 text-amber-200/70">Auto-refresh de fondo DESACTIVADO para esta prueba.</p>
           {dndDebugLog.length === 0 ? (
             <p className="text-amber-200/70">Todavía no hay eventos. Intentá arrastrar un archivo o carpeta.</p>
           ) : (

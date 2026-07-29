@@ -256,6 +256,10 @@ export function EmployeeShell({
       }
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
+        // Experimento de diagnostico: con ?dndDebug=1 activo, no se dispara
+        // NINGUN refresh automatico en toda la sesion, para descartar del
+        // todo que un re-render de fondo este matando el drag nativo.
+        if (typeof window !== "undefined" && window.localStorage.getItem("gbp-dnd-debug") === "1") return;
         const now = Date.now();
         if (now - lastRefreshAtRef.current < 1200) return;
         // Skip refresh while a drag-and-drop is active anywhere in the app
@@ -290,6 +294,8 @@ export function EmployeeShell({
 
     if (pathname.startsWith("/portal/home") || pathname.startsWith("/portal/announcements") || pathname.startsWith("/portal/checklist") || pathname.startsWith("/portal/documents") || pathname.startsWith("/portal/trash") || pathname.startsWith("/portal/vendors") || pathname.startsWith("/portal/maintenance")) {
       pollingRef = setInterval(() => {
+        // Ver comentario de arriba: mismo experimento de diagnostico.
+        if (typeof window !== "undefined" && window.localStorage.getItem("gbp-dnd-debug") === "1") return;
         const now = Date.now();
         if (now - lastRefreshAtRef.current < 7000) return;
         // Skip refresh while a drag-and-drop is active anywhere in the app
