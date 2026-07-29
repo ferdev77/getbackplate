@@ -3,7 +3,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 
 import { loginWithPasswordAction } from "@/modules/auth/actions";
-import { resolveTenantAuthBrandingByHint } from "@/shared/lib/tenant-auth-branding";
+import { resolveTenantAuthBrandingByHint, resolveIntuitSsoAvailability } from "@/shared/lib/tenant-auth-branding";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import { TagPill } from "@/shared/ui/tag-pill";
 import { ThemeAwareGetBackplateLogo } from "@/shared/ui/theme-aware-getbackplate-logo";
@@ -51,7 +51,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const passwordBillingTrack = params.desde === "integracion" ? "integration" : "platform";
   const intuitBillingTrack = params.desde === "plataforma" ? "platform" : "integration";
   const intuitReturnTo = `/app/dashboard?billingTrack=${intuitBillingTrack}`;
-  const showIntuitSso = params.desde !== "plataforma";
+  // When the organization is identifiable (custom domain or ?org= hint),
+  // its actual qbo_r365 module state is the source of truth. Otherwise
+  // (generic login, unknown org) fall back to the explicit ?desde hint and
+  // default to hidden — showing an integration-only action to someone who
+  // probably doesn't have that plan is worse than requiring the explicit
+  // link from the integration landing page.
+  const intuitAvailability = await resolveIntuitSsoAvailability(organizationIdHint, requestHost);
+  const showIntuitSso = intuitAvailability ?? params.desde === "integracion";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_var(--gbp-surface)_0%,_var(--gbp-bg)_48%,_var(--gbp-bg2)_100%)] px-6 py-10">

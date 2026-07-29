@@ -145,6 +145,29 @@ export async function resolveTenantAuthBrandingByHint(hint: string | null | unde
   };
 }
 
+/**
+ * Whether the "Sign in with Intuit" button should show for a given login
+ * request: null when no organization can be identified yet (generic login,
+ * no custom domain and no ?org= hint — the caller decides the fallback),
+ * otherwise the organization's actual qbo_r365 module state.
+ */
+export async function resolveIntuitSsoAvailability(hint: string | null | undefined, host?: string | null) {
+  const organizationId = await resolveOrganizationIdFromAuthContext({ hint, host });
+  if (!organizationId) return null;
+
+  const admin = createSupabaseAdminClient();
+  const { data: moduleRows } = await admin
+    .from("organization_modules")
+    .select("module_catalog!inner(code)")
+    .eq("organization_id", organizationId)
+    .eq("is_enabled", true);
+
+  return (moduleRows ?? []).some((row) => {
+    const catalog = row.module_catalog as unknown as { code?: string | null } | null;
+    return catalog?.code === "qbo_r365";
+  });
+}
+
 export async function resolvePublicOrganizationHintById(organizationId: string) {
   const normalized = normalizeHint(organizationId);
   if (!normalized) return "";
