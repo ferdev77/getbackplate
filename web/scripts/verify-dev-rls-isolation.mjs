@@ -42,6 +42,7 @@ const ids = {
   documentAndScope: randomUUID(),
   documentDirectUser: randomUUID(),
   documentBranchOnly: randomUUID(),
+  documentDirectUserWithBranch: randomUUID(),
   employeeMultiLoc: randomUUID(),
   announcementAndScope: randomUUID(),
   announcementDirectUser: randomUUID(),
@@ -202,8 +203,9 @@ async function createFixtures() {
     values
       ($1,$2,$3,$4,'AND scope','rls/and-scope.pdf','active',$5::jsonb),
       ($6,$2,null,$4,'Direct user','rls/direct-user.pdf','active',$7::jsonb),
-      ($8,$2,$3,$4,'Branch only','rls/branch-only.pdf','active','{}'::jsonb)
-  `, [ids.documentAndScope, ids.organizationA, ids.branchA, ids.admin, andScope, ids.documentDirectUser, directScope, ids.documentBranchOnly]);
+      ($8,$2,$3,$4,'Branch only','rls/branch-only.pdf','active','{}'::jsonb),
+      ($9,$2,$3,$4,'Direct user with branch','rls/direct-user-branch.pdf','active',$7::jsonb)
+  `, [ids.documentAndScope, ids.organizationA, ids.branchA, ids.admin, andScope, ids.documentDirectUser, directScope, ids.documentBranchOnly, ids.documentDirectUserWithBranch]);
 }
 
 async function verify() {
@@ -225,6 +227,12 @@ async function verify() {
   assert.equal(await canReadDocument(ids.employeeMismatch, ids.documentDirectUser), false, "direct user scope must remain private");
   assert.equal(await canReadDocument(ids.employeeA, ids.documentBranchOnly), true, "legacy branch-only documents should remain visible in the assigned branch");
   assert.equal(await canReadDocument(ids.employeeB, ids.documentBranchOnly), false, "branch-only documents must remain tenant isolated");
+  // Hasta 2026-07-29 la privacidad del alcance de solo personas estaba
+  // condicionada a que el documento no tuviera sucursal propia, asi que un
+  // documento dirigido a una persona pero atado a una sucursal quedaba visible
+  // para toda esa sucursal. employeeMismatch comparte la sucursal A con employeeA.
+  assert.equal(await canReadDocument(ids.employeeA, ids.documentDirectUserWithBranch), true, "direct user scope should grant access even when the document has its own branch");
+  assert.equal(await canReadDocument(ids.employeeMismatch, ids.documentDirectUserWithBranch), false, "direct user scope must remain private even when the document has its own branch");
 
   // Regla de Oro de Alcance en avisos y checklists. Antes solo se verificaba
   // sobre documentos, y por eso ambos modulos se desviaron sin ser detectados:

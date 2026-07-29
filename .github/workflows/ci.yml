@@ -90,7 +90,66 @@ jobs:
           path: web/coverage/
           retention-days: 14
 
-  # ─── 3. E2E Smoke Tests ─────────────────────────────────────────────────────
+  # ─── 3. RLS / Regla de Oro de Alcance ───────────────────────────────────────
+  # Verifica contra el proyecto Supabase de DESARROLLO que las politicas RLS
+  # cumplen la Regla de Oro (web/README_SCOPE_GOLDEN_RULE.md) en documentos,
+  # avisos y checklists: un alcance de solo personas es privado, cumplir una
+  # dimension no saltea las otras, y el multi-sucursal llega.
+  #
+  # Se agrego el 2026-07-29: hasta entonces este runner solo se corria a mano, y
+  # por eso avisos y checklists se desviaron de la regla sin que nadie lo notara.
+  #
+  # El runner crea sus fixtures dentro de una transaccion y hace rollback al
+  # terminar, y se niega a correr si detecta el proyecto de produccion.
+  rls-scope:
+    name: RLS & Scope Golden Rule
+    runs-on: ubuntu-latest
+    needs: [lint-build, unit-tests]
+    defaults:
+      run:
+        working-directory: web
+
+    env:
+      # Ambos deben apuntar al proyecto de DESARROLLO. El runner compara los dos
+      # contra el ref esperado y se niega a correr si detecta produccion.
+      SUPABASE_DB_POOLER_URL: ${{ secrets.SUPABASE_DB_POOLER_URL_DEV }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL_DEV }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Check if the dev database secret is configured
+        id: check
+        run: |
+          if [ -z "$SUPABASE_DB_POOLER_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo ""
+            echo "⚠️  Secrets de desarrollo no configurados — saltando verificación de RLS."
+            echo "   Para habilitarla, agregar en GitHub → Settings → Secrets → Actions:"
+            echo "     · SUPABASE_DB_POOLER_URL_DEV   (cadena de conexión del proyecto de DESARROLLO)"
+            echo "     · NEXT_PUBLIC_SUPABASE_URL_DEV (URL de la API del proyecto de DESARROLLO)"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "✓ Secret encontrado — corriendo verificación de RLS y alcance."
+          fi
+
+      - name: Install dependencies
+        if: steps.check.outputs.skip != 'true'
+        run: npm ci
+
+      - name: Verify RLS isolation and scope rules
+        if: steps.check.outputs.skip != 'true'
+        run: node scripts/verify-dev-rls-isolation.mjs
+
+  # ─── 4. E2E Smoke Tests ─────────────────────────────────────────────────────
   # Verifica que todos los endpoints protegidos respondan 401 (no 500).
   # Solo corre cuando lint-build y unit-tests pasan, Y los secrets están configurados.
   # Si los secrets no están, el job lo informa y se saltea limpiamente.

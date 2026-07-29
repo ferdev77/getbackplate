@@ -94,6 +94,49 @@ export function canSubjectAccessScope(scopeValue: unknown, subject: ScopeSubject
   return matchesAudienceFilters(scope, subject);
 }
 
+export type MultiLocationScopeSubject = {
+  userId: string;
+  /** Sucursales efectivas: principal, secundarias y expansion de all_locations. */
+  locationIds: string[];
+  departmentId: string | null;
+  positionIds?: string[];
+};
+
+/**
+ * Misma decision que `canSubjectAccessScope`, para un sujeto con varias
+ * sucursales efectivas: alcanza con que una de ellas satisfaga la dimension de
+ * ubicacion, y las demas dimensiones se evaluan igual.
+ *
+ * Existe para que la lectura (documentos/avisos/checklists) y la resolucion de
+ * destinatarios de notificaciones compartan una unica implementacion. Antes
+ * eran dos copias que se separaron sin que nadie lo notara: la de lectura
+ * combinaba las dimensiones con AND y la de notificaciones con OR.
+ */
+export function canSubjectAccessScopeInAnyLocation(
+  scopeValue: unknown,
+  subject: MultiLocationScopeSubject,
+) {
+  const locationIds = [...new Set(subject.locationIds.filter(Boolean))];
+
+  if (locationIds.length === 0) {
+    return canSubjectAccessScope(scopeValue, {
+      userId: subject.userId,
+      locationId: null,
+      departmentId: subject.departmentId,
+      positionIds: subject.positionIds ?? [],
+    });
+  }
+
+  return locationIds.some((locationId) =>
+    canSubjectAccessScope(scopeValue, {
+      userId: subject.userId,
+      locationId,
+      departmentId: subject.departmentId,
+      positionIds: subject.positionIds ?? [],
+    }),
+  );
+}
+
 export function enforceLocationPolicy(options: {
   requestedLocations: string[];
   allowedLocations: string[];

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
-import { buildAnnouncementAudienceRows } from "@/modules/announcements/lib/scope";
 import { logAuditEvent } from "@/shared/lib/audit";
 import {
   normalizeScopeSelection,
@@ -133,8 +132,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error?.message ?? "No se pudo crear aviso" }, { status: 400 });
   }
 
-  const audienceRows = buildAnnouncementAudienceRows(access.tenant.organizationId, created.id, scope);
-  await admin.from("announcement_audiences").insert(audienceRows);
+  // announcement_audiences ya no se escribe: la unica fuente de verdad del
+  // alcance es target_scope (ver modules/announcements/actions.ts).
 
   await logAuditEvent({
     action: "employee.announcement.create",
@@ -278,14 +277,12 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
+  // Se limpian las filas heredadas, pero ya no se vuelven a escribir.
   await admin
     .from("announcement_audiences")
     .delete()
     .eq("organization_id", access.tenant.organizationId)
     .eq("announcement_id", announcementId);
-
-  const audienceRows = buildAnnouncementAudienceRows(access.tenant.organizationId, announcementId, scope);
-  await admin.from("announcement_audiences").insert(audienceRows);
 
   await logAuditEvent({
     action: "employee.announcement.update",

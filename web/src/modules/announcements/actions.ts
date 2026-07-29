@@ -5,10 +5,7 @@ import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { z } from "zod";
-import {
-  buildAnnouncementAudienceRows,
-  readAnnouncementScopeFromFormData,
-} from "@/modules/announcements/lib/scope";
+import { readAnnouncementScopeFromFormData } from "@/modules/announcements/lib/scope";
 import { processAnnouncementDeliveries } from "@/modules/announcements/services/deliveries";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { requireTenantModule } from "@/shared/lib/access";
@@ -148,20 +145,17 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
     return { success: false, message: `Could not create announcement: ${error?.message ?? "error"}` };
   }
 
+  // announcement_audiences ya no se escribe: era una copia desnormalizada de
+  // target_scope y su filtro en can_read_announcement nunca restringio nada,
+  // porque siempre se insertaba una fila comodin que da acceso a cualquiera.
+  // La unica fuente de verdad del alcance es target_scope. Se sigue limpiando
+  // en la edicion y el borrado para no dejar filas huerfanas de antes.
   if (announcementId) {
     await supabase
       .from("announcement_audiences")
       .delete()
       .eq("organization_id", tenant.organizationId)
       .eq("announcement_id", announcement.id);
-  }
-
-  const audiencePayload = buildAnnouncementAudienceRows(tenant.organizationId, announcement.id, scope);
-
-  const { error: audienceError } = await supabase.from("announcement_audiences").insert(audiencePayload);
-
-  if (audienceError) {
-    return { success: false, message: `Announcement created, but the audience could not be saved: ${audienceError.message}` };
   }
 
   let sentContactsCount = 0;

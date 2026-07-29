@@ -33,37 +33,9 @@ export function parseAnnouncementScope(value: unknown): AnnouncementScope {
   };
 }
 
-export function buildAnnouncementAudienceRows(
-  organizationId: string,
-  announcementId: string,
-  scope: AnnouncementScope,
-) {
-  const rows: Array<{ organization_id: string; announcement_id: string; branch_id: string | null; user_id: string | null }> = [
-    {
-      organization_id: organizationId,
-      announcement_id: announcementId,
-      branch_id: null,
-      user_id: null,
-    },
-  ];
-
-  for (const locationId of scope.locations) {
-    rows.push({
-      organization_id: organizationId,
-      announcement_id: announcementId,
-      branch_id: locationId,
-      user_id: null,
-    });
-  }
-
-  for (const userId of scope.users) {
-    rows.push({
-      organization_id: organizationId,
-      announcement_id: announcementId,
-      branch_id: null,
-      user_id: userId,
-    });
-  }
-
-  return rows;
-}
+// buildAnnouncementAudienceRows fue eliminado el 2026-07-29. Escribia una copia
+// desnormalizada de target_scope en announcement_audiences, y siempre incluia
+// una fila comodin (branch_id y user_id en null) que can_read_announcement daba
+// por cumplida para cualquier lector: el filtro nunca restringio nada. Verificado
+// sobre datos reales de produccion y desarrollo antes de quitarlo. La unica
+// fuente de verdad del alcance de un aviso es target_scope.
