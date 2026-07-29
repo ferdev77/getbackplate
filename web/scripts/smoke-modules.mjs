@@ -93,11 +93,7 @@ async function main() {
           `select count(*)::int as c from public.announcements where organization_id = $1`,
           [org.id],
         );
-        const { rows: aud } = await client.query(
-          `select count(*)::int as c from public.announcement_audiences where organization_id = $1`,
-          [org.id],
-        );
-        return `announcements=${toInt(anns[0]?.c)} audiences=${toInt(aud[0]?.c)}`;
+        return `announcements=${toInt(anns[0]?.c)}`;
       }),
       () => runCheck("checklists", async () => {
         const { rows: templates } = await client.query(

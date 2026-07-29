@@ -88,12 +88,6 @@ async function main() {
      limit 200`,
     [org.id],
   );
-  const audRes = await client.query(
-    `select announcement_id, user_id, branch_id
-     from public.announcement_audiences
-     where organization_id = $1`,
-    [org.id],
-  );
   const docRes = await client.query(
     `select id,title,branch_id,access_scope
      from public.documents
@@ -124,13 +118,6 @@ async function main() {
     const list = posByDeptAndName.get(key) ?? [];
     list.push(row.id);
     posByDeptAndName.set(key, list);
-  }
-
-  const audienceByAnnouncement = new Map();
-  for (const row of audRes.rows) {
-    const list = audienceByAnnouncement.get(row.announcement_id) ?? [];
-    list.push(row);
-    audienceByAnnouncement.set(row.announcement_id, list);
   }
 
   const directLinksByEmployee = new Map();
@@ -173,12 +160,8 @@ async function main() {
       if (publishAt && publishAt > now) continue;
       if (expiresAt && expiresAt < now) continue;
 
-      const audiences = audienceByAnnouncement.get(ann.id) ?? [];
-      const audienceOk =
-        audiences.length === 0 ||
-        audiences.some((row) => row.user_id === ctx.userId || (row.user_id == null && row.branch_id == null) || (row.user_id == null && row.branch_id != null && ctx.effectiveBranchId != null && row.branch_id === ctx.effectiveBranchId));
       const scopeOk = scopeMatches(ann.target_scope ?? {}, ctx);
-      if (audienceOk && scopeOk) {
+      if (scopeOk) {
         announcementVisible += 1;
         for (const kind of scopeKinds(ann.target_scope ?? {})) hits.ann.add(kind);
       }

@@ -17,6 +17,17 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
   process.exit(1);
 }
 
+// Este runner no es de solo lectura: usa empleados reales de la base y, si no
+// encuentra los usuarios de prueba, los CREA via admin API con una contrasena
+// fija, fuera de la transaccion que despues se revierte. Ejecutarlo contra
+// produccion dejaria cuentas con credenciales conocidas. Hasta 2026-07-29 no
+// tenia ninguna proteccion: solo dependia de que el .env cargado fuera el correcto.
+const PRODUCTION_PROJECT_REF = "mfhyemwypuzsqjqxtbjf";
+if (DATABASE_URL.includes(PRODUCTION_PROJECT_REF) || SUPABASE_URL.includes(PRODUCTION_PROJECT_REF)) {
+  console.error("Verificacion rechazada: se detecto el proyecto de produccion. Este runner solo puede correr contra desarrollo.");
+  process.exit(1);
+}
+
 const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
@@ -341,12 +352,6 @@ async function verifyIsolation(client) {
     );
 
     const announcement = insertedAnnouncements[0];
-
-    await client.query(
-      `insert into public.announcement_audiences (organization_id, announcement_id, user_id)
-       values ($1,$2,$3)`,
-      [organizationId, announcement.id, actorA.user_id],
-    );
 
     const canReadAnnouncementA = await canReadAnnouncementAsUser(client, actorA.user_id, announcement);
     const canReadAnnouncementB = await canReadAnnouncementAsUser(client, actorB.user_id, announcement);

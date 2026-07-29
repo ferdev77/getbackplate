@@ -277,13 +277,6 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  // Se limpian las filas heredadas, pero ya no se vuelven a escribir.
-  await admin
-    .from("announcement_audiences")
-    .delete()
-    .eq("organization_id", access.tenant.organizationId)
-    .eq("announcement_id", announcementId);
-
   await logAuditEvent({
     action: "employee.announcement.update",
     entityType: "announcement",
@@ -326,12 +319,6 @@ export async function DELETE(request: Request) {
   if (existing.created_by !== access.userId) {
     return NextResponse.json({ error: "Solo puedes eliminar avisos creados por ti" }, { status: 403 });
   }
-
-  await admin
-    .from("announcement_audiences")
-    .delete()
-    .eq("organization_id", access.tenant.organizationId)
-    .eq("announcement_id", announcementId);
 
   const { error } = await admin
     .from("announcements")

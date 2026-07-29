@@ -165,7 +165,6 @@ export function EmployeeShell({
     if (pathname.startsWith("/portal/home")) {
       subscriptions.push(
         { table: "announcements", filter: orgFilter },
-        { table: "announcement_audiences", filter: orgFilter },
         { table: "documents", filter: orgFilter },
         { table: "document_folders", filter: orgFilter },
         { table: "checklist_templates", filter: orgFilter },
@@ -181,7 +180,6 @@ export function EmployeeShell({
     } else if (pathname.startsWith("/portal/announcements")) {
       subscriptions.push(
         { table: "announcements", filter: orgFilter },
-        { table: "announcement_audiences", filter: orgFilter },
       );
     } else if (pathname.startsWith("/portal/checklist")) {
       subscriptions.push(

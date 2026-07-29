@@ -534,10 +534,6 @@ async function main() {
 
         if (created.announcementGoodId || created.announcementBadId) {
           await client.query(
-            "delete from public.announcement_audiences where organization_id = $1 and announcement_id = any($2::uuid[])",
-            [resolvedOrgId, [created.announcementGoodId, created.announcementBadId].filter(Boolean)],
-          );
-          await client.query(
             "delete from public.announcements where organization_id = $1 and id = any($2::uuid[])",
             [resolvedOrgId, [created.announcementGoodId, created.announcementBadId].filter(Boolean)],
           );

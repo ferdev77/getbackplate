@@ -490,6 +490,24 @@ export async function updateDepartmentPosition(params: {
 
   const code = toCode(name);
 
+  // `employees.position` guarda una COPIA del nombre del puesto en texto, no una
+  // referencia. El alcance por puesto resuelve esa copia contra
+  // department_positions comparando por nombre:
+  //   lower(trim(dp.name)) = lower(trim(e.position))
+  // Si se renombra el puesto sin actualizar la copia, esos empleados dejan de
+  // resolver a ningun puesto y quedan silenciosamente fuera de todo alcance
+  // filtrado por puesto — sin error y sin aviso.
+  //
+  // Paso real: en Juans Restaurants un puesto quedo como "Server" el 2026-07-14
+  // y un empleado creado en abril conservo "Servers", con lo que dejo de recibir
+  // avisos, checklists y documentos dirigidos a ese puesto.
+  const { data: previous } = await supabase
+    .from("department_positions")
+    .select("name, department_id")
+    .eq("organization_id", organizationId)
+    .eq("id", positionId)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("department_positions")
     .update({ name, code: code || null, description })
@@ -498,6 +516,28 @@ export async function updateDepartmentPosition(params: {
 
   if (error) {
     return { ok: false, message: `Could not update position: ${error.message}` };
+  }
+
+  const previousName = previous?.name?.trim() ?? "";
+  if (previousName && previousName.toLowerCase() !== name.trim().toLowerCase()) {
+    const { data: affected, error: syncError } = await supabase
+      .from("employees")
+      .select("id, position, department_id")
+      .eq("organization_id", organizationId);
+
+    if (!syncError && affected?.length) {
+      // Se replica la misma condicion que usa el matching de alcance: mismo
+      // nombre sin distinguir mayusculas ni espacios, y mismo departamento
+      // (o empleado sin departamento asignado).
+      const idsToSync = affected
+        .filter((row) => (row.position ?? "").trim().toLowerCase() === previousName.toLowerCase())
+        .filter((row) => !row.department_id || !previous?.department_id || row.department_id === previous.department_id)
+        .map((row) => row.id);
+
+      if (idsToSync.length) {
+        await supabase.from("employees").update({ position: name }).in("id", idsToSync);
+      }
+    }
   }
 
   return { ok: true, id: positionId };

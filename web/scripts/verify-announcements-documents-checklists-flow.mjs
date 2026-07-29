@@ -114,14 +114,6 @@ async function createFlowData(client, context) {
     );
     created.announcementId = announcement.rows[0]?.id ?? null;
 
-    await client.query(
-      `
-        insert into public.announcement_audiences (organization_id, announcement_id, branch_id, user_id)
-        values ($1,$2,null,null)
-      `,
-      [context.org.id, created.announcementId],
-    );
-
     const template = await client.query(
       `
         insert into public.checklist_templates (
@@ -214,10 +206,6 @@ async function cleanupFlowData(client, context, created) {
     }
 
     if (created.announcementId) {
-      await client.query(
-        "delete from public.announcement_audiences where organization_id = $1 and announcement_id = $2",
-        [context.org.id, created.announcementId],
-      );
       await client.query(
         "delete from public.announcements where organization_id = $1 and id = $2",
         [context.org.id, created.announcementId],

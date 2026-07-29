@@ -59,12 +59,6 @@ async function main() {
         and lower(trim(dp.name)) = lower(trim(coalesce(e.position, '')))
         and (e.department_id is null or dp.department_id = e.department_id)
        group by e.user_id
-     ), aud as (
-       select aa.user_id, aa.branch_id
-       from public.announcement_audiences aa
-       where aa.organization_id = $1 and aa.announcement_id = $2
-     ), aud_any as (
-       select exists(select 1 from aud) as has_any
      )
      select emp.first_name,
             emp.last_name,
@@ -72,21 +66,13 @@ async function main() {
             mem.branch_id,
             emp.department_id,
             pos.position_ids,
-            case
-              when not (select has_any from aud_any) then true
-              else exists(
-                select 1 from aud
-                where aud.user_id = emp.user_id
-                   or (aud.user_id is null and aud.branch_id is null)
-                   or (aud.user_id is null and aud.branch_id is not null and mem.branch_id is not null and aud.branch_id = mem.branch_id)
-              )
-            end as audience_ok,
-            public.announcement_scope_match($3::jsonb, emp.user_id, array_remove(array[mem.branch_id], null), emp.department_id, pos.position_ids) as scope_ok
+            true as audience_ok,
+            public.announcement_scope_match($2::jsonb, emp.user_id, array_remove(array[mem.branch_id], null), emp.department_id, pos.position_ids) as scope_ok
      from emp
      left join mem on mem.user_id = emp.user_id
      left join pos on pos.user_id = emp.user_id
      order by emp.first_name, emp.last_name`,
-    [organization.id, announcement.id, JSON.stringify(announcement.target_scope ?? {})],
+    [organization.id, JSON.stringify(announcement.target_scope ?? {})],
   );
 
   console.log("ORG:", organization.name);

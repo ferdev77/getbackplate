@@ -380,12 +380,6 @@ async function verifyIsolation(client) {
 
     const announcement = insertedAnnouncements[0];
 
-    await client.query(
-      `insert into public.announcement_audiences (organization_id, announcement_id, user_id)
-       values ($1,$2,$3)`,
-      [organizationId, announcement.id, actorA.user_id],
-    );
-
     const canReadAnnouncementA = await canReadAnnouncementAsUser(client, actorA.user_id, announcement);
     const canReadAnnouncementB = await canReadAnnouncementAsUser(client, actorB.user_id, announcement);
 

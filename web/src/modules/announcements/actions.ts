@@ -145,18 +145,9 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
     return { success: false, message: `Could not create announcement: ${error?.message ?? "error"}` };
   }
 
-  // announcement_audiences ya no se escribe: era una copia desnormalizada de
-  // target_scope y su filtro en can_read_announcement nunca restringio nada,
-  // porque siempre se insertaba una fila comodin que da acceso a cualquiera.
-  // La unica fuente de verdad del alcance es target_scope. Se sigue limpiando
-  // en la edicion y el borrado para no dejar filas huerfanas de antes.
-  if (announcementId) {
-    await supabase
-      .from("announcement_audiences")
-      .delete()
-      .eq("organization_id", tenant.organizationId)
-      .eq("announcement_id", announcement.id);
-  }
+  // La unica fuente de verdad del alcance de un aviso es target_scope.
+  // announcement_audiences era una copia desnormalizada cuyo filtro nunca
+  // restringio nada; se elimino en la migracion 20260729000004.
 
   let sentContactsCount = 0;
 
@@ -310,12 +301,6 @@ export async function deleteAnnouncementAction(arg1: FormData | unknown, arg2?: 
   }
 
   const supabase = await createSupabaseServerClient();
-
-  await supabase
-    .from("announcement_audiences")
-    .delete()
-    .eq("announcement_id", announcementId)
-    .eq("organization_id", tenant.organizationId);
 
   const { error } = await supabase
     .from("announcements")

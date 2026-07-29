@@ -71,10 +71,6 @@ async function main() {
 
       const announcementId = insertedAnnouncement[0].id;
 
-      await client.query(
-        "insert into public.announcement_audiences (organization_id, announcement_id, branch_id, user_id) values ($1,$2,null,null)",
-        [orgId, announcementId],
-      );
     }
 
     const { rows: branchRows } = await client.query(

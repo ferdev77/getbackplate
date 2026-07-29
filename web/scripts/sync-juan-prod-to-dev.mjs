@@ -220,7 +220,6 @@ async function main() {
     "document_access_rules",
     "employee_documents",
     "announcements",
-    "announcement_audiences",
     "announcement_deliveries",
     "checklist_templates",
     "checklist_template_sections",
