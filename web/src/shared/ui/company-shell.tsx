@@ -496,6 +496,8 @@ export function CompanyShell({
     const subscriptions: Array<{ table: string; filter: string }> = [
       { table: "organization_modules", filter: orgFilter },
       { table: "organizations", filter: `id=eq.${tenantId}` },
+      { table: "documents", filter: orgFilter },
+      { table: "document_folders", filter: orgFilter },
     ];
 
     if (pathname.startsWith("/app/dashboard")) {
