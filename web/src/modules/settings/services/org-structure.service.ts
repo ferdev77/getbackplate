@@ -293,6 +293,27 @@ export async function updateDepartment(params: {
     return { ok: false, message: `Could not update department: ${error.message}` };
   }
 
+  // employees.department y checklist_templates.department guardan una COPIA del
+  // nombre ademas del department_id. El alcance se resuelve por el ID, asi que
+  // renombrar no rompe el acceso — a diferencia del puesto, que solo se guarda
+  // como texto (ver updateDepartmentPosition). Pero la copia si queda vieja y se
+  // sigue mostrando en las listas de empleados y en la etiqueta de alcance de
+  // los checklists, hasta que alguien edite ese registro.
+  //
+  // Como ambas tablas tienen department_id, la sincronizacion es directa por ID.
+  await Promise.all([
+    supabase
+      .from("employees")
+      .update({ department: name })
+      .eq("organization_id", organizationId)
+      .eq("department_id", departmentId),
+    supabase
+      .from("checklist_templates")
+      .update({ department: name })
+      .eq("organization_id", organizationId)
+      .eq("department_id", departmentId),
+  ]);
+
   return { ok: true, id: departmentId };
 }
 
