@@ -66,34 +66,24 @@ type UseDndSafetyNetOptions = {
   isDragActive: () => boolean;
   /** Called when a deferred refresh should execute (typically `router.refresh`). */
   onDeferredRefresh: () => void;
-  /**
-   * Optional debug hook, fired from the global dragend listener. `wasActive`
-   * being true here (and the element's own onDragEnd never having logged
-   * first) is the signature of the source DOM node being destroyed mid-drag
-   * by a React re-render, rather than a normal user-released drag.
-   */
-  onDebugGlobalDragEnd?: (wasActive: boolean) => void;
 };
 
 export function useDndSafetyNet({
   resetDndState,
   isDragActive,
   onDeferredRefresh,
-  onDebugGlobalDragEnd,
 }: UseDndSafetyNetOptions) {
   const pendingRefreshRef = useRef(false);
   const isDragActiveRef = useRef(isDragActive);
   const resetDndStateRef = useRef(resetDndState);
   const onDeferredRefreshRef = useRef(onDeferredRefresh);
-  const onDebugGlobalDragEndRef = useRef(onDebugGlobalDragEnd);
 
   // Keep refs in sync without re-triggering effects.
   useEffect(() => {
     isDragActiveRef.current = isDragActive;
     resetDndStateRef.current = resetDndState;
     onDeferredRefreshRef.current = onDeferredRefresh;
-    onDebugGlobalDragEndRef.current = onDebugGlobalDragEnd;
-  }, [isDragActive, resetDndState, onDeferredRefresh, onDebugGlobalDragEnd]);
+  }, [isDragActive, resetDndState, onDeferredRefresh]);
 
   // ──────────────────────────────────────────────
   // Layer 1: Global dragend listener
@@ -101,7 +91,6 @@ export function useDndSafetyNet({
   useEffect(() => {
     function handleGlobalDragEnd() {
       const wasActive = isDragActiveRef.current();
-      onDebugGlobalDragEndRef.current?.(wasActive);
 
       // Always clear the global flag first
       markDndInactive();

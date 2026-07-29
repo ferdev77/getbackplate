@@ -149,33 +149,15 @@ export function EmployeeDocumentsTree({
   const previousColumnCountRef = useRef(1);
   const suppressColumnClickRef = useRef(false);
   const dragMetaRef = useRef<{ kind: "document" | "folder" | null; id: string | null }>({ kind: null, id: null });
-  const dragOverSeenRef = useRef(false);
-  // ?dndDebug=1 prende el registro de arrastrar-y-soltar en consola tambien en
-  // produccion (queda guardado en localStorage para no tener que repetir el
-  // parametro en cada visita); nadie mas lo ve porque no hay ningun link a el.
-  const [dndDebugEnabled] = useState(() => {
-    if (process.env.NODE_ENV === "development") return true;
-    if (typeof window === "undefined") return false;
-    if (new URLSearchParams(window.location.search).get("dndDebug") === "1") {
-      window.localStorage.setItem("gbp-dnd-debug", "1");
-      return true;
-    }
-    return window.localStorage.getItem("gbp-dnd-debug") === "1";
-  });
-  const [dndDebugLog, setDndDebugLog] = useState<Array<{ event: string; details: Record<string, unknown>; at: string }>>([]);
+  const dndDebugEnabled = process.env.NODE_ENV === "development";
   const prevDocumentsKeyRef = useRef("");
   const prevFoldersKeyRef = useRef("");
   const deferredPropsRef = useRef<{ documents?: DocumentRow[]; folders?: FolderRow[] } | null>(null);
 
   function logDnd(event: string, details: Record<string, unknown>) {
     if (!dndDebugEnabled) return;
-    if (event.startsWith("dragstart")) dragOverSeenRef.current = false;
     console.debug(`[documents-dnd:employee] ${event}`, details);
-    setDndDebugLog((prev) => [{ event, details, at: new Date().toLocaleTimeString() }, ...prev].slice(0, 15));
   }
-
-
-
 
   /**
    * Marca visualmente el arrastre en curso SIN tocar el DOM de forma sincrona
@@ -226,12 +208,6 @@ export function EmployeeDocumentsTree({
     resetDndState,
     isDragActive: () => Boolean(draggedDocumentId || draggedFolderId || dragMetaRef.current.kind),
     onDeferredRefresh: () => router.refresh(),
-    onDebugGlobalDragEnd: (wasActive) => {
-      // Si esto llega con wasActive=true, el propio onDragEnd del elemento
-      // arrastrado nunca se ejecuto: el nodo DOM se destruyo a mitad del
-      // arrastre (re-render), no fue el usuario soltando el mouse.
-      logDnd("global-safety-net:dragend", { wasActive, sourceNodeDestroyedMidDrag: wasActive });
-    },
   });
 
   const {
@@ -784,13 +760,11 @@ export function EmployeeDocumentsTree({
   async function moveDocumentToFolder(documentId: string, targetFolderId: string | null) {
     const doc = documentsState.find((row) => row.id === documentId);
     if (!doc || !isOwner(doc)) {
-      logDnd("move-document:blocked-not-owner", { documentId, targetFolderId });
       resetDndState();
       return;
     }
     // No hacer nada si ya está en la misma carpeta
     if (doc.folder_id === targetFolderId) {
-      logDnd("move-document:noop-same-folder", { documentId, currentFolderId: doc.folder_id, targetFolderId });
       resetDndState();
       return;
     }
@@ -800,7 +774,6 @@ export function EmployeeDocumentsTree({
       const current = resolveInheritedScopeSource(doc.folder_id);
       const next = resolveInheritedScopeSource(targetFolderId);
       if (current.sourceFolderId !== next.sourceFolderId) {
-        logDnd("move-document:pending-scope-confirm", { documentId, targetFolderId, current, next });
         resetDndState();
         setPendingScopeMove({
           kind: "document",
@@ -831,7 +804,6 @@ export function EmployeeDocumentsTree({
       });
       const data = (await response.json().catch(() => ({}))) as { error?: string; folderId?: string | null };
       if (!response.ok) {
-        logDnd("move-document:error", { documentId, targetFolderId, status: response.status, apiError: data.error });
         throw new Error("Unable to move the document.");
       }
       const resolvedFolderId = data.folderId === undefined ? targetFolderId : data.folderId;
@@ -855,18 +827,15 @@ export function EmployeeDocumentsTree({
   async function moveFolderToFolder(folderId: string, targetFolderId: string | null) {
     const folder = folderRows.find((row) => row.id === folderId);
     if (!folder || !isFolderOwner(folder)) {
-      logDnd("move-folder:blocked-not-owner", { folderId, targetFolderId });
       resetDndState();
       return;
     }
     if (folderId === targetFolderId) {
-      logDnd("move-folder:noop-same-id", { folderId, targetFolderId });
       resetDndState();
       return;
     }
     // No hacer nada si ya está en el mismo contenedor padre
     if (folder.parent_id === targetFolderId) {
-      logDnd("move-folder:noop-same-parent", { folderId, currentParentId: folder.parent_id, targetFolderId });
       resetDndState();
       return;
     }
@@ -875,7 +844,6 @@ export function EmployeeDocumentsTree({
       let currentParentId = parentById.get(targetFolderId) ?? null;
       while (currentParentId) {
         if (currentParentId === folderId) {
-          logDnd("move-folder:blocked-circular", { folderId, targetFolderId });
           toast.error("A folder cannot be moved into one of its subfolders.");
           resetDndState();
           return;
@@ -889,7 +857,6 @@ export function EmployeeDocumentsTree({
       const current = resolveInheritedScopeSource(folder.parent_id);
       const next = resolveInheritedScopeSource(targetFolderId);
       if (current.sourceFolderId !== next.sourceFolderId) {
-        logDnd("move-folder:pending-scope-confirm", { folderId, targetFolderId, current, next });
         resetDndState();
         setPendingScopeMove({
           kind: "folder",
@@ -925,7 +892,6 @@ export function EmployeeDocumentsTree({
       });
       const data = (await response.json().catch(() => ({}))) as { error?: string; parentId?: string | null };
       if (!response.ok) {
-        logDnd("move-folder:error", { folderId, targetFolderId, status: response.status, apiError: data.error });
         // Revert on error
         setFolderRows((prev) => prev.map((row) => (row.id === folderId ? { ...row, parent_id: originalParentId } : row)));
         throw new Error("Unable to move the folder.");
@@ -1149,10 +1115,6 @@ export function EmployeeDocumentsTree({
                             className="w-[300px] shrink-0 bg-[var(--gbp-bg)] p-3"
                             onDragOver={(event) => {
                               event.preventDefault();
-                              if (!dragOverSeenRef.current) {
-                                dragOverSeenRef.current = true;
-                                logDnd("dragover-column", { isRootColumn, columnParentId: column.parentId ?? null });
-                              }
                               if (isRootColumn) {
                                 setDropRootColumn(true);
                               } else {
@@ -1253,10 +1215,6 @@ export function EmployeeDocumentsTree({
                                   onDragOver={(event) => {
                                     event.preventDefault();
                                     event.stopPropagation();
-                                    if (!dragOverSeenRef.current) {
-                                      dragOverSeenRef.current = true;
-                                      logDnd("dragover-folder-target", { targetFolderId: folder.id });
-                                    }
                                     setDropFolderId(folder.id);
                                     setDropRootColumn(false);
                                     setDropColumnTargetId(null);
@@ -1481,25 +1439,6 @@ export function EmployeeDocumentsTree({
             }
           }}
         />
-      ) : null}
-
-      {dndDebugEnabled ? (
-        <div className="fixed bottom-3 right-3 z-[1300] max-h-[50vh] w-[360px] overflow-y-auto rounded-xl border border-amber-400 bg-black/90 p-3 font-mono text-[11px] text-amber-200 shadow-2xl">
-          <p className="mb-2 font-bold text-amber-300">Registro de arrastrar-y-soltar (dndDebug)</p>
-          {dndDebugLog.length === 0 ? (
-            <p className="text-amber-200/70">Todavía no hay eventos. Intentá arrastrar un archivo o carpeta.</p>
-          ) : (
-            <ul className="space-y-1.5">
-              {dndDebugLog.map((entry, index) => (
-                <li key={index} className="border-b border-amber-400/20 pb-1.5">
-                  <span className="text-amber-400">[{entry.at}]</span> {entry.event}
-                  <br />
-                  <span className="break-all text-amber-200/80">{JSON.stringify(entry.details)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
       ) : null}
     </>
   );
