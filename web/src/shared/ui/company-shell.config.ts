@@ -17,8 +17,6 @@ import {
   Wrench,
 } from "lucide-react";
 
-import type { BranchOption, DepartmentOption, PositionOption, ScopedUserOption } from "@/shared/contracts/scope-options";
-
 export type SidebarItem = {
   href: string;
   label: string;
@@ -40,39 +38,6 @@ export type SidebarSection = {
   label: string;
   items: SidebarItem[];
 };
-
-export type AnnouncementModalCatalog = {
-  publisherName: string;
-  branches: BranchOption[];
-  departments: DepartmentOption[];
-  positions: PositionOption[];
-  users: ScopedUserOption[];
-};
-
-export type ChecklistModalCatalog = {
-  branches: BranchOption[];
-  departments: DepartmentOption[];
-  positions: PositionOption[];
-  users: ScopedUserOption[];
-};
-
-export type EmployeesModalCatalog = {
-  branches: BranchOption[];
-  departments: DepartmentOption[];
-  positions: Array<{ id: string; department_id: string; name: string; is_active: boolean }>;
-  publisherName: string;
-  companyName: string;
-};
-
-export type UsersModalCatalog = {
-  branches: BranchOption[];
-  roleOptions: Array<{ value: string; label: string }>;
-};
-
-export const ANNOUNCEMENT_CATALOG_TTL_MS = 60_000;
-export const CHECKLIST_CATALOG_TTL_MS = 60_000;
-export const EMPLOYEES_CATALOG_TTL_MS = 60_000;
-export const USERS_CATALOG_TTL_MS = 30_000;
 
 export const SECTIONS: SidebarSection[] = [
   {

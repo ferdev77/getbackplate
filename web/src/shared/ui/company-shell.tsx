@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { Reorder } from "framer-motion";
 import { reorderBranchesAction } from "@/modules/organizations/actions";
-import dynamic from "next/dynamic";
 import { FloatingAiAssistant } from "@/shared/ui/floating-ai-assistant";
 import { usePwaInstall } from "@/shared/lib/use-pwa-install";
 import { CollapsibleSidebarNavItem } from "@/shared/ui/collapsible-sidebar-nav-item";
@@ -71,54 +70,22 @@ function requestIntegrationSeat(email: string, planName: string) {
   window.location.href = `mailto:${email || "angelo@mkthelp.com"}?subject=${encodeURIComponent(`QuickBooks® Online R365 - ${planName} Plan`)}`;
 }
 
-// ── Lazy-loaded modals (code-split — only downloaded when opened) ────
-const AnnouncementCreateModal = dynamic(
-  () => import("@/shared/ui/announcement-create-modal").then((m) => ({ default: m.AnnouncementCreateModal })),
-  { ssr: false },
-);
-const ChecklistUpsertModal = dynamic(
-  () => import("@/modules/checklists/ui/checklist-upsert-modal").then((m) => ({ default: m.ChecklistUpsertModal })),
-  { ssr: false },
-);
-const NewEmployeeModal = dynamic(
-  () => import("@/modules/employees/ui/new-employee-modal").then((m) => ({ default: m.NewEmployeeModal })),
-  { ssr: false },
-);
-const NewUserModal = dynamic(
-  () => import("@/modules/employees/ui/new-user-modal").then((m) => ({ default: m.NewUserModal })),
-  { ssr: false },
-);
 import { TooltipLabel } from "@/shared/ui/tooltip";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 import { toast } from "sonner";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { isDndActive } from "@/modules/documents/hooks/use-dnd-safety-net";
 import {
-  clearSessionCacheSnapshot,
-  readSessionCacheSnapshot,
-  writeSessionCacheSnapshot,
-} from "@/shared/lib/client-cache";
-import {
-  ANNOUNCEMENT_CATALOG_TTL_MS,
-  CHECKLIST_CATALOG_TTL_MS,
-  EMPLOYEES_CATALOG_TTL_MS,
   SECTIONS,
   THEME_DARK_PRO,
   THEME_DEFAULT,
   THEME_NAMES,
   THEME_PALETTES,
-  USERS_CATALOG_TTL_MS,
-  type AnnouncementModalCatalog,
-  type ChecklistModalCatalog,
-  type EmployeesModalCatalog,
   type SidebarItem,
-  type UsersModalCatalog,
 } from "@/shared/ui/company-shell.config";
 import {
   type BillingCycle,
-  COMPANY_SHELL_CATALOG_CACHE_VERSION,
   MODULE_LABELS,
-  getCatalogCacheKey,
   isActive,
   normalizeTheme,
   normalizePlanPeriod,
@@ -259,18 +226,6 @@ export function CompanyShell({
   const [collapsed, setCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsView, setSettingsView] = useState<"main" | "profile" | "billing" | "preferences">("main");
-  const [checklistModalOpen, setChecklistModalOpen] = useState(false);
-  const [checklistModalLoading, setChecklistModalLoading] = useState(false);
-  const [checklistModalCatalog, setChecklistModalCatalog] = useState<ChecklistModalCatalog | null>(null);
-  const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
-  const [announcementModalLoading, setAnnouncementModalLoading] = useState(false);
-  const [announcementModalCatalog, setAnnouncementModalCatalog] = useState<AnnouncementModalCatalog | null>(null);
-  const [employeeModalOpen, setEmployeeModalOpen] = useState(false);
-  const [employeeModalLoading, setEmployeeModalLoading] = useState(false);
-  const [employeesModalCatalog, setEmployeesModalCatalog] = useState<EmployeesModalCatalog | null>(null);
-  const [userModalOpen, setUserModalOpen] = useState(false);
-  const [userModalLoading, setUserModalLoading] = useState(false);
-  const [usersModalCatalog, setUsersModalCatalog] = useState<UsersModalCatalog | null>(null);
   const [planOpen, setPlanOpen] = useState(false);
   const [planBillingCycle, setPlanBillingCycle] = useState<BillingCycle>("monthly");
   const [planChangeTargetId, setPlanChangeTargetId] = useState<string | null>(null);
@@ -405,65 +360,7 @@ export function CompanyShell({
   const billingToastHandledRef = useRef(false);
   const activeSectionLabelRef = useRef<string | null>(null);
   const prefetchedRoutesRef = useRef<Set<string>>(new Set());
-  const checklistCatalogPrefetchStartedRef = useRef(false);
-  const employeesCatalogPrefetchStartedRef = useRef(false);
-  const usersCatalogPrefetchStartedRef = useRef(false);
-  const announcementCatalogPrefetchStartedRef = useRef(false);
-  const checklistCatalogFetchedAtRef = useRef<number | null>(null);
-  const employeesCatalogFetchedAtRef = useRef<number | null>(null);
-  const usersCatalogFetchedAtRef = useRef<number | null>(null);
-  const announcementCatalogFetchedAtRef = useRef<number | null>(null);
   const currentPlanCardRef = useRef<HTMLDivElement | null>(null);
-  const normalizedSessionUserEmail = useMemo(() => sessionUserEmail.trim().toLowerCase(), [sessionUserEmail]);
-  const catalogCacheKeys = useMemo(() => ({
-    announcements: getCatalogCacheKey(tenantId, normalizedSessionUserEmail, "announcements"),
-    checklists: getCatalogCacheKey(tenantId, normalizedSessionUserEmail, "checklists"),
-    employees: getCatalogCacheKey(tenantId, normalizedSessionUserEmail, "employees"),
-    users: getCatalogCacheKey(tenantId, normalizedSessionUserEmail, "users"),
-  }), [normalizedSessionUserEmail, tenantId]);
-
-  useEffect(() => {
-    const announcementSnapshot = readSessionCacheSnapshot<AnnouncementModalCatalog>({
-      key: catalogCacheKeys.announcements,
-      version: COMPANY_SHELL_CATALOG_CACHE_VERSION,
-      ttlMs: ANNOUNCEMENT_CATALOG_TTL_MS,
-    });
-    if (announcementSnapshot) {
-      setAnnouncementModalCatalog((prev) => prev ?? announcementSnapshot.data);
-      announcementCatalogFetchedAtRef.current = announcementSnapshot.fetchedAt;
-    }
-
-    const checklistSnapshot = readSessionCacheSnapshot<ChecklistModalCatalog>({
-      key: catalogCacheKeys.checklists,
-      version: COMPANY_SHELL_CATALOG_CACHE_VERSION,
-      ttlMs: CHECKLIST_CATALOG_TTL_MS,
-    });
-    if (checklistSnapshot) {
-      setChecklistModalCatalog((prev) => prev ?? checklistSnapshot.data);
-      checklistCatalogFetchedAtRef.current = checklistSnapshot.fetchedAt;
-    }
-
-    const employeesSnapshot = readSessionCacheSnapshot<EmployeesModalCatalog>({
-      key: catalogCacheKeys.employees,
-      version: COMPANY_SHELL_CATALOG_CACHE_VERSION,
-      ttlMs: EMPLOYEES_CATALOG_TTL_MS,
-    });
-    if (employeesSnapshot) {
-      setEmployeesModalCatalog((prev) => prev ?? employeesSnapshot.data);
-      employeesCatalogFetchedAtRef.current = employeesSnapshot.fetchedAt;
-    }
-
-    const usersSnapshot = readSessionCacheSnapshot<UsersModalCatalog>({
-      key: catalogCacheKeys.users,
-      version: COMPANY_SHELL_CATALOG_CACHE_VERSION,
-      ttlMs: USERS_CATALOG_TTL_MS,
-    });
-    if (usersSnapshot) {
-      setUsersModalCatalog((prev) => prev ?? usersSnapshot.data);
-      usersCatalogFetchedAtRef.current = usersSnapshot.fetchedAt;
-    }
-  }, [catalogCacheKeys]);
-
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
     const orgFilter = `organization_id=eq.${tenantId}`;
@@ -544,49 +441,7 @@ export function CompanyShell({
       );
     }
 
-    function scheduleRefresh(payload?: { table?: string }) {
-      if (payload?.table === "announcements") {
-        setAnnouncementModalCatalog(null);
-        announcementCatalogFetchedAtRef.current = null;
-        clearSessionCacheSnapshot(catalogCacheKeys.announcements);
-      }
-      if (payload?.table === "checklist_templates") {
-        setChecklistModalCatalog(null);
-        checklistCatalogFetchedAtRef.current = null;
-        clearSessionCacheSnapshot(catalogCacheKeys.checklists);
-      }
-      if (
-        payload?.table === "employees" ||
-        payload?.table === "organization_user_profiles" ||
-        payload?.table === "memberships"
-      ) {
-        setEmployeesModalCatalog(null);
-        setUsersModalCatalog(null);
-        employeesCatalogFetchedAtRef.current = null;
-        usersCatalogFetchedAtRef.current = null;
-        clearSessionCacheSnapshot(catalogCacheKeys.employees);
-        clearSessionCacheSnapshot(catalogCacheKeys.users);
-      }
-
-      if (
-        payload?.table === "branches" ||
-        payload?.table === "organization_departments" ||
-        payload?.table === "department_positions"
-      ) {
-        setAnnouncementModalCatalog(null);
-        setChecklistModalCatalog(null);
-        setEmployeesModalCatalog(null);
-        setUsersModalCatalog(null);
-        announcementCatalogFetchedAtRef.current = null;
-        checklistCatalogFetchedAtRef.current = null;
-        employeesCatalogFetchedAtRef.current = null;
-        usersCatalogFetchedAtRef.current = null;
-        clearSessionCacheSnapshot(catalogCacheKeys.announcements);
-        clearSessionCacheSnapshot(catalogCacheKeys.checklists);
-        clearSessionCacheSnapshot(catalogCacheKeys.employees);
-        clearSessionCacheSnapshot(catalogCacheKeys.users);
-      }
-
+    function scheduleRefresh() {
       if (isReorderingRef.current || isPersistingBranchOrderRef.current) {
         return;
       }
@@ -627,7 +482,7 @@ export function CompanyShell({
       }
       supabase.removeChannel(channel);
     };
-  }, [catalogCacheKeys, pathname, router, tenantId]);
+  }, [pathname, router, tenantId]);
 
   useEffect(() => {
     setCurrentAvatarUrl(sessionAvatarUrl);
@@ -905,290 +760,6 @@ export function CompanyShell({
     setTimeout(() => setBusy(false), 2500);
   }
 
-  const ensureAnnouncementModalCatalog = useCallback(async (options?: { force?: boolean }) => {
-    const force = Boolean(options?.force);
-    if (announcementModalLoading) return announcementModalCatalog ?? null;
-    if (!force && announcementModalCatalog) return announcementModalCatalog;
-
-    setAnnouncementModalLoading(true);
-    try {
-      const response = await fetch("/api/company/announcements?catalog=create_modal", {
-        method: "GET",
-        cache: "no-store",
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error("Could not load the announcement form.");
-      }
-      const nextCatalog = data as AnnouncementModalCatalog;
-      const fetchedAt = Date.now();
-      setAnnouncementModalCatalog(nextCatalog);
-      announcementCatalogFetchedAtRef.current = fetchedAt;
-      writeSessionCacheSnapshot({
-        key: catalogCacheKeys.announcements,
-        snapshot: {
-          version: COMPANY_SHELL_CATALOG_CACHE_VERSION,
-          fetchedAt,
-          data: nextCatalog,
-        },
-      });
-      return nextCatalog;
-    } catch (error) {
-      throw error;
-    } finally {
-      setAnnouncementModalLoading(false);
-    }
-  }, [announcementModalCatalog, announcementModalLoading, catalogCacheKeys.announcements]);
-
-  async function openAnnouncementModal() {
-    setAnnouncementModalOpen(true);
-
-    if (!announcementModalCatalog) {
-      try {
-        await ensureAnnouncementModalCatalog();
-      } catch {
-        toast.error("Could not load the announcement form.");
-        setAnnouncementModalOpen(false);
-      }
-      return;
-    }
-
-    const fetchedAt = announcementCatalogFetchedAtRef.current;
-    const shouldRevalidate = !fetchedAt || Date.now() - fetchedAt > ANNOUNCEMENT_CATALOG_TTL_MS;
-    if (shouldRevalidate) {
-      void ensureAnnouncementModalCatalog({ force: true }).catch(() => {
-        // keep cached modal data if revalidation fails
-      });
-    }
-  }
-
-  function closeAnnouncementModal() {
-    setAnnouncementModalOpen(false);
-  }
-
-  const ensureChecklistModalCatalog = useCallback(async (options?: { force?: boolean }) => {
-    const force = Boolean(options?.force);
-    if (checklistModalLoading) return checklistModalCatalog ?? null;
-    if (!force && checklistModalCatalog) return checklistModalCatalog;
-
-    setChecklistModalLoading(true);
-    try {
-      const response = await fetch("/api/company/checklists?catalog=create_modal", {
-        method: "GET",
-        cache: "no-store",
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error("Could not load the checklist form.");
-      }
-      const nextCatalog = data as ChecklistModalCatalog;
-      const fetchedAt = Date.now();
-      setChecklistModalCatalog(nextCatalog);
-      checklistCatalogFetchedAtRef.current = fetchedAt;
-      writeSessionCacheSnapshot({
-        key: catalogCacheKeys.checklists,
-        snapshot: {
-          version: COMPANY_SHELL_CATALOG_CACHE_VERSION,
-          fetchedAt,
-          data: nextCatalog,
-        },
-      });
-      return nextCatalog;
-    } finally {
-      setChecklistModalLoading(false);
-    }
-  }, [catalogCacheKeys.checklists, checklistModalCatalog, checklistModalLoading]);
-
-  async function openChecklistModal() {
-    setChecklistModalOpen(true);
-
-    if (!checklistModalCatalog) {
-      try {
-        await ensureChecklistModalCatalog();
-      } catch {
-        toast.error("Could not load the checklist form.");
-        setChecklistModalOpen(false);
-      }
-      return;
-    }
-
-    const fetchedAt = checklistCatalogFetchedAtRef.current;
-    const shouldRevalidate = !fetchedAt || Date.now() - fetchedAt > CHECKLIST_CATALOG_TTL_MS;
-    if (shouldRevalidate) {
-      void ensureChecklistModalCatalog({ force: true }).catch(() => {
-        // keep cached modal data if revalidation fails
-      });
-    }
-  }
-
-  const ensureEmployeesModalCatalog = useCallback(async (options?: { force?: boolean }) => {
-    const force = Boolean(options?.force);
-    if (employeeModalLoading) return employeesModalCatalog ?? null;
-    if (!force && employeesModalCatalog) return employeesModalCatalog;
-
-    setEmployeeModalLoading(true);
-    try {
-      const response = await fetch("/api/company/employees?catalog=create_modal", {
-        method: "GET",
-        cache: "no-store",
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error("Could not load the employee form.");
-      }
-      const nextCatalog = data as EmployeesModalCatalog;
-      const fetchedAt = Date.now();
-      setEmployeesModalCatalog(nextCatalog);
-      employeesCatalogFetchedAtRef.current = fetchedAt;
-      writeSessionCacheSnapshot({
-        key: catalogCacheKeys.employees,
-        snapshot: {
-          version: COMPANY_SHELL_CATALOG_CACHE_VERSION,
-          fetchedAt,
-          data: nextCatalog,
-        },
-      });
-      return nextCatalog;
-    } finally {
-      setEmployeeModalLoading(false);
-    }
-  }, [catalogCacheKeys.employees, employeeModalLoading, employeesModalCatalog]);
-
-  async function openEmployeeModal() {
-    setEmployeeModalOpen(true);
-    if (!employeesModalCatalog) {
-      try {
-        await ensureEmployeesModalCatalog();
-      } catch {
-        toast.error("Could not load the employee form.");
-        setEmployeeModalOpen(false);
-      }
-      return;
-    }
-
-    const fetchedAt = employeesCatalogFetchedAtRef.current;
-    const shouldRevalidate = !fetchedAt || Date.now() - fetchedAt > EMPLOYEES_CATALOG_TTL_MS;
-    if (shouldRevalidate) {
-      void ensureEmployeesModalCatalog({ force: true }).catch(() => {
-        // keep cached modal data if revalidation fails
-      });
-    }
-  }
-
-  const ensureUsersModalCatalog = useCallback(async (options?: { force?: boolean }) => {
-    const force = Boolean(options?.force);
-    if (userModalLoading) return usersModalCatalog ?? null;
-    if (!force && usersModalCatalog) return usersModalCatalog;
-
-    setUserModalLoading(true);
-    try {
-      const response = await fetch("/api/company/users?catalog=create_modal", {
-        method: "GET",
-        cache: "no-store",
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error("Could not load the administrator form.");
-      }
-      const nextCatalog = data as UsersModalCatalog;
-      const fetchedAt = Date.now();
-      setUsersModalCatalog(nextCatalog);
-      usersCatalogFetchedAtRef.current = fetchedAt;
-      writeSessionCacheSnapshot({
-        key: catalogCacheKeys.users,
-        snapshot: {
-          version: COMPANY_SHELL_CATALOG_CACHE_VERSION,
-          fetchedAt,
-          data: nextCatalog,
-        },
-      });
-      return nextCatalog;
-    } finally {
-      setUserModalLoading(false);
-    }
-  }, [catalogCacheKeys.users, userModalLoading, usersModalCatalog]);
-
-  async function openUserModal() {
-    setUserModalOpen(true);
-    if (!usersModalCatalog) {
-      try {
-        await ensureUsersModalCatalog();
-      } catch {
-        toast.error("Could not load the administrator form.");
-        setUserModalOpen(false);
-      }
-      return;
-    }
-
-    const fetchedAt = usersCatalogFetchedAtRef.current;
-    const shouldRevalidate = !fetchedAt || Date.now() - fetchedAt > USERS_CATALOG_TTL_MS;
-    if (shouldRevalidate) {
-      void ensureUsersModalCatalog({ force: true }).catch(() => {
-        // keep cached modal data if revalidation fails
-      });
-    }
-  }
-
-  useEffect(() => {
-    if (!enabledModuleSet.has("announcements")) return;
-    if (announcementCatalogPrefetchStartedRef.current) return;
-    if (announcementModalCatalog) return;
-
-    announcementCatalogPrefetchStartedRef.current = true;
-    const timer = setTimeout(() => {
-      void ensureAnnouncementModalCatalog().catch(() => {
-        announcementCatalogPrefetchStartedRef.current = false;
-      });
-    }, 60);
-
-    return () => clearTimeout(timer);
-  }, [announcementModalCatalog, enabledModuleSet, ensureAnnouncementModalCatalog]);
-
-  useEffect(() => {
-    if (!enabledModuleSet.has("checklists")) return;
-    if (checklistCatalogPrefetchStartedRef.current) return;
-    if (checklistModalCatalog) return;
-
-    checklistCatalogPrefetchStartedRef.current = true;
-    const timer = setTimeout(() => {
-      void ensureChecklistModalCatalog().catch(() => {
-        checklistCatalogPrefetchStartedRef.current = false;
-      });
-    }, 90);
-
-    return () => clearTimeout(timer);
-  }, [checklistModalCatalog, enabledModuleSet, ensureChecklistModalCatalog]);
-
-  useEffect(() => {
-    if (!enabledModuleSet.has("employees")) return;
-    if (employeesCatalogPrefetchStartedRef.current) return;
-    if (employeesModalCatalog) return;
-
-    employeesCatalogPrefetchStartedRef.current = true;
-    const timer = setTimeout(() => {
-      void ensureEmployeesModalCatalog().catch(() => {
-        employeesCatalogPrefetchStartedRef.current = false;
-      });
-    }, 150);
-
-    return () => clearTimeout(timer);
-  }, [employeesModalCatalog, enabledModuleSet, ensureEmployeesModalCatalog]);
-
-  useEffect(() => {
-    if (!enabledModuleSet.has("employees")) return;
-    if (usersCatalogPrefetchStartedRef.current) return;
-    if (usersModalCatalog) return;
-
-    usersCatalogPrefetchStartedRef.current = true;
-    const timer = setTimeout(() => {
-      void ensureUsersModalCatalog().catch(() => {
-        usersCatalogPrefetchStartedRef.current = false;
-      });
-    }, 180);
-
-    return () => clearTimeout(timer);
-  }, [enabledModuleSet, ensureUsersModalCatalog, usersModalCatalog]);
-
   useEffect(() => {
     const timer = setTimeout(() => {
       const candidates = visibleSections
@@ -1298,12 +869,12 @@ export function CompanyShell({
   function handleSidebarItemClick(item: SidebarItem) {
     if (item.actionKey === "openAnnouncementModal") {
       setMenuOpen(false);
-      void openAnnouncementModal();
+      router.push("/app/announcements?action=create");
       return;
     }
     if (item.actionKey === "openChecklistModal") {
       setMenuOpen(false);
-      void openChecklistModal();
+      router.push("/app/checklists?action=create");
       return;
     }
     if (item.actionKey === "openDocumentFolderModal") {
@@ -1318,47 +889,15 @@ export function CompanyShell({
     }
     if (item.actionKey === "openEmployeeModal") {
       setMenuOpen(false);
-      void openEmployeeModal();
+      router.push("/app/employees?action=create");
       return;
     }
     if (item.actionKey === "openUserModal") {
       setMenuOpen(false);
-      void openUserModal();
+      router.push("/app/users?action=create-user");
       return;
     }
     setMenuOpen(false);
-  }
-
-  function prefetchQuickActionCatalog(item: SidebarItem) {
-    if (item.actionKey === "openAnnouncementModal") {
-      void ensureAnnouncementModalCatalog().catch(() => {});
-      return;
-    }
-    if (item.actionKey === "openChecklistModal") {
-      void ensureChecklistModalCatalog().catch(() => {});
-      return;
-    }
-    if (item.actionKey === "openEmployeeModal") {
-      void ensureEmployeesModalCatalog().catch(() => {});
-      return;
-    }
-    if (item.actionKey === "openUserModal") {
-      void ensureUsersModalCatalog().catch(() => {});
-    }
-  }
-
-  function renderModalLoading(title: string) {
-    return (
-      <div className="fixed inset-0 z-[1200] grid place-items-center bg-black/45 p-4">
-        <div className="w-full max-w-[420px] rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-6 shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-          <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">{title}</p>
-          <div className="mt-3 flex items-center gap-2 text-sm text-[var(--gbp-text2)]">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Cargando formulario...</span>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -1565,7 +1104,6 @@ export function CompanyShell({
                               collapsed={collapsed}
                               className={itemClassName}
                               onClick={() => handleSidebarItemClick(item)}
-                              onMouseEnter={() => prefetchQuickActionCatalog(item)}
                             />
                           );
                         }
@@ -2083,60 +1621,6 @@ export function CompanyShell({
         <FloatingAiAssistant currentPlanCode={currentPlanCode} userName={sessionUserName} tenantId={tenantId} userKey={sessionUserEmail} />
       ) : null}
 
-      {announcementModalOpen ? (
-        announcementModalCatalog ? (
-          <AnnouncementCreateModal
-            onClose={closeAnnouncementModal}
-            mode="create"
-            branches={announcementModalCatalog.branches}
-            departments={announcementModalCatalog.departments}
-            positions={announcementModalCatalog.positions}
-            users={announcementModalCatalog.users}
-            publisherName={announcementModalCatalog.publisherName}
-          />
-        ) : renderModalLoading("Nuevo Aviso")
-      ) : null}
-
-      {checklistModalOpen ? (
-        checklistModalCatalog ? (
-          <ChecklistUpsertModal
-            onClose={() => setChecklistModalOpen(false)}
-            branches={checklistModalCatalog.branches}
-            departments={checklistModalCatalog.departments}
-            positions={checklistModalCatalog.positions}
-            users={checklistModalCatalog.users}
-            action="create"
-          />
-        ) : renderModalLoading("Nuevo Checklist")
-      ) : null}
-
-      {employeeModalOpen ? (
-        employeesModalCatalog ? (
-          <NewEmployeeModal
-            open
-            mode="create"
-            onClose={() => setEmployeeModalOpen(false)}
-            branches={employeesModalCatalog.branches}
-            departments={employeesModalCatalog.departments}
-            positions={employeesModalCatalog.positions}
-            publisherName={employeesModalCatalog.publisherName}
-            companyName={employeesModalCatalog.companyName}
-            enabledModules={enabledModules}
-          />
-        ) : renderModalLoading("Nuevo Usuario / Empleado")
-      ) : null}
-
-      {userModalOpen ? (
-        usersModalCatalog ? (
-          <NewUserModal
-            open
-            onClose={() => setUserModalOpen(false)}
-            branches={usersModalCatalog.branches}
-            roleOptions={usersModalCatalog.roleOptions}
-          />
-        ) : renderModalLoading("Nuevo Administrador")
-      ) : null}
-
       {planOpen ? (
         <div className="fixed inset-0 z-[1200]" onClick={() => setPlanOpen(false)}>
           <div className={`absolute bottom-[72px] left-3 w-[280px] overflow-hidden rounded-[14px] border bg-[var(--gbp-surface)] shadow-[0_12px_40px_rgba(0,0,0,.38)] ${isDarkTheme ? "border-white/10 text-white" : "border-[var(--gbp-border)] text-[var(--gbp-text)]"}`} onClick={(event) => event.stopPropagation()}>
@@ -2517,7 +2001,6 @@ export function CompanyShell({
                               type="button"
                               className={itemClassName}
                               onClick={() => handleSidebarItemClick(item)}
-                              onMouseEnter={() => prefetchQuickActionCatalog(item)}
                             >
                               <item.icon className="h-4 w-4" />
                               <span>{t(item.label)}</span>

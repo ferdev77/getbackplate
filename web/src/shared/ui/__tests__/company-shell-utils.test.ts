@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import {
-  getCatalogCacheKey,
   isActive,
   normalizeTheme,
   normalizePlanPeriod,
@@ -8,27 +7,6 @@ import {
   formatPlanPrice,
   resolveCompanyShellLocale,
 } from "../company-shell-utils";
-
-describe("getCatalogCacheKey", () => {
-  it("genera una clave con el tenant, email y nombre de catálogo", () => {
-    const key = getCatalogCacheKey("tenant-1", "User@Test.com", "employees");
-    expect(key).toContain("tenant-1");
-    expect(key).toContain("user@test.com");
-    expect(key).toContain("employees");
-  });
-
-  it("normaliza el email a minúsculas", () => {
-    const key = getCatalogCacheKey("t1", "ADMIN@COMPANY.COM", "announcements");
-    expect(key).toContain("admin@company.com");
-    expect(key).not.toContain("ADMIN");
-  });
-
-  it("genera claves distintas para catálogos distintos", () => {
-    const k1 = getCatalogCacheKey("t1", "a@b.com", "employees");
-    const k2 = getCatalogCacheKey("t1", "a@b.com", "documents");
-    expect(k1).not.toBe(k2);
-  });
-});
 
 describe("isActive", () => {
   const sp = new URLSearchParams();

@@ -1,16 +1,5 @@
 import { THEMES, THEME_DARK_PRO, THEME_DEFAULT } from "@/shared/ui/company-shell.config";
 
-// ── Cache ─────────────────────────────────────────────────────────────────────
-
-export type CatalogCacheName = "announcements" | "checklists" | "documents" | "employees" | "users";
-
-export const COMPANY_SHELL_CATALOG_CACHE_VERSION = 1;
-const COMPANY_SHELL_CATALOG_CACHE_PREFIX = "gb.company-shell.catalog";
-
-export function getCatalogCacheKey(tenantId: string, sessionUserEmail: string, catalogName: CatalogCacheName) {
-  return `${COMPANY_SHELL_CATALOG_CACHE_PREFIX}:v${COMPANY_SHELL_CATALOG_CACHE_VERSION}:${tenantId}:${sessionUserEmail.toLowerCase()}:${catalogName}`;
-}
-
 // ── Navigation ────────────────────────────────────────────────────────────────
 
 export function isActive(pathname: string, searchParams: URLSearchParams, href: string) {
