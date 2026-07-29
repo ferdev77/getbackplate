@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { sendDocumentAudiencePush } from "@/modules/documents/services/document-audience.service";
 import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
@@ -218,6 +220,17 @@ export async function POST(request: Request) {
     await admin.storage.from(BUCKET_NAME).remove([path]);
     return NextResponse.json({ error: insertError?.message ?? "No se pudo registrar" }, { status: 400 });
   }
+
+  after(async () => {
+    await sendDocumentAudiencePush({
+      supabase: admin,
+      organizationId: access.tenant.organizationId,
+      accessScope: scope,
+      branchId: access.tenant.branchId,
+      actorUserId: access.userId,
+      title,
+    });
+  });
 
   await logAuditEvent({
     action: "employee.document.create",

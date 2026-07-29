@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { sendDocumentAudiencePush } from "@/modules/documents/services/document-audience.service";
 import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
@@ -370,6 +372,17 @@ export async function POST(request: Request) {
       },
     });
   }
+
+  after(async () => {
+    await sendDocumentAudiencePush({
+      supabase,
+      organizationId: tenant.organizationId,
+      accessScope: effectiveScope,
+      branchId: null,
+      actorUserId: context.userId,
+      title: titleInput || file.name,
+    });
+  });
 
   await logAuditEvent({
     action: "documents.file.upload",

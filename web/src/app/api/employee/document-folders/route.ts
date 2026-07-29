@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { sendFolderAudiencePush } from "@/modules/documents/services/document-audience.service";
 import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
@@ -132,6 +134,17 @@ export async function POST(request: Request) {
   if (error || !data) {
     return NextResponse.json({ error: error?.message ?? "No se pudo crear carpeta" }, { status: 400 });
   }
+
+  after(async () => {
+    await sendFolderAudiencePush({
+      supabase: admin,
+      organizationId: access.tenant.organizationId,
+      accessScope: effectiveScope,
+      branchId: access.tenant.branchId,
+      actorUserId: access.userId,
+      title: name,
+    });
+  });
 
   await logAuditEvent({
     action: "employee.documents.folder.create",

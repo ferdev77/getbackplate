@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { sendFolderAudiencePush } from "@/modules/documents/services/document-audience.service";
 import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
@@ -114,6 +116,25 @@ export async function POST(request: Request) {
     })
     .select("id")
     .single();
+
+  if (!error) {
+    const folderScope = {
+      locations: locationScope,
+      department_ids: departmentScope,
+      position_ids: positionScope,
+      users: userScope,
+    };
+    after(async () => {
+      await sendFolderAudiencePush({
+        supabase,
+        organizationId: tenant.organizationId,
+        accessScope: folderScope,
+        branchId: null,
+        actorUserId: userId,
+        title: name,
+      });
+    });
+  }
 
   if (error) {
     await logAuditEvent({
