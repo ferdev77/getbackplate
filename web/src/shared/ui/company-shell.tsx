@@ -80,14 +80,6 @@ const ChecklistUpsertModal = dynamic(
   () => import("@/modules/checklists/ui/checklist-upsert-modal").then((m) => ({ default: m.ChecklistUpsertModal })),
   { ssr: false },
 );
-const DocumentFolderModal = dynamic(
-  () => import("@/modules/documents/ui/document-folder-modal").then((m) => ({ default: m.DocumentFolderModal })),
-  { ssr: false },
-);
-const UploadDocumentModal = dynamic(
-  () => import("@/modules/documents/ui/upload-document-modal").then((m) => ({ default: m.UploadDocumentModal })),
-  { ssr: false },
-);
 const NewEmployeeModal = dynamic(
   () => import("@/modules/employees/ui/new-employee-modal").then((m) => ({ default: m.NewEmployeeModal })),
   { ssr: false },
@@ -109,7 +101,6 @@ import {
 import {
   ANNOUNCEMENT_CATALOG_TTL_MS,
   CHECKLIST_CATALOG_TTL_MS,
-  DOCUMENTS_CATALOG_TTL_MS,
   EMPLOYEES_CATALOG_TTL_MS,
   SECTIONS,
   THEME_DARK_PRO,
@@ -119,7 +110,6 @@ import {
   USERS_CATALOG_TTL_MS,
   type AnnouncementModalCatalog,
   type ChecklistModalCatalog,
-  type DocumentsModalCatalog,
   type EmployeesModalCatalog,
   type SidebarItem,
   type UsersModalCatalog,
@@ -275,10 +265,6 @@ export function CompanyShell({
   const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
   const [announcementModalLoading, setAnnouncementModalLoading] = useState(false);
   const [announcementModalCatalog, setAnnouncementModalCatalog] = useState<AnnouncementModalCatalog | null>(null);
-  const [documentFolderModalOpen, setDocumentFolderModalOpen] = useState(false);
-  const [documentUploadModalOpen, setDocumentUploadModalOpen] = useState(false);
-  const [documentsModalLoading, setDocumentsModalLoading] = useState(false);
-  const [documentsModalCatalog, setDocumentsModalCatalog] = useState<DocumentsModalCatalog | null>(null);
   const [employeeModalOpen, setEmployeeModalOpen] = useState(false);
   const [employeeModalLoading, setEmployeeModalLoading] = useState(false);
   const [employeesModalCatalog, setEmployeesModalCatalog] = useState<EmployeesModalCatalog | null>(null);
@@ -420,12 +406,10 @@ export function CompanyShell({
   const activeSectionLabelRef = useRef<string | null>(null);
   const prefetchedRoutesRef = useRef<Set<string>>(new Set());
   const checklistCatalogPrefetchStartedRef = useRef(false);
-  const documentsCatalogPrefetchStartedRef = useRef(false);
   const employeesCatalogPrefetchStartedRef = useRef(false);
   const usersCatalogPrefetchStartedRef = useRef(false);
   const announcementCatalogPrefetchStartedRef = useRef(false);
   const checklistCatalogFetchedAtRef = useRef<number | null>(null);
-  const documentsCatalogFetchedAtRef = useRef<number | null>(null);
   const employeesCatalogFetchedAtRef = useRef<number | null>(null);
   const usersCatalogFetchedAtRef = useRef<number | null>(null);
   const announcementCatalogFetchedAtRef = useRef<number | null>(null);
@@ -434,7 +418,6 @@ export function CompanyShell({
   const catalogCacheKeys = useMemo(() => ({
     announcements: getCatalogCacheKey(tenantId, normalizedSessionUserEmail, "announcements"),
     checklists: getCatalogCacheKey(tenantId, normalizedSessionUserEmail, "checklists"),
-    documents: getCatalogCacheKey(tenantId, normalizedSessionUserEmail, "documents"),
     employees: getCatalogCacheKey(tenantId, normalizedSessionUserEmail, "employees"),
     users: getCatalogCacheKey(tenantId, normalizedSessionUserEmail, "users"),
   }), [normalizedSessionUserEmail, tenantId]);
@@ -458,16 +441,6 @@ export function CompanyShell({
     if (checklistSnapshot) {
       setChecklistModalCatalog((prev) => prev ?? checklistSnapshot.data);
       checklistCatalogFetchedAtRef.current = checklistSnapshot.fetchedAt;
-    }
-
-    const documentsSnapshot = readSessionCacheSnapshot<DocumentsModalCatalog>({
-      key: catalogCacheKeys.documents,
-      version: COMPANY_SHELL_CATALOG_CACHE_VERSION,
-      ttlMs: DOCUMENTS_CATALOG_TTL_MS,
-    });
-    if (documentsSnapshot) {
-      setDocumentsModalCatalog((prev) => prev ?? documentsSnapshot.data);
-      documentsCatalogFetchedAtRef.current = documentsSnapshot.fetchedAt;
     }
 
     const employeesSnapshot = readSessionCacheSnapshot<EmployeesModalCatalog>({
@@ -582,11 +555,6 @@ export function CompanyShell({
         checklistCatalogFetchedAtRef.current = null;
         clearSessionCacheSnapshot(catalogCacheKeys.checklists);
       }
-      if (payload?.table === "documents" || payload?.table === "document_folders") {
-        setDocumentsModalCatalog(null);
-        documentsCatalogFetchedAtRef.current = null;
-        clearSessionCacheSnapshot(catalogCacheKeys.documents);
-      }
       if (
         payload?.table === "employees" ||
         payload?.table === "organization_user_profiles" ||
@@ -607,17 +575,14 @@ export function CompanyShell({
       ) {
         setAnnouncementModalCatalog(null);
         setChecklistModalCatalog(null);
-        setDocumentsModalCatalog(null);
         setEmployeesModalCatalog(null);
         setUsersModalCatalog(null);
         announcementCatalogFetchedAtRef.current = null;
         checklistCatalogFetchedAtRef.current = null;
-        documentsCatalogFetchedAtRef.current = null;
         employeesCatalogFetchedAtRef.current = null;
         usersCatalogFetchedAtRef.current = null;
         clearSessionCacheSnapshot(catalogCacheKeys.announcements);
         clearSessionCacheSnapshot(catalogCacheKeys.checklists);
-        clearSessionCacheSnapshot(catalogCacheKeys.documents);
         clearSessionCacheSnapshot(catalogCacheKeys.employees);
         clearSessionCacheSnapshot(catalogCacheKeys.users);
       }
@@ -1056,81 +1021,6 @@ export function CompanyShell({
     }
   }
 
-  const ensureDocumentsModalCatalog = useCallback(async (options?: { force?: boolean }) => {
-    const force = Boolean(options?.force);
-    if (documentsModalLoading) return documentsModalCatalog ?? null;
-    if (!force && documentsModalCatalog) return documentsModalCatalog;
-
-    setDocumentsModalLoading(true);
-    try {
-      const response = await fetch("/api/company/documents?catalog=create_modals", {
-        method: "GET",
-        cache: "no-store",
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error("Could not load the document form.");
-      }
-      const nextCatalog = data as DocumentsModalCatalog;
-      const fetchedAt = Date.now();
-      setDocumentsModalCatalog(nextCatalog);
-      documentsCatalogFetchedAtRef.current = fetchedAt;
-      writeSessionCacheSnapshot({
-        key: catalogCacheKeys.documents,
-        snapshot: {
-          version: COMPANY_SHELL_CATALOG_CACHE_VERSION,
-          fetchedAt,
-          data: nextCatalog,
-        },
-      });
-      return nextCatalog;
-    } finally {
-      setDocumentsModalLoading(false);
-    }
-  }, [catalogCacheKeys.documents, documentsModalCatalog, documentsModalLoading]);
-
-  async function openDocumentFolderModal() {
-    setDocumentFolderModalOpen(true);
-    if (!documentsModalCatalog) {
-      try {
-        await ensureDocumentsModalCatalog();
-      } catch {
-        toast.error("Could not load the folder form.");
-        setDocumentFolderModalOpen(false);
-      }
-      return;
-    }
-
-    const fetchedAt = documentsCatalogFetchedAtRef.current;
-    const shouldRevalidate = !fetchedAt || Date.now() - fetchedAt > DOCUMENTS_CATALOG_TTL_MS;
-    if (shouldRevalidate) {
-      void ensureDocumentsModalCatalog({ force: true }).catch(() => {
-        // keep cached modal data if revalidation fails
-      });
-    }
-  }
-
-  async function openDocumentUploadModal() {
-    setDocumentUploadModalOpen(true);
-    if (!documentsModalCatalog) {
-      try {
-        await ensureDocumentsModalCatalog();
-      } catch {
-        toast.error("Could not load the upload form.");
-        setDocumentUploadModalOpen(false);
-      }
-      return;
-    }
-
-    const fetchedAt = documentsCatalogFetchedAtRef.current;
-    const shouldRevalidate = !fetchedAt || Date.now() - fetchedAt > DOCUMENTS_CATALOG_TTL_MS;
-    if (shouldRevalidate) {
-      void ensureDocumentsModalCatalog({ force: true }).catch(() => {
-        // keep cached modal data if revalidation fails
-      });
-    }
-  }
-
   const ensureEmployeesModalCatalog = useCallback(async (options?: { force?: boolean }) => {
     const force = Boolean(options?.force);
     if (employeeModalLoading) return employeesModalCatalog ?? null;
@@ -1268,21 +1158,6 @@ export function CompanyShell({
 
     return () => clearTimeout(timer);
   }, [checklistModalCatalog, enabledModuleSet, ensureChecklistModalCatalog]);
-
-  useEffect(() => {
-    if (!enabledModuleSet.has("documents")) return;
-    if (documentsCatalogPrefetchStartedRef.current) return;
-    if (documentsModalCatalog) return;
-
-    documentsCatalogPrefetchStartedRef.current = true;
-    const timer = setTimeout(() => {
-      void ensureDocumentsModalCatalog().catch(() => {
-        documentsCatalogPrefetchStartedRef.current = false;
-      });
-    }, 120);
-
-    return () => clearTimeout(timer);
-  }, [documentsModalCatalog, enabledModuleSet, ensureDocumentsModalCatalog]);
 
   useEffect(() => {
     if (!enabledModuleSet.has("employees")) return;
@@ -1433,12 +1308,12 @@ export function CompanyShell({
     }
     if (item.actionKey === "openDocumentFolderModal") {
       setMenuOpen(false);
-      void openDocumentFolderModal();
+      router.push("/app/documents?action=create-folder");
       return;
     }
     if (item.actionKey === "openDocumentUploadModal") {
       setMenuOpen(false);
-      void openDocumentUploadModal();
+      router.push("/app/documents?action=upload");
       return;
     }
     if (item.actionKey === "openEmployeeModal") {
@@ -1461,10 +1336,6 @@ export function CompanyShell({
     }
     if (item.actionKey === "openChecklistModal") {
       void ensureChecklistModalCatalog().catch(() => {});
-      return;
-    }
-    if (item.actionKey === "openDocumentFolderModal" || item.actionKey === "openDocumentUploadModal") {
-      void ensureDocumentsModalCatalog().catch(() => {});
       return;
     }
     if (item.actionKey === "openEmployeeModal") {
@@ -2237,35 +2108,6 @@ export function CompanyShell({
             action="create"
           />
         ) : renderModalLoading("Nuevo Checklist")
-      ) : null}
-
-      {documentFolderModalOpen ? (
-        documentsModalCatalog ? (
-          <DocumentFolderModal
-            onClose={() => setDocumentFolderModalOpen(false)}
-            onCreated={() => router.push("/app/documents")}
-            folders={documentsModalCatalog.folders}
-            branches={documentsModalCatalog.branches}
-            departments={documentsModalCatalog.departments}
-            positions={documentsModalCatalog.positions}
-            employees={documentsModalCatalog.users}
-          />
-        ) : renderModalLoading("Nueva Carpeta")
-      ) : null}
-
-      {documentUploadModalOpen ? (
-        documentsModalCatalog ? (
-          <UploadDocumentModal
-            onClose={() => setDocumentUploadModalOpen(false)}
-            onUploaded={() => router.push("/app/documents")}
-            folders={documentsModalCatalog.folders}
-            branches={documentsModalCatalog.branches}
-            departments={documentsModalCatalog.departments}
-            positions={documentsModalCatalog.positions}
-            employees={documentsModalCatalog.users}
-            recentDocuments={documentsModalCatalog.recentDocuments}
-          />
-        ) : renderModalLoading("Subir Archivo")
       ) : null}
 
       {employeeModalOpen ? (

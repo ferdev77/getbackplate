@@ -56,15 +56,6 @@ export type ChecklistModalCatalog = {
   users: ScopedUserOption[];
 };
 
-export type DocumentsModalCatalog = {
-  folders: Array<{ id: string; name: string }>;
-  branches: BranchOption[];
-  departments: DepartmentOption[];
-  positions: PositionOption[];
-  users: ScopedUserOption[];
-  recentDocuments: Array<{ id: string; title: string; branch_id: string | null; created_at: string }>;
-};
-
 export type EmployeesModalCatalog = {
   branches: BranchOption[];
   departments: DepartmentOption[];
@@ -80,7 +71,6 @@ export type UsersModalCatalog = {
 
 export const ANNOUNCEMENT_CATALOG_TTL_MS = 60_000;
 export const CHECKLIST_CATALOG_TTL_MS = 60_000;
-export const DOCUMENTS_CATALOG_TTL_MS = 60_000;
 export const EMPLOYEES_CATALOG_TTL_MS = 60_000;
 export const USERS_CATALOG_TTL_MS = 30_000;
 
