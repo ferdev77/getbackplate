@@ -126,11 +126,19 @@ async function processRecurrence(req: Request) {
                 templateBranchId: template.branch_id,
               };
 
-             if (notifyVia !== 'none') {
-               try {
-                 // Import dynamico para no afectar ruta principal si falla
-                 const { sendChecklistAudienceEmail, sendChecklistAudienceTwilio } = await import('@/modules/checklists/services/checklist-audience.service');
-                 
+             try {
+               // Import dynamico para no afectar ruta principal si falla
+               const { sendChecklistAudienceEmail, sendChecklistAudiencePush, sendChecklistAudienceTwilio } = await import('@/modules/checklists/services/checklist-audience.service');
+
+               // El push es siempre activo (igual que en la creacion manual), no depende de notify_via.
+               await sendChecklistAudiencePush({
+                 ...audienceInput,
+                 templateName: template.name,
+                 event: "created",
+                 itemsCount: 0,
+               });
+
+               if (notifyVia !== 'none') {
                   if (notifyChannels.includes("email") || notifyVia === "email" || notifyVia === "all") {
                    await sendChecklistAudienceEmail({
                      ...audienceInput,
@@ -149,9 +157,9 @@ async function processRecurrence(req: Request) {
                      actorEmail: "Sistema (Recurrencia)",
                    });
                  }
-               } catch (notiError) {
-                 console.error(`Failed to send recurrence notifications for checklist ${job.target_id}:`, notiError);
                }
+             } catch (notiError) {
+               console.error(`Failed to send recurrence notifications for checklist ${job.target_id}:`, notiError);
              }
            }
          } else if (job.job_type === 'announcement_delivery') {

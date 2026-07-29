@@ -62,9 +62,7 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
   const normalizedNotifyChannels = [...new Set([...notifyChannels, "push"])].filter((channel) =>
     ["sms", "email", "in_app", "push"].includes(channel),
   );
-  const channelsForDelivery = announcementId
-    ? []
-    : normalizedNotifyChannels;
+  const channelsForDelivery = normalizedNotifyChannels;
 
   const isRecurring = String(formData.get("is_recurring") ?? "") === "on";
   const recurrenceType = String(formData.get("recurrence_type") ?? "daily");
@@ -182,11 +180,9 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
       return { success: false, message: `Announcement saved, but the notification could not be queued: ${deliveriesError.message}` };
     }
 
-    if (!announcementId) {
-      const deliveryResult = await processAnnouncementDeliveries();
-      if (deliveryResult.success && typeof deliveryResult.sentContactsCount === "number") {
-        sentContactsCount = deliveryResult.sentContactsCount;
-      }
+    const deliveryResult = await processAnnouncementDeliveries();
+    if (deliveryResult.success && typeof deliveryResult.sentContactsCount === "number") {
+      sentContactsCount = deliveryResult.sentContactsCount;
     }
   }
 
@@ -255,12 +251,13 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
 
   revalidatePath("/app/announcements");
   revalidatePath("/portal/home");
-  const creationMessage = channelsForDelivery.length
-    ? `Announcement created successfully. Notifications sent: ${sentContactsCount}`
-    : "Announcement created successfully";
-  return { 
-    success: true, 
-    message: announcementId ? "Announcement updated successfully" : creationMessage
+  const baseMessage = announcementId ? "Announcement updated successfully" : "Announcement created successfully";
+  const message = channelsForDelivery.length
+    ? `${baseMessage}. Notifications sent: ${sentContactsCount}`
+    : baseMessage;
+  return {
+    success: true,
+    message,
   };
 }
 

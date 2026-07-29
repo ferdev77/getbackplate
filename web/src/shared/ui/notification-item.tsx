@@ -1,12 +1,12 @@
 "use client";
 
-import { Mail, Bell } from "lucide-react";
+import { Mail, Bell, Smartphone } from "lucide-react";
 
 type Locale = "es" | "en";
 
 export type NotificationListItem = {
   id: string;
-  channel: "email" | "push";
+  channel: "email" | "push" | "in_app";
   title: string;
   body: string;
   action_url: string | null;
@@ -27,11 +27,18 @@ function formatRelativeTime(iso: string, locale: Locale): string {
   return new Date(iso).toLocaleDateString(locale === "en" ? "en-US" : "es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-export function NotificationChannelBadge({ channel }: { channel: "email" | "push" }) {
+export function NotificationChannelBadge({ channel }: { channel: "email" | "push" | "in_app" }) {
   if (channel === "email") {
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-[var(--gbp-border2)] bg-[color-mix(in_oklab,blue_10%,transparent)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-600">
         <Mail className="h-3 w-3" /> Email
+      </span>
+    );
+  }
+  if (channel === "in_app") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-[var(--gbp-border2)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--gbp-text2)]">
+        <Smartphone className="h-3 w-3" /> En la app
       </span>
     );
   }

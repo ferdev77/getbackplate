@@ -1,7 +1,7 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { sendTwilioMessage } from "@/infrastructure/twilio/client";
-import { sendPushToOrg } from "@/infrastructure/push/send-to-org";
+import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
 import {
   buildBrandedEmailSubject,
   getTenantEmailBranding,
@@ -205,12 +205,12 @@ export async function processAnnouncementDeliveries() {
           users: scope.users,
         },
       });
-      // Canal push: envío masivo por org, no por contacto individual
+      // Canal push: acotado a los usuarios resueltos por el alcance del aviso
       if (primary.channel === "push") {
         try {
           await withTimeout(
-            sendPushToOrg(
-              primary.organization_id,
+            sendPushToUsers(
+              audience.userIds,
               {
                 title: announcement.title,
                 body: announcement.body,

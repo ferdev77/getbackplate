@@ -1,7 +1,7 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 
 export type LogNotificationInput = {
-  channel: "email" | "push";
+  channel: "email" | "push" | "in_app";
   userId?: string | null;
   organizationId?: string | null;
   title: string;

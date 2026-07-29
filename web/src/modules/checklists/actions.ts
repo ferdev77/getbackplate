@@ -182,7 +182,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   revalidatePath("/app/checklists");
   revalidatePath("/app/reports");
 
-  // --- Notifications (only for new templates) ---
+  // --- Notifications (tanto al crear como al editar) ---
   let checklistAudienceEmailCount = 0;
   let checklistAudiencePushCount = 0;
   let checklistAudienceSmsCount = 0;
@@ -192,13 +192,14 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     position_ids: parsed.data.position_scope,
     users: parsed.data.user_scope,
   };
+  const notificationEvent = parsed.data.template_id ? ("updated" as const) : ("created" as const);
 
-  if (!parsed.data.template_id && notifyByEmail) {
+  if (notifyByEmail) {
     checklistAudienceEmailCount = await sendChecklistAudienceEmail({
       supabase,
       organizationId: tenant.organizationId,
       templateName: parsed.data.name,
-      event: "created",
+      event: notificationEvent,
       itemsCount: result.totalItems,
       actorEmail: authData.user?.email ?? "Usuario interno",
       targetScope: scopePayload,
@@ -206,19 +207,17 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     });
   }
 
-  if (!parsed.data.template_id) {
-    checklistAudiencePushCount = await sendChecklistAudiencePush({
-      supabase,
-      organizationId: tenant.organizationId,
-      templateName: parsed.data.name,
-      event: "created",
-      itemsCount: result.totalItems,
-      targetScope: scopePayload,
-      templateBranchId: parsed.data.branch_id,
-    });
-  }
+  checklistAudiencePushCount = await sendChecklistAudiencePush({
+    supabase,
+    organizationId: tenant.organizationId,
+    templateName: parsed.data.name,
+    event: notificationEvent,
+    itemsCount: result.totalItems,
+    targetScope: scopePayload,
+    templateBranchId: parsed.data.branch_id,
+  });
 
-  if (!parsed.data.template_id && notifyVia.includes("sms")) {
+  if (notifyVia.includes("sms")) {
     checklistAudienceSmsCount = await sendChecklistAudienceTwilio({
       supabase,
       organizationId: tenant.organizationId,
@@ -228,6 +227,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
       actorEmail: authData.user?.email ?? "Usuario interno",
       targetScope: scopePayload,
       templateBranchId: parsed.data.branch_id,
+      event: notificationEvent,
     });
   }
 
@@ -236,22 +236,22 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   if (notifyByEmail) {
     notificationsSummary.push(`Emails sent: ${checklistAudienceEmailCount}`);
   }
-  if (!parsed.data.template_id) {
-    notificationsSummary.push(`Push notifications sent: ${checklistAudiencePushCount}`);
-  }
+  notificationsSummary.push(`Push notifications sent: ${checklistAudiencePushCount}`);
   if (notifyVia.includes("sms")) {
     notificationsSummary.push(`SMS messages sent: ${checklistAudienceSmsCount}`);
   }
 
+  const baseMessage = parsed.data.template_id
+    ? result.preservedHistory
+      ? "Checklist updated by creating a new version (history preserved)"
+      : "Checklist updated successfully"
+    : "Template created successfully";
+
   return {
     success: true,
-    message: parsed.data.template_id
-      ? result.preservedHistory
-        ? "Checklist updated by creating a new version (history preserved)"
-        : "Checklist updated successfully"
-      : notificationsSummary.length
-        ? `Template created successfully. ${notificationsSummary.join(" · ")}`
-        : "Template created successfully"
+    message: notificationsSummary.length
+      ? `${baseMessage}. ${notificationsSummary.join(" · ")}`
+      : baseMessage,
   };
 }
 

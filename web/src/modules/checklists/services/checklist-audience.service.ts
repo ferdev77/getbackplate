@@ -53,7 +53,7 @@ export async function resolveChecklistAudienceContacts(input: ChecklistAudienceI
 
 export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput & {
   templateName: string;
-  event: "created" | "submitted";
+  event: "created" | "updated" | "submitted";
   itemsCount: number;
   flaggedCount?: number;
   actorEmail?: string;
@@ -70,7 +70,9 @@ export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput &
   const subject =
     input.event === "created"
       ? `New checklist created: ${input.templateName}`
-      : `Checklist submitted: ${input.templateName}`;
+      : input.event === "updated"
+        ? `Checklist updated: ${input.templateName}`
+        : `Checklist submitted: ${input.templateName}`;
   const brandedSubject = buildBrandedEmailSubject(subject, branding);
   const html =
     input.event === "created"
@@ -81,7 +83,15 @@ export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput &
     <p style="margin:0 0 14px 0;color:#444;">Created by: <strong>${input.actorEmail ?? "Internal user"}</strong></p>
     <p style="margin:14px 0 0 0;"><a href="${reportsUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">View checklists</a></p>
   `
-      : `
+      : input.event === "updated"
+        ? `
+    <h2 style="margin:0 0 10px 0;">Checklist updated</h2>
+    <p style="margin:0 0 8px 0;color:#444;">Template: <strong>${input.templateName}</strong></p>
+    <p style="margin:0 0 8px 0;color:#444;">Items: <strong>${input.itemsCount}</strong></p>
+    <p style="margin:0 0 14px 0;color:#444;">Updated by: <strong>${input.actorEmail ?? "Internal user"}</strong></p>
+    <p style="margin:14px 0 0 0;"><a href="${reportsUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">View checklists</a></p>
+  `
+        : `
     <h2 style="margin:0 0 10px 0;">Checklist submitted</h2>
     <p style="margin:0 0 8px 0;color:#444;">Template: <strong>${input.templateName}</strong></p>
     <p style="margin:0 0 8px 0;color:#444;">Items: <strong>${input.itemsCount}</strong></p>
@@ -92,7 +102,9 @@ export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput &
   const text =
     input.event === "created"
       ? `New checklist created\nTemplate: ${input.templateName}\nItems: ${input.itemsCount}\nCreated by: ${input.actorEmail ?? "Internal user"}\nView checklists: ${reportsUrl}`
-      : `Checklist submitted\nTemplate: ${input.templateName}\nItems: ${input.itemsCount}\nIssues: ${input.flaggedCount ?? 0}\nSubmitted by: ${input.actorEmail ?? "Internal user"}\nView in reports: ${reportsUrl}`;
+      : input.event === "updated"
+        ? `Checklist updated\nTemplate: ${input.templateName}\nItems: ${input.itemsCount}\nUpdated by: ${input.actorEmail ?? "Internal user"}\nView checklists: ${reportsUrl}`
+        : `Checklist submitted\nTemplate: ${input.templateName}\nItems: ${input.itemsCount}\nIssues: ${input.flaggedCount ?? 0}\nSubmitted by: ${input.actorEmail ?? "Internal user"}\nView in reports: ${reportsUrl}`;
 
   await Promise.allSettled(
     contacts.emails.map((to) =>
@@ -121,7 +133,7 @@ export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput &
 
 export async function sendChecklistAudiencePush(input: ChecklistAudienceInput & {
   templateName: string;
-  event: "created" | "submitted";
+  event: "created" | "updated" | "submitted";
   itemsCount: number;
   flaggedCount?: number;
 }) {
@@ -131,11 +143,13 @@ export async function sendChecklistAudiencePush(input: ChecklistAudienceInput & 
   const title =
     input.event === "created"
       ? `Nuevo checklist: ${input.templateName}`
-      : `Checklist enviado: ${input.templateName}`;
+      : input.event === "updated"
+        ? `Checklist actualizado: ${input.templateName}`
+        : `Checklist enviado: ${input.templateName}`;
   const body =
-    input.event === "created"
-      ? `Items: ${input.itemsCount}`
-      : `Items: ${input.itemsCount}${input.flaggedCount ? ` · Incidencias: ${input.flaggedCount}` : ""}`;
+    input.event === "submitted"
+      ? `Items: ${input.itemsCount}${input.flaggedCount ? ` · Incidencias: ${input.flaggedCount}` : ""}`
+      : `Items: ${input.itemsCount}`;
 
   const result = await sendPushToUsers(
     contacts.userIds,
@@ -155,11 +169,13 @@ export async function sendChecklistAudienceTwilio(input: ChecklistAudienceInput 
   templateName: string;
   itemsCount: number;
   actorEmail?: string;
+  event?: "created" | "updated";
 }) {
   const contacts = await resolveChecklistAudienceContacts(input);
   if (!contacts.phones.length) return 0;
 
-  const body = `Nuevo checklist creado\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\nCreado por: ${input.actorEmail ?? "Usuario interno"}`;
+  const action = input.event === "updated" ? "actualizado" : "creado";
+  const body = `Checklist ${action}\nPlantilla: ${input.templateName}\nItems: ${input.itemsCount}\n${input.event === "updated" ? "Actualizado" : "Creado"} por: ${input.actorEmail ?? "Usuario interno"}`;
 
   const results = await Promise.allSettled(
     contacts.phones.map((phone) => sendTwilioMessage(phone, body, input.channel)),

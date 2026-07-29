@@ -6,7 +6,7 @@ import { Bell, Loader2 } from "lucide-react";
 import { NotificationItemRow, type NotificationListItem } from "@/shared/ui/notification-item";
 import { createTranslator } from "@/shared/ui/company-shell.i18n";
 
-type ChannelFilter = "all" | "email" | "push";
+type ChannelFilter = "all" | "email" | "push" | "in_app";
 
 export function NotificationsHistoryList({ locale = "es" }: { locale?: "es" | "en" }) {
   const router = useRouter();
@@ -71,7 +71,7 @@ export function NotificationsHistoryList({ locale = "es" }: { locale?: "es" | "e
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1.5">
-          {(["all", "email", "push"] as const).map((option) => (
+          {(["all", "email", "push", "in_app"] as const).map((option) => (
             <button
               key={option}
               type="button"
@@ -82,7 +82,7 @@ export function NotificationsHistoryList({ locale = "es" }: { locale?: "es" | "e
                   : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"
               }`}
             >
-              {option === "all" ? t("Todas") : option === "email" ? "Email" : "Push"}
+              {option === "all" ? t("Todas") : option === "email" ? "Email" : option === "push" ? "Push" : t("En la app")}
             </button>
           ))}
         </div>
