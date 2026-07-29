@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { isModuleEnabledForOrganization } from "@/shared/lib/access";
 import { canReadDocumentInTenant } from "@/shared/lib/document-access";
 import { isEmployeePrivateDocument } from "@/shared/lib/employee-private-documents";
+import { resolveEmployeeAllowedLocationIds } from "@/shared/lib/employee-api-scope";
 import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
 import {
   isAllowedDocumentMime,
@@ -140,6 +141,13 @@ export async function GET(request: Request, { params }: Context) {
       ? [{ organization_id: document.organization_id, branch_id: null, role_id: "__impersonation__" }]
       : [];
 
+  // Un empleado puede tener acceso a varias locaciones ademas de la principal
+  // (branch_id): sin esto, un documento con alcance en una locacion "secundaria"
+  // le queda inaccesible aunque este dentro de su alcance permitido.
+  const allowedLocationIds = orgMemberships.length
+    ? await resolveEmployeeAllowedLocationIds(document.organization_id, userId)
+    : [];
+
   let canRead = false;
   for (const membership of [...orgMemberships, ...fallbackMemberships]) {
     const roleCode =
@@ -155,6 +163,7 @@ export async function GET(request: Request, { params }: Context) {
       roleCode,
       userId,
       branchId: membership.branch_id ?? employeeRow?.branch_id ?? null,
+      branchIds: allowedLocationIds,
       departmentId: employeeRow?.department_id ?? null,
       positionIds: employeePositionIds,
       isDirectlyAssigned,

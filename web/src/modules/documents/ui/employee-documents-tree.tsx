@@ -149,7 +149,18 @@ export function EmployeeDocumentsTree({
   const previousColumnCountRef = useRef(1);
   const suppressColumnClickRef = useRef(false);
   const dragMetaRef = useRef<{ kind: "document" | "folder" | null; id: string | null }>({ kind: null, id: null });
-  const dndDebugEnabled = process.env.NODE_ENV === "development";
+  // ?dndDebug=1 prende el registro de arrastrar-y-soltar en consola tambien en
+  // produccion (queda guardado en localStorage para no tener que repetir el
+  // parametro en cada visita); nadie mas lo ve porque no hay ningun link a el.
+  const [dndDebugEnabled] = useState(() => {
+    if (process.env.NODE_ENV === "development") return true;
+    if (typeof window === "undefined") return false;
+    if (new URLSearchParams(window.location.search).get("dndDebug") === "1") {
+      window.localStorage.setItem("gbp-dnd-debug", "1");
+      return true;
+    }
+    return window.localStorage.getItem("gbp-dnd-debug") === "1";
+  });
   const dndDebugSnapshotRef = useRef<{ event: string; details: Record<string, unknown>; at: string } | null>(null);
   const prevDocumentsKeyRef = useRef("");
   const prevFoldersKeyRef = useRef("");
@@ -742,11 +753,13 @@ export function EmployeeDocumentsTree({
   async function moveDocumentToFolder(documentId: string, targetFolderId: string | null) {
     const doc = documentsState.find((row) => row.id === documentId);
     if (!doc || !isOwner(doc)) {
+      logDnd("move-document:blocked-not-owner", { documentId, targetFolderId });
       resetDndState();
       return;
     }
     // No hacer nada si ya está en la misma carpeta
     if (doc.folder_id === targetFolderId) {
+      logDnd("move-document:noop-same-folder", { documentId, currentFolderId: doc.folder_id, targetFolderId });
       resetDndState();
       return;
     }
@@ -756,6 +769,7 @@ export function EmployeeDocumentsTree({
       const current = resolveInheritedScopeSource(doc.folder_id);
       const next = resolveInheritedScopeSource(targetFolderId);
       if (current.sourceFolderId !== next.sourceFolderId) {
+        logDnd("move-document:pending-scope-confirm", { documentId, targetFolderId, current, next });
         resetDndState();
         setPendingScopeMove({
           kind: "document",
@@ -785,7 +799,10 @@ export function EmployeeDocumentsTree({
         body: JSON.stringify({ documentId, folderId: targetFolderId }),
       });
       const data = (await response.json().catch(() => ({}))) as { error?: string; folderId?: string | null };
-      if (!response.ok) throw new Error("Unable to move the document.");
+      if (!response.ok) {
+        logDnd("move-document:error", { documentId, targetFolderId, status: response.status, apiError: data.error });
+        throw new Error("Unable to move the document.");
+      }
       const resolvedFolderId = data.folderId === undefined ? targetFolderId : data.folderId;
       logDnd("move-document:ok", { documentId, targetFolderId });
       setDocumentsState((prev) => prev.map((row) => (row.id === documentId ? { ...row, folder_id: resolvedFolderId } : row)));
@@ -807,15 +824,18 @@ export function EmployeeDocumentsTree({
   async function moveFolderToFolder(folderId: string, targetFolderId: string | null) {
     const folder = folderRows.find((row) => row.id === folderId);
     if (!folder || !isFolderOwner(folder)) {
+      logDnd("move-folder:blocked-not-owner", { folderId, targetFolderId });
       resetDndState();
       return;
     }
     if (folderId === targetFolderId) {
+      logDnd("move-folder:noop-same-id", { folderId, targetFolderId });
       resetDndState();
       return;
     }
     // No hacer nada si ya está en el mismo contenedor padre
     if (folder.parent_id === targetFolderId) {
+      logDnd("move-folder:noop-same-parent", { folderId, currentParentId: folder.parent_id, targetFolderId });
       resetDndState();
       return;
     }
@@ -824,6 +844,7 @@ export function EmployeeDocumentsTree({
       let currentParentId = parentById.get(targetFolderId) ?? null;
       while (currentParentId) {
         if (currentParentId === folderId) {
+          logDnd("move-folder:blocked-circular", { folderId, targetFolderId });
           toast.error("A folder cannot be moved into one of its subfolders.");
           resetDndState();
           return;
@@ -837,6 +858,7 @@ export function EmployeeDocumentsTree({
       const current = resolveInheritedScopeSource(folder.parent_id);
       const next = resolveInheritedScopeSource(targetFolderId);
       if (current.sourceFolderId !== next.sourceFolderId) {
+        logDnd("move-folder:pending-scope-confirm", { folderId, targetFolderId, current, next });
         resetDndState();
         setPendingScopeMove({
           kind: "folder",
@@ -872,6 +894,7 @@ export function EmployeeDocumentsTree({
       });
       const data = (await response.json().catch(() => ({}))) as { error?: string; parentId?: string | null };
       if (!response.ok) {
+        logDnd("move-folder:error", { folderId, targetFolderId, status: response.status, apiError: data.error });
         // Revert on error
         setFolderRows((prev) => prev.map((row) => (row.id === folderId ? { ...row, parent_id: originalParentId } : row)));
         throw new Error("Unable to move the folder.");
