@@ -272,6 +272,10 @@ export const QUICKBOOKS_R365_EN: Record<string, string> = {
   "No se pudo iniciar la conexión con QuickBooks": "Could not start the connection with QuickBooks",
   "¡Onboarding completado! Ya podés gestionar tus conexiones.": "Onboarding complete! You can now manage your connections.",
   "No se pudo guardar la configuración": "Could not save the configuration",
+  "Completá compañía, nombre de contacto y email.": "Please fill in company, contact name, and email.",
+  "Podés completar la configuración más tarde desde Integraciones.": "You can finish the setup later from Integrations.",
+  "Configurar primera conexión": "Set up first connection",
+  Auto: "Auto",
 };
 
 export function createTranslator(locale: "es" | "en" | undefined) {

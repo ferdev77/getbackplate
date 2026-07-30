@@ -14,6 +14,8 @@ export const SETTINGS_EN: Record<string, string> = {
 
   // ── Company contact card ────────────────────────────────────────
   "Datos de la empresa": "Company data",
+  "Nombre de contacto": "Contact name",
+  Error: "Error",
   "Canales de contacto visibles para la operación diaria.": "Contact channels visible for day-to-day operations.",
   "Branding personalizado": "Custom branding",
   "Logo claro": "Light logo",

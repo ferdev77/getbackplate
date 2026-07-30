@@ -53,6 +53,7 @@ export const COMPANY_SHELL_EN: Record<string, string> = {
   "No tenés notificaciones todavía.": "You don't have any notifications yet.",
   "Ver todas": "View all",
   "Todas": "All",
+  "En la app": "In-app",
   "Marcar todas como leídas": "Mark all as read",
   "No hay notificaciones para mostrar.": "There are no notifications to show.",
   "Cargando más": "Loading...",

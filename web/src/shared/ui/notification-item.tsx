@@ -1,6 +1,7 @@
 "use client";
 
 import { Mail, Bell, Smartphone } from "lucide-react";
+import { createTranslator } from "./company-shell.i18n";
 
 type Locale = "es" | "en";
 
@@ -27,7 +28,8 @@ function formatRelativeTime(iso: string, locale: Locale): string {
   return new Date(iso).toLocaleDateString(locale === "en" ? "en-US" : "es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-export function NotificationChannelBadge({ channel }: { channel: "email" | "push" | "in_app" }) {
+export function NotificationChannelBadge({ channel, locale = "es" }: { channel: "email" | "push" | "in_app"; locale?: Locale }) {
+  const t = createTranslator(locale);
   if (channel === "email") {
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-[var(--gbp-border2)] bg-[color-mix(in_oklab,blue_10%,transparent)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-600">
@@ -38,7 +40,7 @@ export function NotificationChannelBadge({ channel }: { channel: "email" | "push
   if (channel === "in_app") {
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-[var(--gbp-border2)] bg-[var(--gbp-surface2)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--gbp-text2)]">
-        <Smartphone className="h-3 w-3" /> En la app
+        <Smartphone className="h-3 w-3" /> {t("En la app")}
       </span>
     );
   }
@@ -70,7 +72,7 @@ export function NotificationItemRow({
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
-          <NotificationChannelBadge channel={item.channel} />
+          <NotificationChannelBadge channel={item.channel} locale={locale} />
           {isUnread ? <span className="h-1.5 w-1.5 rounded-full bg-[var(--gbp-accent)]" /> : null}
         </div>
         <span className="shrink-0 text-[11px] text-[var(--gbp-text2)]">{formatRelativeTime(item.created_at, locale)}</span>
