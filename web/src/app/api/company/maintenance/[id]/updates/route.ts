@@ -1,4 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
+import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import {
+  notifyMaintenanceStatusChanged,
+  notifyMaintenanceUpdate,
+} from "@/modules/maintenance/services/maintenance-events.service";
 
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { addMaintenanceUpdate, maintenanceUpdateSchema } from "@/modules/maintenance/services";
@@ -32,6 +37,37 @@ export async function POST(request: Request, context: RouteContext) {
       id,
       parsed.data,
     );
+
+    const solicitud = await createSupabaseAdminClient()
+      .from("maintenance_requests")
+      .select("title, created_by")
+      .eq("organization_id", access.tenant.organizationId)
+      .eq("id", id)
+      .maybeSingle();
+
+    after(async () => {
+      const admin = createSupabaseAdminClient();
+      const comun = {
+        supabase: admin,
+        organizationId: access.tenant.organizationId,
+        title: solicitud.data?.title ?? "Solicitud",
+        requestedByUserId: solicitud.data?.created_by ?? null,
+        actorUserId: access.userId,
+      };
+
+      // Un cambio de estado y una novedad son avisos distintos: el primero dice
+      // en que quedo, el segundo que hay algo para leer.
+      if (parsed.data.status) {
+        await notifyMaintenanceStatusChanged({ ...comun, toStatus: parsed.data.status });
+        return;
+      }
+
+      await notifyMaintenanceUpdate({
+        ...comun,
+        message: parsed.data.message ?? null,
+        scheduledVisitAt: parsed.data.scheduled_visit_at ?? null,
+      });
+    });
 
     return NextResponse.json({ ok: true });
   } catch (error) {

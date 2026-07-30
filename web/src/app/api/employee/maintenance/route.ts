@@ -1,4 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
+import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { notifyMaintenanceRequested } from "@/modules/maintenance/services/maintenance-events.service";
 
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
 import {
@@ -78,6 +80,17 @@ export async function POST(request: Request) {
     };
     const requestId = await createMaintenanceRequest(context, parsed.data);
     await attachMaintenanceFiles(context, requestId, filesFromFormData(formData));
+
+    after(async () => {
+      await notifyMaintenanceRequested({
+        supabase: createSupabaseAdminClient(),
+        organizationId: context.organizationId,
+        title: parsed.data.title,
+        priority: parsed.data.priority ?? null,
+        locationName: null,
+        createdByUserId: context.userId,
+      });
+    });
 
     return NextResponse.json({ request: { id: requestId } }, { status: 201 });
   } catch (error) {
