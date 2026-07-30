@@ -1,27 +1,61 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import {
+  deriveScopeMode,
+  effectiveScopeLocations,
+  emitScopeForMode,
+  makeScopeMatcher,
+  validateScopeMode,
+  type ScopeMode,
+  type ScopeRestriction,
+} from "@/shared/lib/scope-selector-model";
+
+/**
+ * Selector de alcance compartido por avisos, checklists, documentos y carpetas.
+ *
+ * La regla de alcance vive en scope-policy.ts (lado servidor) y en las
+ * funciones de Postgres; aca solo se la explica y se la construye. Ver
+ * README_SCOPE_GOLDEN_RULE.md.
+ *
+ * El punto de la pantalla es que el usuario no tenga que deducir la regla a
+ * partir de casillas sueltas: elige una de tres intenciones y ve, al lado, a
+ * quien alcanza de verdad.
+ */
+
+export type { ScopeMode };
+
+export type ScopeSelectorUser = {
+  id: string;
+  user_id: string | null;
+  branch_id?: string | null;
+  department_id?: string | null;
+  position_id?: string | null;
+  first_name: string;
+  last_name: string;
+  role_label?: string;
+  location_label?: string;
+  department_label?: string;
+  position_label?: string;
+};
 
 export type ScopeSelectorProps = {
   namespace: string;
   branches: Array<{ id: string; name: string }>;
   departments: Array<{ id: string; name: string }>;
   positions?: Array<{ id: string; department_id: string; name: string }>;
-  users: Array<{
-    id: string;
-    user_id: string | null;
-    branch_id?: string | null;
-    first_name: string;
-    last_name: string;
-    role_label?: string;
-    location_label?: string;
-    department_label?: string;
-    position_label?: string;
-  }>;
+  users: ScopeSelectorUser[];
   locationInputName: string;
   departmentInputName: string;
   positionInputName?: string;
   userInputName: string;
+  /**
+   * Manda la intencion elegida junto con las listas. Sin esto, un alcance vacio
+   * es ambiguo: puede ser "toda la organizacion" a proposito o un descuido. Con
+   * esto el servidor puede distinguirlos (ver assertScopeIntent).
+   */
+  modeInputName?: string;
   initialLocations?: string[];
   initialDepartments?: string[];
   initialPositions?: string[];
@@ -29,10 +63,44 @@ export type ScopeSelectorProps = {
   allowedLocationIds?: string[];
   lockLocationSelection?: boolean;
   locationHelperText?: string;
+  /** Pregunta del encabezado, segun lo que se este creando. */
+  question?: string;
+  /** Titulo de la columna de audiencia: "Lo veran", "Lo completaran"... */
+  audienceLabel?: string;
+  /** Avisa al modal si el alcance esta completo, para habilitar Guardar. */
+  onValidityChange?: (valid: boolean) => void;
 };
+
+const MODE_HINT: Record<ScopeMode, string> = {
+  all: "Queda abierto. Si mañana entra alguien nuevo, también entra.",
+  group: "El grupo se recalcula solo cuando alguien cambia de puesto o de locación.",
+  people: "La lista queda fija. Nadie más tendrá acceso.",
+};
+
+const KICKER = "text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]";
+const HINT = "text-[11px] leading-[1.45] text-[var(--gbp-text2)]";
+const BLOCK = "rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3";
 
 function normalize(values: string[]) {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+}
+
+
+function fullName(user: ScopeSelectorUser) {
+  return `${user.first_name} ${user.last_name}`.trim();
+}
+
+function initials(user: ScopeSelectorUser) {
+  const parts = fullName(user).split(/\s+/).filter(Boolean).slice(0, 2);
+  if (parts.length === 0) return "?";
+  return parts.map((part) => part[0]?.toUpperCase() ?? "").join("");
+}
+
+function metaLine(user: ScopeSelectorUser) {
+  return (
+    [user.location_label, user.department_label, user.position_label].filter(Boolean).join(" · ") ||
+    "Sin datos de perfil"
+  );
 }
 
 export function ScopeSelector({
@@ -45,6 +113,7 @@ export function ScopeSelector({
   departmentInputName,
   positionInputName,
   userInputName,
+  modeInputName,
   initialLocations = [],
   initialDepartments = [],
   initialPositions = [],
@@ -52,6 +121,9 @@ export function ScopeSelector({
   allowedLocationIds,
   lockLocationSelection = false,
   locationHelperText,
+  question = "¿Quién lo tiene que ver?",
+  audienceLabel = "Lo verán",
+  onValidityChange,
 }: ScopeSelectorProps) {
   const availableLocationIds = useMemo(() => {
     if (!allowedLocationIds || allowedLocationIds.length === 0) {
@@ -66,20 +138,24 @@ export function ScopeSelector({
     return branches.filter((branch) => ids.has(branch.id));
   }, [availableLocationIds, branches]);
 
-  const branchNameById = useMemo(() => new Map(branches.map((branch) => [branch.id, branch.name])), [branches]);
-  const departmentNameById = useMemo(() => new Map(departments.map((department) => [department.id, department.name])), [departments]);
-  const positionNameById = useMemo(() => new Map(positions.map((position) => [position.id, position.name])), [positions]);
+  /**
+   * Un empleado con locaciones acotadas no puede difundir a toda la empresa. En
+   * su caso el primer modo significa "todas mis locaciones" y emite esas
+   * locaciones como filtro, en vez de emitir un alcance vacio (que el servidor
+   * leeria como difusion total).
+   */
+  const restricted = lockLocationSelection && availableLocationIds.length > 0;
 
-  const fallbackLocations = useMemo(() => {
-    const initial = normalize(initialLocations);
-    if (initial.length > 0) return initial;
-    return lockLocationSelection ? availableLocationIds : [];
-  }, [availableLocationIds, initialLocations, lockLocationSelection]);
-
-  const usersWithAccess = useMemo(
-    () => users.filter((user) => Boolean(user.user_id)),
-    [users],
+  const restriction = useMemo<ScopeRestriction>(
+    () => ({ restricted, availableLocationIds }),
+    [availableLocationIds, restricted],
   );
+
+  const branchNameById = useMemo(() => new Map(branches.map((b) => [b.id, b.name])), [branches]);
+  const departmentNameById = useMemo(() => new Map(departments.map((d) => [d.id, d.name])), [departments]);
+  const positionNameById = useMemo(() => new Map(positions.map((p) => [p.id, p.name])), [positions]);
+
+  const usersWithAccess = useMemo(() => users.filter((user) => Boolean(user.user_id)), [users]);
 
   const allowedUserIdSet = useMemo(
     () => new Set(usersWithAccess.map((user) => user.user_id).filter(Boolean) as string[]),
@@ -91,13 +167,35 @@ export function ScopeSelector({
     [allowedUserIdSet, initialUsers],
   );
 
-  const [selectedLocations, setSelectedLocations] = useState<Set<string>>(() => new Set(fallbackLocations));
-  const [selectedDepartments, setSelectedDepartments] = useState<Set<string>>(() => new Set(normalize(initialDepartments)));
-  const [selectedPositions, setSelectedPositions] = useState<Set<string>>(() => new Set(normalize(initialPositions)));
+  const initialLocationIds = useMemo(() => normalize(initialLocations), [initialLocations]);
+  const initialDepartmentIds = useMemo(() => normalize(initialDepartments), [initialDepartments]);
+  const initialPositionIds = useMemo(() => normalize(initialPositions), [initialPositions]);
+
+  /**
+   * El modo no se guarda: se deduce de lo que quedo guardado, con la misma
+   * regla que aplica el servidor (hasScopeFilters / isUserOnlyScope). Asi,
+   * abrir algo viejo a editar no lo reinterpreta.
+   */
+  const initialMode = useMemo<ScopeMode>(
+    () =>
+      deriveScopeMode(
+        {
+          locations: initialLocationIds,
+          departments: initialDepartmentIds,
+          positions: initialPositionIds,
+          users: sanitizedInitialUsers,
+        },
+        restriction,
+      ),
+    [initialDepartmentIds, initialLocationIds, initialPositionIds, restriction, sanitizedInitialUsers],
+  );
+
+  const [mode, setMode] = useState<ScopeMode>(initialMode);
+  const [selectedLocations, setSelectedLocations] = useState<Set<string>>(() => new Set(initialLocationIds));
+  const [selectedDepartments, setSelectedDepartments] = useState<Set<string>>(() => new Set(initialDepartmentIds));
+  const [selectedPositions, setSelectedPositions] = useState<Set<string>>(() => new Set(initialPositionIds));
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(() => new Set(sanitizedInitialUsers));
   const [query, setQuery] = useState("");
-
-  const allDepartments = useMemo(() => departments.map((department) => department.id), [departments]);
 
   const positionsByDepartment = useMemo(() => {
     const map = new Map<string, Array<{ id: string; department_id: string; name: string }>>();
@@ -109,355 +207,583 @@ export function ScopeSelector({
     return map;
   }, [positions]);
 
-  const selectedLocationNames = useMemo(
-    () => new Set(Array.from(selectedLocations).map((id) => branchNameById.get(id)).filter(Boolean)),
-    [branchNameById, selectedLocations],
-  );
-  const selectedDepartmentNames = useMemo(
-    () => new Set(Array.from(selectedDepartments).map((id) => departmentNameById.get(id)).filter(Boolean)),
-    [departmentNameById, selectedDepartments],
-  );
-  const selectedPositionNames = useMemo(
-    () => new Set(Array.from(selectedPositions).map((id) => positionNameById.get(id)).filter(Boolean)),
-    [positionNameById, selectedPositions],
-  );
-
-  const hasFilters = selectedLocations.size > 0 || selectedDepartments.size > 0 || selectedPositions.size > 0;
-
-  // Sin filtros ni personas el recurso es de difusion; con personas y sin
-  // filtros es privado para esas personas (ver isUserOnlyScope en
-  // scope-policy.ts). Los dos estados se muestran aparte en el resumen.
-  const isBroadcast = !hasFilters && selectedUsers.size === 0;
+  const hasFilters =
+    selectedLocations.size > 0 || selectedDepartments.size > 0 || selectedPositions.size > 0;
 
   /**
-   * "Alcanzado por filtros" significa alcanzado por un filtro realmente marcado.
-   * Cuando no hay ninguno, nadie lo esta.
-   *
-   * Antes, sin filtros, esto devolvia a toda la organizacion y la lista salia
-   * con todos tildados. Como el tilde ya estaba puesto, hacer clic en una
-   * persona se interpretaba como destildarla y no como elegirla, asi que era
-   * imposible armar un alcance de solo personas desde la pantalla.
+   * Las locaciones que de verdad van a filtrar. Con locaciones acotadas y
+   * ninguna marcada, valen todas las habilitadas: la vista previa y lo que se
+   * envia tienen que decir lo mismo (ver `emitted`).
    */
-  const usersReachedByFilters = useMemo(() => {
-    if (!hasFilters) {
-      return [];
+  const effectiveLocations = useMemo(
+    () => new Set(effectiveScopeLocations(Array.from(selectedLocations), restriction)),
+    [restriction, selectedLocations],
+  );
+
+  const matchesFilters = useMemo(
+    () =>
+      makeScopeMatcher({
+        locations: Array.from(effectiveLocations),
+        departments: Array.from(selectedDepartments),
+        positions: Array.from(selectedPositions),
+        branchNameById,
+        departmentNameById,
+        positionNameById,
+      }),
+    [
+      branchNameById,
+      departmentNameById,
+      effectiveLocations,
+      positionNameById,
+      selectedDepartments,
+      selectedPositions,
+    ],
+  );
+
+  const audience = useMemo(() => {
+    if (mode === "all") {
+      const reach = restricted
+        ? usersWithAccess.filter((user) => user.branch_id && availableLocationIds.includes(user.branch_id))
+        : usersWithAccess;
+      return { group: reach, hand: [] as ScopeSelectorUser[], broadcast: true };
     }
 
-    return usersWithAccess.filter((user) => {
-      const locationOk = selectedLocations.size === 0
-        ? true
-        : Boolean(user.location_label && selectedLocationNames.has(user.location_label));
-      const departmentOk = selectedDepartments.size === 0
-        ? true
-        : Boolean(user.department_label && selectedDepartmentNames.has(user.department_label));
-      const positionOk = selectedPositions.size === 0
-        ? true
-        : Boolean(user.position_label && selectedPositionNames.has(user.position_label));
+    if (mode === "people") {
+      return {
+        group: [] as ScopeSelectorUser[],
+        hand: usersWithAccess.filter((user) => user.user_id && selectedUsers.has(user.user_id)),
+        broadcast: false,
+      };
+    }
 
-      return locationOk && departmentOk && positionOk;
+    if (!hasFilters) {
+      return { group: [] as ScopeSelectorUser[], hand: [] as ScopeSelectorUser[], broadcast: false };
+    }
+
+    const group = usersWithAccess.filter(matchesFilters);
+    const groupIds = new Set(group.map((user) => user.user_id));
+    return {
+      group,
+      hand: usersWithAccess.filter(
+        (user) => user.user_id && selectedUsers.has(user.user_id) && !groupIds.has(user.user_id),
+      ),
+      broadcast: false,
+    };
+  }, [availableLocationIds, hasFilters, matchesFilters, mode, restricted, selectedUsers, usersWithAccess]);
+
+  const total = audience.group.length + audience.hand.length;
+
+  const validation = useMemo(
+    () =>
+      validateScopeMode({
+        mode,
+        selection: {
+          locations: Array.from(selectedLocations),
+          departments: Array.from(selectedDepartments),
+          positions: Array.from(selectedPositions),
+          users: Array.from(selectedUsers),
+        },
+        restriction,
+        audienceCount: total,
+      }),
+    [mode, restriction, selectedDepartments, selectedLocations, selectedPositions, selectedUsers, total],
+  );
+
+  const blocked = validation?.tone === "block";
+
+  // Se avisa solo cuando la validez cambia de verdad. Si dependiera de la
+  // identidad del callback, un arrow inline en el modal lo dispararia en cada
+  // render.
+  const notifyValidity = useRef(onValidityChange);
+  notifyValidity.current = onValidityChange;
+  const lastValidity = useRef<boolean | null>(null);
+
+  useEffect(() => {
+    if (lastValidity.current === !blocked) return;
+    lastValidity.current = !blocked;
+    notifyValidity.current?.(!blocked);
+  }, [blocked]);
+
+  /**
+   * Lo que realmente se envia. Se deriva del modo, no del estado crudo: si
+   * alguien arma un grupo y despues pasa a "toda la organizacion", los filtros
+   * que quedaron marcados no viajan.
+   */
+  const emitted = useMemo(
+    () =>
+      emitScopeForMode(
+        mode,
+        {
+          locations: Array.from(selectedLocations),
+          departments: Array.from(selectedDepartments),
+          positions: Array.from(selectedPositions),
+          users: Array.from(selectedUsers),
+        },
+        restriction,
+      ),
+    [mode, restriction, selectedDepartments, selectedLocations, selectedPositions, selectedUsers],
+  );
+
+  const departmentsWithPositionsShown = useMemo(() => {
+    // Se muestran los puestos de los departamentos marcados y tambien los de
+    // aquellos que ya tenian un puesto guardado, para que un alcance viejo
+    // hecho solo por puesto siga siendo editable.
+    return departments.filter((department) => {
+      if (selectedDepartments.has(department.id)) return true;
+      return (positionsByDepartment.get(department.id) ?? []).some((position) =>
+        selectedPositions.has(position.id),
+      );
     });
-  }, [hasFilters, selectedDepartments, selectedDepartmentNames, selectedLocations, selectedLocationNames, selectedPositions, selectedPositionNames, usersWithAccess]);
+  }, [departments, positionsByDepartment, selectedDepartments, selectedPositions]);
 
-  const reachedUserIds = useMemo(
-    () => new Set(usersReachedByFilters.map((user) => user.user_id).filter(Boolean) as string[]),
-    [usersReachedByFilters],
+  const reachedByFilters = useMemo(
+    () => new Set(mode === "group" && hasFilters ? audience.group.map((user) => user.user_id) : []),
+    [audience.group, hasFilters, mode],
   );
 
-  const usersAddedByOverride = useMemo(
-    () => usersWithAccess.filter((user) => user.user_id && selectedUsers.has(user.user_id)),
-    [selectedUsers, usersWithAccess],
-  );
-
-  const filteredCandidates = useMemo(() => {
+  const candidates = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const pool = restricted
+      ? usersWithAccess.filter((user) => user.branch_id && availableLocationIds.includes(user.branch_id))
+      : usersWithAccess;
 
-    return usersWithAccess
-      .filter((user) => {
-        if (!user.user_id) return false;
+    return pool
+      .filter((user) => !q || `${fullName(user)} ${metaLine(user)}`.toLowerCase().includes(q))
+      .sort((a, b) => fullName(a).localeCompare(fullName(b), "es"));
+  }, [availableLocationIds, query, restricted, usersWithAccess]);
 
-        const searchable = [
-          `${user.first_name} ${user.last_name}`,
-          user.location_label ?? "",
-          user.department_label ?? "",
-          user.position_label ?? "",
-        ]
-          .join(" ")
-          .toLowerCase();
-
-        return !q || searchable.includes(q);
-      })
-      .sort((a, b) => {
-        const aReached = Boolean(a.user_id && reachedUserIds.has(a.user_id));
-        const bReached = Boolean(b.user_id && reachedUserIds.has(b.user_id));
-        const aChecked = Boolean(a.user_id && (selectedUsers.has(a.user_id) || aReached));
-        const bChecked = Boolean(b.user_id && (selectedUsers.has(b.user_id) || bReached));
-        if (aChecked !== bChecked) return aChecked ? -1 : 1;
-        const aName = `${a.first_name} ${a.last_name}`.trim().toLowerCase();
-        const bName = `${b.first_name} ${b.last_name}`.trim().toLowerCase();
-        return aName.localeCompare(bName, "es");
-      });
-  }, [query, reachedUserIds, selectedUsers, usersWithAccess]);
-
-  function toggleLocation(value: string, checked: boolean) {
-    if (lockLocationSelection && availableLocationIds.length <= 1) return;
-    if (lockLocationSelection && !checked && selectedLocations.size <= 1) return;
+  function toggleLocation(id: string, checked: boolean) {
     setSelectedLocations((prev) => {
       const next = new Set(prev);
-      if (checked) next.add(value);
-      else next.delete(value);
+      if (checked) next.add(id);
+      else next.delete(id);
       return next;
     });
   }
 
-  function toggleDepartment(value: string, checked: boolean) {
+  function toggleDepartment(id: string, checked: boolean) {
     setSelectedDepartments((prev) => {
       const next = new Set(prev);
-      if (checked) next.add(value);
-      else next.delete(value);
+      if (checked) next.add(id);
+      else next.delete(id);
       return next;
     });
 
-    const departmentPositions = positionsByDepartment.get(value) ?? [];
-    if (!departmentPositions.length) return;
-
-    setSelectedPositions((prev) => {
-      const next = new Set(prev);
-      for (const position of departmentPositions) {
-        if (checked) next.add(position.id);
-        else next.delete(position.id);
-      }
-      return next;
-    });
-  }
-
-  function togglePosition(value: string, checked: boolean) {
-    const position = positions.find((item) => item.id === value);
-    if (!position) return;
-
-    const departmentPositions = positionsByDepartment.get(position.department_id) ?? [];
-
-    setSelectedPositions((prev) => {
-      const next = new Set(prev);
-      if (checked) next.add(value);
-      else next.delete(value);
-
-      setSelectedDepartments((prevDepartments) => {
-        const nextDepartments = new Set(prevDepartments);
-        if (!departmentPositions.length) return nextDepartments;
-        const allChecked = departmentPositions.every((item) => next.has(item.id));
-        if (allChecked) nextDepartments.add(position.department_id);
-        else nextDepartments.delete(position.department_id);
-        return nextDepartments;
+    if (!checked) {
+      // Un puesto sin su departamento marcado quedaria invisible en la pantalla
+      // pero seguiria filtrando: se limpia junto con el departamento.
+      const departmentPositions = positionsByDepartment.get(id) ?? [];
+      if (departmentPositions.length === 0) return;
+      setSelectedPositions((prev) => {
+        const next = new Set(prev);
+        for (const position of departmentPositions) next.delete(position.id);
+        return next;
       });
+    }
+  }
 
+  function togglePosition(id: string, checked: boolean) {
+    setSelectedPositions((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
       return next;
     });
   }
 
-  function toggleUser(value: string, checked: boolean) {
+  function toggleUser(id: string, checked: boolean) {
     setSelectedUsers((prev) => {
       const next = new Set(prev);
-      if (checked) next.add(value);
-      else next.delete(value);
+      if (checked) next.add(id);
+      else next.delete(id);
       return next;
     });
   }
 
+  const modeOptions: Array<{ id: ScopeMode; title: string; sub: string }> = [
+    {
+      id: "all",
+      title: restricted ? "Todas mis locaciones" : "Toda la organización",
+      sub: restricted ? "Todos los de mis locaciones." : "Todos, hoy y los que entren.",
+    },
+    { id: "group", title: "Un grupo", sub: "Locación, depto o puesto." },
+    { id: "people", title: "Personas específicas", sub: "Solo las que elijas." },
+  ];
+
+  const noStructure = departments.length === 0 && positions.length === 0;
+
   return (
-    <>
-      <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Alcance base por locación</label>
-      <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
-        {locationHelperText ? (
-          <p className="mb-2 text-[11px] text-[var(--gbp-text2)]">{locationHelperText}</p>
-        ) : null}
-        {!lockLocationSelection ? (
-          <label className="mb-2 inline-flex items-center gap-2 border-b border-[var(--gbp-border)] pb-2 text-xs font-semibold text-[var(--gbp-text)]">
-            <input
-              type="checkbox"
-              checked={selectedLocations.size === availableBranches.length && availableBranches.length > 0}
-              onChange={(event) => {
-                const checked = event.target.checked;
-                setSelectedLocations(checked ? new Set(availableBranches.map((branch) => branch.id)) : new Set());
-              }}
-              className="h-[14px] w-[14px] accent-[var(--gbp-accent)]"
-            />
-            Todas mis locaciones habilitadas
-          </label>
-        ) : null}
-        <div className="grid grid-cols-2 gap-2 text-xs text-[var(--gbp-text2)]">
-          {availableBranches.map((branch) => (
-            <label key={`${namespace}-loc-${branch.id}`} className="inline-flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={selectedLocations.has(branch.id)}
-                onChange={(event) => toggleLocation(branch.id, event.target.checked)}
-                disabled={lockLocationSelection && availableLocationIds.length <= 1}
-                className="h-[13px] w-[13px] accent-[var(--gbp-accent)]"
-              />
-              {branch.name}
-            </label>
-          ))}
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px]">
+      <div className="min-w-0">
+        <p className="text-[13px] font-bold text-[var(--gbp-text)]">{question}</p>
+        <p className={`mt-0.5 ${HINT}`}>{MODE_HINT[mode]}</p>
+
+        <div className="mt-3 grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label={question}>
+          {modeOptions.map((option) => {
+            const on = mode === option.id;
+            return (
+              <label
+                key={`${namespace}-mode-${option.id}`}
+                className={`cursor-pointer rounded-lg border-[1.5px] px-3 py-2 transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--gbp-accent)] ${
+                  on
+                    ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]"
+                    : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] hover:bg-[var(--gbp-bg)]"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name={`${namespace}-scope-mode`}
+                  checked={on}
+                  onChange={() => setMode(option.id)}
+                  className="sr-only"
+                />
+                <span
+                  className={`block text-[12.5px] font-bold ${
+                    on ? "text-[var(--gbp-text)]" : "text-[var(--gbp-text2)]"
+                  }`}
+                >
+                  {option.title}
+                </span>
+                <span className="mt-0.5 block text-[10.5px] leading-[1.35] text-[var(--gbp-muted)]">
+                  {option.sub}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 flex flex-col gap-4">
+          {mode === "all" ? (
+            <div className="rounded-lg border border-[color:color-mix(in_oklab,var(--gbp-accent)_28%,transparent)] bg-[var(--gbp-accent-glow)] p-4">
+              <p className="text-[12.5px] font-bold text-[var(--gbp-text)]">Sin restricciones</p>
+              <p className={`mt-1 ${HINT}`}>
+                {restricted
+                  ? `Alcanza a las ${audience.group.length} personas de tus locaciones habilitadas, y a quien entre más adelante.`
+                  : `Alcanza a las ${audience.group.length} personas de la organización, y a quien entre más adelante.`}
+              </p>
+              <p className={`mt-1 ${HINT}`}>
+                Si querés acotarlo, elegí <strong>Un grupo</strong> o <strong>Personas específicas</strong>.
+              </p>
+            </div>
+          ) : null}
+
+          {mode === "group" ? (
+            <>
+              <div className={BLOCK}>
+                <p className={KICKER}>Locación</p>
+                {locationHelperText ? <p className={`mt-1 ${HINT}`}>{locationHelperText}</p> : null}
+                <div className="mt-2 grid gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {availableBranches.map((branch) => (
+                    <label
+                      key={`${namespace}-loc-${branch.id}`}
+                      className="inline-flex items-center gap-2 text-xs text-[var(--gbp-text2)]"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedLocations.has(branch.id)}
+                        onChange={(event) => toggleLocation(branch.id, event.target.checked)}
+                        className="h-[13px] w-[13px] accent-[var(--gbp-accent)]"
+                      />
+                      {branch.name}
+                    </label>
+                  ))}
+                  {availableBranches.length === 0 ? (
+                    <p className={HINT}>No hay locaciones disponibles.</p>
+                  ) : null}
+                </div>
+              </div>
+
+              {noStructure ? (
+                <div className="rounded-lg border border-[color:color-mix(in_oklab,var(--gbp-violet)_28%,transparent)] bg-[var(--gbp-violet-soft)] p-3">
+                  <p className="text-[12px] font-bold text-[var(--gbp-text)]">
+                    Todavía no cargaste departamentos ni puestos
+                  </p>
+                  <p className={`mt-1 ${HINT}`}>
+                    Por ahora podés filtrar por locación. Para filtrar por área o por puesto, cargalos en
+                    Configuración › Estructura Organizacional.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className={BLOCK}>
+                    <p className={KICKER}>Departamento</p>
+                    <div className="mt-2 grid gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {departments.map((department) => (
+                        <label
+                          key={`${namespace}-dept-${department.id}`}
+                          className="inline-flex items-center gap-2 text-xs text-[var(--gbp-text2)]"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedDepartments.has(department.id)}
+                            onChange={(event) => toggleDepartment(department.id, event.target.checked)}
+                            className="h-[13px] w-[13px] accent-[var(--gbp-accent)]"
+                          />
+                          {department.name}
+                        </label>
+                      ))}
+                      {departments.length === 0 ? (
+                        <p className={HINT}>No hay departamentos cargados.</p>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className={BLOCK}>
+                    <p className={KICKER}>Puesto</p>
+                    {departmentsWithPositionsShown.length === 0 ? (
+                      <p className={`mt-1 ${HINT}`}>Marcá un departamento para poder filtrar por puesto.</p>
+                    ) : (
+                      <>
+                        <p className={`mt-1 ${HINT}`}>
+                          Si no marcás ninguno, entran todos los del departamento.
+                        </p>
+                        <div className="mt-2 flex flex-col gap-2">
+                          {departmentsWithPositionsShown.map((department) => {
+                            const departmentPositions = positionsByDepartment.get(department.id) ?? [];
+                            return (
+                              <div
+                                key={`${namespace}-posgroup-${department.id}`}
+                                className="rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2.5 py-2"
+                              >
+                                <p className={KICKER}>{department.name}</p>
+                                {departmentPositions.length === 0 ? (
+                                  <p className={`mt-1 ${HINT}`}>Sin puestos cargados.</p>
+                                ) : (
+                                  <div className="mt-1.5 grid gap-x-4 gap-y-2 sm:grid-cols-2">
+                                    {departmentPositions.map((position) => (
+                                      <label
+                                        key={`${namespace}-pos-${position.id}`}
+                                        className="inline-flex items-center gap-2 text-xs text-[var(--gbp-text2)]"
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedPositions.has(position.id)}
+                                          onChange={(event) =>
+                                            togglePosition(position.id, event.target.checked)
+                                          }
+                                          className="h-[13px] w-[13px] accent-[var(--gbp-accent)]"
+                                        />
+                                        {position.name}
+                                      </label>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="flex items-start gap-2 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-3 py-2">
+                    <span className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--gbp-accent)]" />
+                    <p className={HINT}>
+                      Una persona entra si cumple <strong>todo</strong> lo marcado. Agregar un departamento
+                      no suma gente: la acota dentro de las locaciones elegidas.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              <div className={BLOCK}>
+                <p className={KICKER}>¿Alguien más, fuera del grupo?</p>
+                {peopleSearch()}
+                {peopleGrid(true)}
+              </div>
+            </>
+          ) : null}
+
+          {mode === "people" ? (
+            <div className={BLOCK}>
+              <p className={KICKER}>Elegí las personas</p>
+              {peopleSearch()}
+              {peopleGrid(false)}
+            </div>
+          ) : null}
         </div>
       </div>
 
-      <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Filtros dentro del alcance (departamento / puesto)</label>
-      <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3 text-xs text-[var(--gbp-text2)]">
-        <p className="mb-2 text-[11px] text-[var(--gbp-text2)]">
-          Estos filtros reducen la audiencia dentro de las locaciones elegidas.
-        </p>
-        <label className="mb-2 inline-flex items-center gap-2 border-b border-[var(--gbp-border)] pb-2 text-xs font-semibold text-[var(--gbp-text)]">
-          <input
-            type="checkbox"
-            checked={
-              selectedDepartments.size === allDepartments.length &&
-              selectedPositions.size === positions.length &&
-              (allDepartments.length > 0 || positions.length > 0)
-            }
-            onChange={(event) => {
-              const checked = event.target.checked;
-              setSelectedDepartments(checked ? new Set(allDepartments) : new Set());
-              setSelectedPositions(checked ? new Set(positions.map((position) => position.id)) : new Set());
-            }}
-            className="h-[14px] w-[14px] accent-[var(--gbp-accent)]"
-          />
-          Todos
-        </label>
-        <div className="space-y-2">
-          {departments.map((department) => {
-            const departmentPositions = positionsByDepartment.get(department.id) ?? [];
-            return (
-              <div key={`${namespace}-dept-group-${department.id}`} className="rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2 py-2">
-                <label className="inline-flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedDepartments.has(department.id)}
-                    onChange={(event) => toggleDepartment(department.id, event.target.checked)}
-                    className="h-[14px] w-[14px] accent-[var(--gbp-accent)]"
-                  />
-                  <span className="text-xs font-bold text-[var(--gbp-text)]">{department.name}</span>
-                </label>
+      <aside
+        className="flex h-fit flex-col gap-2 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] p-3"
+        aria-label={audienceLabel}
+      >
+        <p className={KICKER}>{audienceLabel}</p>
+        <div
+          className={`rounded-md border px-3 py-2 ${
+            blocked
+              ? "border-[var(--gbp-border2)] bg-[var(--gbp-bg)]"
+              : "border-[color:color-mix(in_oklab,var(--gbp-accent)_28%,transparent)] bg-[var(--gbp-accent-glow)]"
+          }`}
+        >
+          <p
+            className={`text-xl font-bold tabular-nums ${
+              blocked ? "text-[var(--gbp-muted)]" : "text-[var(--gbp-text)]"
+            }`}
+          >
+            {blocked ? "—" : total}
+          </p>
+          <p className="text-[10.5px] leading-[1.3] text-[var(--gbp-text2)]">
+            {blocked
+              ? "Falta definir el alcance"
+              : audience.broadcast
+                ? restricted
+                  ? "personas · todas mis locaciones"
+                  : "personas · toda la organización"
+                : total === 1
+                  ? "persona"
+                  : "personas"}
+          </p>
+        </div>
 
-                {departmentPositions.length ? (
-                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 border-l border-[var(--gbp-border)] py-1 pl-5">
-                    {departmentPositions.map((position) => (
-                      <label key={`${namespace}-pos-${position.id}`} className="inline-flex items-center gap-2 text-xs">
-                        <input
-                          type="checkbox"
-                          checked={selectedPositions.has(position.id)}
-                          onChange={(event) => togglePosition(position.id, event.target.checked)}
-                          className="h-[13px] w-[13px] accent-[var(--gbp-accent)]"
-                        />
-                        {position.name}
-                      </label>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="mt-1 pl-6 text-[11px] text-[var(--gbp-muted)]">Sin puestos cargados</p>
-                )}
+        {blocked || total === 0 ? (
+          <p className={HINT}>
+            {blocked
+              ? "Definí el alcance para ver quiénes quedan incluidos."
+              : "Ninguna persona cumple con lo marcado."}
+          </p>
+        ) : (
+          <>
+            <div className="max-h-56 overflow-y-auto rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-1.5">
+              <div className="flex flex-col gap-1">
+                {audience.group.map((user) => rosterRow(user, "group"))}
+                {audience.hand.map((user) => rosterRow(user, "hand"))}
               </div>
+            </div>
+            {audience.group.length > 0 && audience.hand.length > 0 ? (
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[var(--gbp-text2)]">
+                <span className="inline-flex items-center gap-1.5">
+                  <i className="h-1.5 w-1.5 rounded-full bg-[var(--gbp-accent)]" /> por el grupo
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <i className="h-1.5 w-1.5 rounded-full bg-[var(--gbp-violet)]" /> elegidas a mano
+                </span>
+              </div>
+            ) : null}
+          </>
+        )}
+
+        {validation ? (
+          <p
+            className={`rounded-md px-2 py-1.5 text-[11px] leading-[1.4] ${
+              validation.tone === "block"
+                ? "bg-[var(--gbp-error-soft)] text-[color:var(--gbp-error)]"
+                : "bg-[var(--gbp-violet-soft)] text-[var(--gbp-text2)]"
+            }`}
+            role={validation.tone === "block" ? "alert" : "status"}
+          >
+            {validation.text}
+          </p>
+        ) : null}
+      </aside>
+
+      {modeInputName ? <input type="hidden" name={modeInputName} value={mode} /> : null}
+      {emitted.locations.map((value) => (
+        <input key={`${namespace}-loc-input-${value}`} type="hidden" name={locationInputName} value={value} />
+      ))}
+      {emitted.departments.map((value) => (
+        <input key={`${namespace}-dept-input-${value}`} type="hidden" name={departmentInputName} value={value} />
+      ))}
+      {positionInputName
+        ? emitted.positions.map((value) => (
+            <input key={`${namespace}-pos-input-${value}`} type="hidden" name={positionInputName} value={value} />
+          ))
+        : null}
+      {emitted.users.map((value) => (
+        <input key={`${namespace}-usr-input-${value}`} type="hidden" name={userInputName} value={value} />
+      ))}
+    </div>
+  );
+
+  function peopleSearch() {
+    return (
+      <input
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        className="mt-2 w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]"
+        placeholder="Buscar por nombre, locación, departamento o puesto…"
+      />
+    );
+  }
+
+  function peopleGrid(showReached: boolean) {
+    if (candidates.length === 0) {
+      return <p className={`mt-2 ${HINT}`}>No hay coincidencias.</p>;
+    }
+
+    return (
+      <div className="mt-2 max-h-56 overflow-y-auto rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-1.5">
+        <div className="grid gap-1 sm:grid-cols-2">
+          {candidates.map((user) => {
+            if (!user.user_id) return null;
+            const reached = showReached && reachedByFilters.has(user.user_id);
+            const on = reached || selectedUsers.has(user.user_id);
+            return (
+              <label
+                key={`${namespace}-usr-${user.id}`}
+                title={reached ? "Ya entra por el grupo" : undefined}
+                className={`grid grid-cols-[13px_22px_minmax(0,1fr)] items-center gap-2 rounded-md border px-1.5 py-1.5 ${
+                  reached
+                    ? "border-[color:color-mix(in_oklab,var(--gbp-accent)_25%,transparent)] bg-[var(--gbp-accent-glow)]"
+                    : on
+                      ? "border-[color:color-mix(in_oklab,var(--gbp-violet)_28%,transparent)] bg-[var(--gbp-violet-soft)]"
+                      : "border-transparent hover:border-[var(--gbp-border)] hover:bg-[var(--gbp-bg)]"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={on}
+                  disabled={reached}
+                  onChange={(event) => toggleUser(user.user_id!, event.target.checked)}
+                  className="h-[13px] w-[13px] accent-[var(--gbp-violet)] disabled:accent-[var(--gbp-accent)]"
+                />
+                <span
+                  className="grid h-[22px] w-[22px] place-items-center rounded-full bg-[var(--gbp-surface2)] text-[9px] font-bold text-[var(--gbp-text2)]"
+                  aria-hidden="true"
+                >
+                  {initials(user)}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-[11.5px] font-semibold text-[var(--gbp-text)]">
+                    {fullName(user)}
+                  </span>
+                  <span className="block truncate text-[10px] text-[var(--gbp-text2)]">{metaLine(user)}</span>
+                </span>
+              </label>
             );
           })}
         </div>
       </div>
+    );
+  }
 
-      <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Usuarios agregados manualmente (suman alcance)</label>
-      <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
-        <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-[var(--gbp-text2)]">
-          {isBroadcast ? (
-            <span className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 font-semibold text-[var(--gbp-accent)]">
-              Sin filtros ni personas: lo verá toda la organización ({usersWithAccess.length})
-            </span>
-          ) : (
-            <>
-              <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2 py-0.5">Por filtros: {usersReachedByFilters.length}</span>
-              <span className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2 py-0.5">Agregados: {usersAddedByOverride.length}</span>
-              <span className="rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_30%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[var(--gbp-accent)]">Total: {usersReachedByFilters.length + usersAddedByOverride.length}</span>
-            </>
-          )}
-        </div>
-        {!hasFilters && selectedUsers.size > 0 ? (
-          <p className="mb-2 text-[11px] text-[var(--gbp-text2)]">
-            Sin filtros marcados, solo las personas elegidas tendrán acceso.
-          </p>
-        ) : null}
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]"
-          placeholder="Agregar usuario (nombre, locación, departamento o puesto)"
+  function rosterRow(user: ScopeSelectorUser, by: "group" | "hand") {
+    return (
+      <div
+        key={`${namespace}-roster-${user.id}`}
+        className="grid grid-cols-[4px_20px_minmax(0,1fr)] items-center gap-2"
+      >
+        <span
+          className={`h-4 w-[3px] rounded-full ${
+            by === "group" ? "bg-[var(--gbp-accent)]" : "bg-[var(--gbp-violet)]"
+          }`}
+          aria-hidden="true"
         />
-        <div className="mt-2 max-h-44 overflow-y-auto rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-2">
-          <div className="grid gap-1.5 text-xs text-[var(--gbp-text2)]">
-            {filteredCandidates.map((user) => {
-              if (!user.user_id) return null;
-              const reachedByFilter = reachedUserIds.has(user.user_id);
-              const isChecked = selectedUsers.has(user.user_id) || reachedByFilter;
-              return (
-                <label
-                  key={`${namespace}-usr-${user.id}`}
-                  className={`grid grid-cols-[14px_minmax(0,1fr)] items-start gap-x-2 gap-y-1 rounded-md border px-1 py-1.5 hover:bg-[var(--gbp-bg)] ${
-                    isChecked
-                      ? "border-emerald-300/40 bg-emerald-50/70"
-                      : "border-transparent hover:border-[var(--gbp-border)]"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={(event) => toggleUser(user.user_id!, event.target.checked)}
-                    className="mt-[2px] h-[13px] w-[13px] accent-emerald-600"
-                  />
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-medium text-[var(--gbp-text)]">{user.first_name} {user.last_name}</p>
-                    <p className="mt-0.5 truncate text-[11px] text-[var(--gbp-text2)]">
-                      {[user.location_label, user.department_label, user.position_label].filter(Boolean).join(" · ") || "Sin datos de perfil"}
-                    </p>
-                    {reachedByFilter ? <p className="text-[10px] text-emerald-700">Alcanzado por filtros</p> : null}
-                  </div>
-                </label>
-              );
-            })}
-            {filteredCandidates.length === 0 ? (
-              <p className="px-1 py-2 text-[11px] text-[var(--gbp-text2)]">No hay coincidencias para agregar.</p>
-            ) : null}
-          </div>
-        </div>
-
-        {usersAddedByOverride.length > 0 ? (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {usersAddedByOverride.map((user) => {
-              if (!user.user_id) return null;
-              return (
-                <button
-                  key={`${namespace}-pill-${user.user_id}`}
-                  type="button"
-                  onClick={() => toggleUser(user.user_id!, false)}
-                  className="rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2 py-0.5 text-xs text-[var(--gbp-text2)]"
-                >
-                  {user.first_name} {user.last_name} x
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
+        <span
+          className="grid h-5 w-5 place-items-center rounded-full bg-[var(--gbp-surface2)] text-[8.5px] font-bold text-[var(--gbp-text2)]"
+          aria-hidden="true"
+        >
+          {initials(user)}
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-[11px] font-semibold text-[var(--gbp-text)]">
+            {fullName(user)}
+          </span>
+          <span className="block truncate text-[9.5px] text-[var(--gbp-text2)]">{metaLine(user)}</span>
+        </span>
       </div>
-
-      {Array.from(selectedLocations).map((value) => (
-        <input key={`${namespace}-loc-input-${value}`} type="hidden" name={locationInputName} value={value} />
-      ))}
-      {Array.from(selectedDepartments).map((value) => (
-        <input key={`${namespace}-dept-input-${value}`} type="hidden" name={departmentInputName} value={value} />
-      ))}
-      {positionInputName
-        ? Array.from(selectedPositions).map((value) => (
-            <input key={`${namespace}-pos-input-${value}`} type="hidden" name={positionInputName} value={value} />
-          ))
-        : null}
-      {Array.from(selectedUsers).map((value) => (
-        <input key={`${namespace}-usr-input-${value}`} type="hidden" name={userInputName} value={value} />
-      ))}
-    </>
-  );
+    );
+  }
 }
 
 type ScopeSelectorOrInheritedProps = ScopeSelectorProps & {
@@ -467,7 +793,11 @@ type ScopeSelectorOrInheritedProps = ScopeSelectorProps & {
 
 // Un solo lugar decide "muestro el selector o el aviso de herencia": evita que
 // cada modal de Documentos repita esta misma rama y se desincronicen entre si.
-export function ScopeSelectorOrInherited({ inherited, inheritedMessage, ...scopeSelectorProps }: ScopeSelectorOrInheritedProps) {
+export function ScopeSelectorOrInherited({
+  inherited,
+  inheritedMessage,
+  ...scopeSelectorProps
+}: ScopeSelectorOrInheritedProps) {
   if (inherited) {
     return <p className="mt-1 text-xs text-[var(--gbp-text2)]">{inheritedMessage}</p>;
   }

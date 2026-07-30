@@ -33,6 +33,7 @@ const createChecklistSchema = z.object({
   department_scope: z.array(z.string()).default([]),
   position_scope: z.array(z.string()).default([]),
   user_scope: z.array(z.string()).default([]),
+  scope_mode: z.string().trim().optional(),
   sections_payload: z.string().trim().optional(),
   items: z.string().trim().optional(),
 });
@@ -72,6 +73,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     department_scope: formData.getAll("department_scope").map(String),
     position_scope: formData.getAll("position_scope").map(String),
     user_scope: formData.getAll("user_scope").map(String),
+    scope_mode: String(formData.get("scope_mode") ?? ""),
     sections_payload: String(formData.get("sections_payload") ?? ""),
     items: String(formData.get("items") ?? ""),
   });
@@ -141,6 +143,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     userScopes: parsed.data.user_scope,
     normalizedSections,
     notifyVia,
+    scopeMode: parsed.data.scope_mode,
   });
 
   if (!result.ok) {

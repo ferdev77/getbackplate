@@ -63,6 +63,7 @@ export function ChecklistUpsertModal({
   const [isApiPending, setIsApiPending] = useState(false);
   const [notifySms, setNotifySms] = useState(false);
   const [notifyEmail, setNotifyEmail] = useState(false);
+  const [scopeValid, setScopeValid] = useState(true);
 
   useEffect(() => {
     if (submitEndpoint) return;
@@ -147,6 +148,7 @@ export function ChecklistUpsertModal({
           department_scope: formData.getAll("department_scope").map(String).filter(Boolean),
           position_scope: formData.getAll("position_scope").map(String).filter(Boolean),
           user_scope: formData.getAll("user_scope").map(String).filter(Boolean),
+          scope_mode: String(formData.get("scope_mode") ?? "").trim() || undefined,
           sections_payload: sectionsPayload || undefined,
         }),
       });
@@ -174,7 +176,7 @@ export function ChecklistUpsertModal({
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-      <div className="flex max-h-[90vh] w-[680px] max-w-[95vw] flex-col overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-xl)]">
+      <div className="flex max-h-[90vh] w-[1060px] max-w-[96vw] flex-col overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-xl)]">
         <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 pb-4 pt-5">
           <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">{action === "edit" ? "Editar Checklist" : "Nuevo Checklist"}</p>
           <button type="button" onClick={handleClose} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</button>
@@ -230,6 +232,10 @@ export function ChecklistUpsertModal({
               departmentInputName="department_scope"
               positionInputName="position_scope"
               userInputName="user_scope"
+              modeInputName="scope_mode"
+              question="¿Quién tiene que completar este checklist?"
+              audienceLabel="Lo completarán"
+              onValidityChange={setScopeValid}
               initialLocations={Array.isArray((editingTemplate?.target_scope as Record<string, string[]> | undefined)?.locations) ? ((editingTemplate?.target_scope as Record<string, string[]>).locations ?? []) : []}
               initialDepartments={Array.isArray((editingTemplate?.target_scope as Record<string, string[]> | undefined)?.department_ids) ? ((editingTemplate?.target_scope as Record<string, string[]>).department_ids ?? []) : []}
               initialPositions={Array.isArray((editingTemplate?.target_scope as Record<string, string[]> | undefined)?.position_ids) ? ((editingTemplate?.target_scope as Record<string, string[]>).position_ids ?? []) : []}
@@ -288,6 +294,7 @@ export function ChecklistUpsertModal({
               label={editingTemplate ? "Actualizar Checklist" : "Guardar Checklist"}
               pendingLabel={editingTemplate ? "Actualizando..." : "Guardando..."}
               pending={pending}
+              disabled={!scopeValid}
               className="px-5 py-2 text-sm font-bold" 
             />
           </div>

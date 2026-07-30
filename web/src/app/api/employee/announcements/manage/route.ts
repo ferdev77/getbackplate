@@ -6,6 +6,8 @@ import { logAuditEvent } from "@/shared/lib/audit";
 import {
   normalizeScopeSelection,
   validateEmployeeUserScopeWithinLocations,
+  assertScopeIntent,
+  parseScopeIntent,
   validateTenantScopeReferences,
 } from "@/shared/lib/scope-validation";
 import { enforceLocationPolicy } from "@/shared/lib/scope-policy";
@@ -37,6 +39,7 @@ export async function POST(request: Request) {
         department_scope?: string[];
         position_scope?: string[];
         user_scope?: string[];
+        scope_mode?: string;
       }
     | null;
 
@@ -69,10 +72,15 @@ export async function POST(request: Request) {
     { allowAllToken: true },
   );
 
+  const scopeMode = parseScopeIntent(body?.scope_mode);
+
   const locationPolicy = enforceLocationPolicy({
     requestedLocations,
     allowedLocations,
-    fallbackToAllowedWhenEmpty: true,
+    // Con "solo estas personas" no se rellena con las locaciones del
+    // empleado: si se rellenara, los filtros alcanzarian a toda su
+    // locacion y las personas elegidas solo sumarian encima.
+    fallbackToAllowedWhenEmpty: scopeMode !== "people",
   });
 
   if (!locationPolicy.ok) {
@@ -85,6 +93,17 @@ export async function POST(request: Request) {
     position_ids: requestedPositions,
     users: requestedUsers,
   };
+
+  const intentCheck = assertScopeIntent({
+    intent: scopeMode,
+    locationIds: requestedLocations,
+    departmentIds: requestedDepartments,
+    positionIds: requestedPositions,
+    userIds: requestedUsers,
+  });
+  if (!intentCheck.ok) {
+    return NextResponse.json({ error: intentCheck.message }, { status: 400 });
+  }
 
   const scopeValidation = await validateTenantScopeReferences({
     supabase: admin,
@@ -104,7 +123,11 @@ export async function POST(request: Request) {
     supabase: admin,
     organizationId: access.tenant.organizationId,
     userIds: scope.users,
-    allowedLocationIds: locationPolicy.locations,
+    // Las locaciones habilitadas del empleado, no las que eligio para este
+    // item: las personas agregadas a mano son justamente las que estan
+    // fuera del grupo elegido. Ademas, con "solo estas personas" las
+    // locaciones efectivas quedan vacias y esto rechazaria a todos.
+    allowedLocationIds: allowedLocations,
   });
 
   if (!userScopePolicy.ok) {
@@ -168,6 +191,7 @@ export async function PATCH(request: Request) {
         department_scope?: string[];
         position_scope?: string[];
         user_scope?: string[];
+        scope_mode?: string;
       }
     | null;
 
@@ -218,10 +242,15 @@ export async function PATCH(request: Request) {
     { allowAllToken: true },
   );
 
+  const scopeMode = parseScopeIntent(body?.scope_mode);
+
   const locationPolicy = enforceLocationPolicy({
     requestedLocations,
     allowedLocations,
-    fallbackToAllowedWhenEmpty: true,
+    // Con "solo estas personas" no se rellena con las locaciones del
+    // empleado: si se rellenara, los filtros alcanzarian a toda su
+    // locacion y las personas elegidas solo sumarian encima.
+    fallbackToAllowedWhenEmpty: scopeMode !== "people",
   });
 
   if (!locationPolicy.ok) {
@@ -234,6 +263,17 @@ export async function PATCH(request: Request) {
     position_ids: requestedPositions,
     users: requestedUsers,
   };
+
+  const intentCheck = assertScopeIntent({
+    intent: scopeMode,
+    locationIds: requestedLocations,
+    departmentIds: requestedDepartments,
+    positionIds: requestedPositions,
+    userIds: requestedUsers,
+  });
+  if (!intentCheck.ok) {
+    return NextResponse.json({ error: intentCheck.message }, { status: 400 });
+  }
 
   const scopeValidation = await validateTenantScopeReferences({
     supabase: admin,
@@ -253,7 +293,11 @@ export async function PATCH(request: Request) {
     supabase: admin,
     organizationId: access.tenant.organizationId,
     userIds: scope.users,
-    allowedLocationIds: locationPolicy.locations,
+    // Las locaciones habilitadas del empleado, no las que eligio para este
+    // item: las personas agregadas a mano son justamente las que estan
+    // fuera del grupo elegido. Ademas, con "solo estas personas" las
+    // locaciones efectivas quedan vacias y esto rechazaria a todos.
+    allowedLocationIds: allowedLocations,
   });
 
   if (!userScopePolicy.ok) {

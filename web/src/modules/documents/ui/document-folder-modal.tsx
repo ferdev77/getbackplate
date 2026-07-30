@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import { SubmitButton } from "@/shared/ui/submit-button";
+import type { ScopedUserOption } from "@/shared/contracts/scope-options";
 
 type Folder = { id: string; name: string };
 type Branch = { id: string; name: string };
 type Department = { id: string; name: string };
 type Position = { id: string; department_id: string; name: string };
-type Employee = { id: string; user_id: string | null; first_name: string; last_name: string; role_label?: string };
+type Employee = ScopedUserOption;
 
 type DocumentFolderModalProps = {
   onClose?: () => void;
@@ -43,6 +44,7 @@ export function DocumentFolderModal({
 }: DocumentFolderModalProps) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
+  const [scopeValid, setScopeValid] = useState(true);
 
   const closeModal = () => {
     if (onClose) {
@@ -66,6 +68,7 @@ export function DocumentFolderModal({
         departmentScope: formData.getAll("department_scope").map(String).filter(Boolean),
         positionScope: formData.getAll("position_scope").map(String).filter(Boolean),
         userScope: formData.getAll("user_scope").map(String).filter(Boolean),
+        scopeMode: String(formData.get("scope_mode") ?? "").trim() || undefined,
       };
 
       const body = hideScopeSelector
@@ -139,6 +142,10 @@ export function DocumentFolderModal({
                     departmentInputName="department_scope"
                     positionInputName="position_scope"
                     userInputName="user_scope"
+                    modeInputName="scope_mode"
+                    question="¿Quién tiene que acceder a esta carpeta?"
+                    audienceLabel="Tendrán acceso"
+                    onValidityChange={setScopeValid}
                     allowedLocationIds={allowedLocationIds}
                     lockLocationSelection={lockLocationSelection}
                     locationHelperText={lockLocationSelection ? "Tu alcance base queda limitado a tus locaciones asignadas." : undefined}
@@ -153,6 +160,7 @@ export function DocumentFolderModal({
               label="Crear Carpeta" 
               pendingLabel="Creando..." 
               pending={isPending}
+              disabled={!scopeValid}
               className="px-5 py-2 text-sm font-bold" 
             />
           </div>

@@ -7,7 +7,7 @@ import { revalidateDocumentsCaches } from "@/modules/documents/revalidate-cache"
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { getEmployeesRootFolderId, isProtectedEmployeeDocumentsFolder } from "@/shared/lib/employee-documents-root-folder";
-import { normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
+import { assertScopeIntent, normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
 
 async function requireContext() {
   const moduleAccess = await assertCompanyAdminModuleApi("documents");
@@ -34,6 +34,7 @@ export async function POST(request: Request) {
         name?: string;
         parentId?: string | null;
         locationScope?: string[];
+        scopeMode?: string;
         departmentScope?: string[];
         positionScope?: string[];
         userScope?: string[];
@@ -79,6 +80,17 @@ export async function POST(request: Request) {
     if (!parent) {
       return NextResponse.json({ error: "Carpeta padre inválida" }, { status: 400 });
     }
+  }
+
+  const intentCheck = assertScopeIntent({
+    intent: body?.scopeMode,
+    locationIds: locationScope,
+    departmentIds: departmentScope,
+    positionIds: positionScope,
+    userIds: userScope,
+  });
+  if (!intentCheck.ok) {
+    return NextResponse.json({ error: intentCheck.message }, { status: 400 });
   }
 
   const scopeValidation = await validateTenantScopeReferences({
@@ -185,6 +197,7 @@ export async function PATCH(request: Request) {
         name?: string;
         parentId?: string | null;
         locationScope?: string[];
+        scopeMode?: string;
         departmentScope?: string[];
         positionScope?: string[];
         userScope?: string[];

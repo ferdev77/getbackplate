@@ -150,7 +150,11 @@ export async function POST(request: Request) {
     supabase: admin,
     organizationId: access.tenant.organizationId,
     userIds: requestedRootScope.users,
-    allowedLocationIds: locationPolicy.locations,
+    // Las locaciones habilitadas del empleado, no las que eligio para este
+    // item: las personas agregadas a mano son justamente las que estan
+    // fuera del grupo elegido. Ademas, con "solo estas personas" las
+    // locaciones efectivas quedan vacias y esto rechazaria a todos.
+    allowedLocationIds: allowedLocations,
   });
 
   if (!userScopePolicy.ok) {

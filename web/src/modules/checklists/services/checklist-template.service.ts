@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
+import { assertScopeIntent, normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
 import { calculateNextRunAt, RecurrenceType } from "@/shared/lib/cron-utils";
 
 // ---------------------------------------------------------------------------
@@ -35,6 +35,12 @@ export type UpsertChecklistTemplateInput = {
    * respuestas. Es la salida del aviso "se aplican en el proximo reparto".
    */
   applyNow?: boolean;
+  /**
+   * Intencion declarada por la pantalla ("all" | "group" | "people"). Sirve para
+   * distinguir un alcance vacio a proposito de uno a medio llenar. Ver
+   * assertScopeIntent.
+   */
+  scopeMode?: unknown;
 };
 
 export type UpsertChecklistTemplateResult =
@@ -217,6 +223,17 @@ export async function upsertChecklistTemplate(
     }
 
     department = departmentRow.name;
+  }
+
+  const intentCheck = assertScopeIntent({
+    intent: input.scopeMode,
+    locationIds: locationScopes,
+    departmentIds: departmentScopes,
+    positionIds: positionScopes,
+    userIds: userScopes,
+  });
+  if (!intentCheck.ok) {
+    return { ok: false, message: intentCheck.message };
   }
 
   // Validate scope references

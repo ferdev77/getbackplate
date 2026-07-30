@@ -152,3 +152,42 @@ Y aplica tanto a:
 
 - Company admin
 - Empleado con permisos delegados
+
+## La intencion, aparte de la regla (2026-07-30)
+
+La regla no cambia, pero un alcance vacio es **ambiguo**: puede ser "toda la
+organizacion" a proposito o un formulario a medio llenar. Las dos cosas se
+guardaban igual.
+
+Desde el rediseno del selector, la pantalla manda tambien la **intencion**
+(`scope_mode` / `scopeMode`), con tres valores:
+
+| Intencion | Lo que se guarda |
+| --- | --- |
+| `all` | nada (o, para un autor acotado, sus locaciones habilitadas) |
+| `group` | al menos una locacion, departamento o puesto |
+| `people` | solo usuarios, sin ningun filtro |
+
+`assertScopeIntent` (en `src/shared/lib/scope-validation.ts`) rechaza lo que no
+cierra. Cuando la intencion no viene, no valida nada: los clientes viejos y las
+llamadas directas a la API mantienen el comportamiento anterior.
+
+La intencion **no se guarda**: se deduce de lo guardado con `deriveScopeMode`
+(`src/shared/lib/scope-selector-model.ts`), que usa la misma regla que el
+servidor. Guardarla seria estado redundante que puede quedar desincronizado.
+
+### Dos trampas que resolvio este cambio
+
+1. **La vista previa comparaba por nombre.** El servidor decide por
+   `position_id` desde la migracion `20260729000005`. Un empleado con el texto
+   libre viejo en `employees.position` se mostraba en un grupo al que no
+   pertenecia. Ahora el catalogo lleva los ids y la previa compara por id, con
+   el nombre solo como respaldo (`makeScopeMatcher`).
+
+2. **Un empleado que elegia "solo estas personas" alcanzaba toda su locacion.**
+   `enforceLocationPolicy` con `fallbackToAllowedWhenEmpty: true` rellenaba las
+   locaciones del empleado cuando no mandaba ninguna; como los usuarios *suman*
+   alcance, el resultado era "toda mi locacion + esas personas". Ahora no se
+   rellena cuando la intencion es `people`, y el guard
+   `validateEmployeeUserScopeWithinLocations` recibe las locaciones
+   **habilitadas** del empleado en lugar de las elegidas para el item.

@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 
 import { ScopeSelector } from "@/shared/ui/scope-selector";
+import type { ScopedUserOption } from "@/shared/contracts/scope-options";
 
 type Branch = { id: string; name: string; city?: string | null };
 type Department = { id: string; name: string };
 type Position = { id: string; department_id: string; name: string };
-type User = { id: string; user_id: string | null; first_name: string; last_name: string; role_label?: string };
+type User = ScopedUserOption;
 
 type ScopeState = { locations: string[]; departments: string[]; positions: string[]; users: string[] };
 
@@ -49,6 +50,7 @@ export function DocumentShareAccessModal({
   const [dynamicUsers, setDynamicUsers] = useState<User[]>(users);
   const [dynamicPositions, setDynamicPositions] = useState<Position[]>(positions);
   const [loading, setLoading] = useState(users.length === 0 || positions.length === 0);
+  const [scopeValid, setScopeValid] = useState(true);
 
   useEffect(() => {
     if (users.length === 0 || positions.length === 0) {
@@ -69,7 +71,7 @@ export function DocumentShareAccessModal({
 
   return (
     <div className="fixed inset-0 z-[1060] flex items-center justify-center bg-black/45 p-5">
-      <div className={`w-[460px] max-w-[95vw] ${MODAL_PANEL}`}>
+      <div className={`w-[1040px] max-w-[96vw] ${MODAL_PANEL}`}>
         <div className={MODAL_HEADER}><p className={MODAL_TITLE}>{title}</p><button type="button" className={MODAL_CLOSE} onClick={onCancel}>✕</button></div>
         <form
           id={scopeFormId}
@@ -106,6 +108,9 @@ export function DocumentShareAccessModal({
                 departmentInputName="_scope_department"
                 positionInputName="_scope_position"
                 userInputName="_scope_user"
+                question="¿Quién tiene que acceder?"
+                audienceLabel="Tendrán acceso"
+                onValidityChange={setScopeValid}
                 initialLocations={initialScope.locations}
                 initialDepartments={initialScope.departments}
                 initialPositions={initialScope.positions}
@@ -113,7 +118,7 @@ export function DocumentShareAccessModal({
               />
             )}
           </div>
-          <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancel</button><button type="submit" disabled={busy} className={MODAL_PRIMARY}>{busy ? "Saving..." : "Save permissions"}</button></div>
+          <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancel</button><button type="submit" disabled={busy || !scopeValid} className={MODAL_PRIMARY}>{busy ? "Saving..." : "Save permissions"}</button></div>
         </form>
       </div>
     </div>

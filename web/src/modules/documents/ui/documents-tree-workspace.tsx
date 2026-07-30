@@ -20,6 +20,7 @@ import { getSystemFolderType } from "@/shared/lib/employee-documents-folders-con
 import { FilterBar } from "@/shared/ui/filter-bar";
 import { useDndSafetyNet, markDndActive, markDndInactive } from "@/modules/documents/hooks/use-dnd-safety-net";
 import { formatDate, isPreviewableMime, normalizeSearchText, parseScope, hasAnyScopeValue } from "@/modules/documents/lib/documents-tree-utils";
+import type { ScopedUserOption } from "@/shared/contracts/scope-options";
 
 type FolderRow = {
   id: string;
@@ -46,14 +47,7 @@ type DocumentRow = {
 type Branch = { id: string; name: string; city?: string | null };
 type Department = { id: string; name: string };
 type Position = { id: string; department_id: string; name: string };
-type User = {
-  id: string;
-  user_id: string | null;
-  first_name: string;
-  last_name: string;
-  role_label?: string;
-  position_label?: string;
-};
+type User = ScopedUserOption;
 
 type Props = {
   organizationId: string;

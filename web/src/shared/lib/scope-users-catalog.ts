@@ -4,6 +4,15 @@ export type ScopeCatalogUser = {
   id: string;
   user_id: string | null;
   branch_id?: string | null;
+  /**
+   * Los ids van ademas de las etiquetas porque la vista previa del selector de
+   * alcance tiene que decidir igual que el servidor. El servidor compara por
+   * position_id desde la migracion 20260729000005; si la previa comparara solo
+   * por nombre, un empleado con el texto viejo en `position` se mostraria en un
+   * grupo al que en realidad no pertenece (o al reves).
+   */
+  department_id?: string | null;
+  position_id?: string | null;
   first_name: string;
   last_name: string;
   role_label: "Empleado" | "Usuario";
@@ -23,11 +32,12 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
     { data: roles },
     { data: branches },
     { data: departments },
+    { data: positions },
   ] = await Promise.all([
     admin.rpc("is_module_enabled", { org_id: organizationId, module_code: "custom_branding" }),
     admin
       .from("employees")
-      .select("id, user_id, first_name, last_name, branch_id, department_id, position")
+      .select("id, user_id, first_name, last_name, branch_id, department_id, position, position_id")
       .eq("organization_id", organizationId)
       .order("first_name"),
     admin
@@ -49,6 +59,10 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
       .from("organization_departments")
       .select("id, name")
       .eq("organization_id", organizationId),
+    admin
+      .from("department_positions")
+      .select("id, name")
+      .eq("organization_id", organizationId),
   ]);
 
   const roleCodeById = new Map((roles ?? []).map((role) => [role.id, role.code]));
@@ -68,6 +82,7 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
     (branches ?? []).map((row) => [row.id, customBrandingEnabled && row.city ? row.city : row.name]),
   );
   const departmentNameById = new Map((departments ?? []).map((row) => [row.id, row.name]));
+  const positionNameById = new Map((positions ?? []).map((row) => [row.id, row.name]));
 
   const catalog: ScopeCatalogUser[] = [];
   const userIdsInCatalog = new Set<string>();
@@ -81,12 +96,19 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
       id: employee.id,
       user_id: employee.user_id,
       branch_id: employee.branch_id,
+      department_id: employee.department_id,
+      position_id: employee.position_id,
       first_name: employee.first_name ?? "Usuario",
       last_name: employee.last_name ?? "",
       role_label: "Empleado",
       location_label: employee.branch_id ? branchNameById.get(employee.branch_id) ?? undefined : undefined,
       department_label: employee.department_id ? departmentNameById.get(employee.department_id) ?? undefined : undefined,
-      position_label: employee.position ?? undefined,
+      // El nombre del puesto real manda sobre el texto libre heredado: si los
+      // dos existen y difieren, el que decide el acceso es el del position_id.
+      position_label:
+        (employee.position_id ? positionNameById.get(employee.position_id) : undefined) ??
+        employee.position ??
+        undefined,
     });
   }
 

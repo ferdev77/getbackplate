@@ -8,6 +8,13 @@ export type ScopedUserOption = {
   id: string;
   user_id: string | null;
   branch_id?: string | null;
+  /**
+   * Ids ademas de etiquetas: la vista previa del alcance compara por id para
+   * decidir igual que el servidor (ver ScopeCatalogUser en scope-users-catalog).
+   * Cuando faltan, el selector cae a comparar por nombre.
+   */
+  department_id?: string | null;
+  position_id?: string | null;
   first_name: string;
   last_name: string;
   role_label?: string;

@@ -9,7 +9,7 @@ import { readAnnouncementScopeFromFormData } from "@/modules/announcements/lib/s
 import { processAnnouncementDeliveries } from "@/modules/announcements/services/deliveries";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { requireTenantModule } from "@/shared/lib/access";
-import { validateTenantScopeReferences } from "@/shared/lib/scope-validation";
+import { assertScopeIntent, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
 import { calculateNextRunAt, RecurrenceType } from "@/shared/lib/cron-utils";
 
 function qs(message: string) {
@@ -71,6 +71,17 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
 
   const supabase = await createSupabaseServerClient();
   const { data: authData } = await supabase.auth.getUser();
+
+  const intentCheck = assertScopeIntent({
+    intent: formData.get("scope_mode"),
+    locationIds: scope.locations,
+    departmentIds: scope.department_ids,
+    positionIds: scope.position_ids,
+    userIds: scope.users,
+  });
+  if (!intentCheck.ok) {
+    redirect(`/app/announcements?error=${qs(intentCheck.message)}`);
+  }
 
   const scopeValidation = await validateTenantScopeReferences({
     supabase,

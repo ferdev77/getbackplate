@@ -10,7 +10,7 @@ import { analyzeUploadedFile } from "@/shared/lib/file-security";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { assertPlanLimitForStorage, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
-import { normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
+import { assertScopeIntent, normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
 import { getEmployeeDocumentIdSet, isEmployeeLinkedDocument } from "@/shared/lib/document-domain";
 import { hasMissingColumnError } from "@/shared/lib/supabase-compat";
@@ -232,6 +232,7 @@ export async function POST(request: Request) {
   const departmentScopes = normalizeScopeSelection(rawDepartmentScopes, { allowAllToken: true });
   const positionScopes = normalizeScopeSelection(rawPositionScopes, { allowAllToken: true });
   const userScopes = normalizeScopeSelection(rawUserScopes, { allowAllToken: true });
+  const scopeMode = formData.get("scope_mode");
   const file = formData.get("file");
 
   if (!(file instanceof File) || file.size === 0) {
@@ -273,6 +274,22 @@ export async function POST(request: Request) {
     position_ids: positionScopes,
     users: userScopes,
   };
+
+  // Si el documento va dentro de una carpeta, el alcance lo hereda de ella y lo
+  // que eligio la pantalla no cuenta: la intencion solo se valida cuando el
+  // documento define su propio alcance.
+  if (!folderScope) {
+    const intentCheck = assertScopeIntent({
+      intent: scopeMode,
+      locationIds: locationScopes,
+      departmentIds: departmentScopes,
+      positionIds: positionScopes,
+      userIds: userScopes,
+    });
+    if (!intentCheck.ok) {
+      return NextResponse.json({ error: intentCheck.message }, { status: 400 });
+    }
+  }
 
   const scopeValidation = await validateTenantScopeReferences({
     supabase,

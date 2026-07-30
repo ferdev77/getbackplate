@@ -39,13 +39,19 @@ export function SubmitButton({
   "data-testid": dataTestId,
 }: SubmitButtonProps) {
   const { pending: internalPending } = useFormStatus();
-  const isPending = externalPending ?? internalPending ?? disabled;
+  const isPending = externalPending ?? internalPending;
+  /**
+   * `disabled` va aparte de `pending`. Antes era `externalPending ?? internalPending ?? disabled`
+   * y quedaba muerto: useFormStatus siempre devuelve un booleano, asi que el `??`
+   * nunca llegaba a `disabled` (ver upload-document-modal, que pasa los dos).
+   */
+  const isDisabled = isPending || Boolean(disabled);
 
   return (
     <AnimatedButton
       type="submit"
-      disabled={isPending}
-      aria-disabled={isPending}
+      disabled={isDisabled}
+      aria-disabled={isDisabled}
       name={name}
       value={value}
       formNoValidate={formNoValidate}

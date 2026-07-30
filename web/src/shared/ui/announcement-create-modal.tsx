@@ -73,6 +73,7 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
   const [notifyEmail, setNotifyEmail] = useState(false);
   const [hasExpiry, setHasExpiry] = useState(Boolean(initial?.expires_at));
   const [isRecurring, setIsRecurring] = useState(Boolean(initial?.is_recurring));
+  const [scopeValid, setScopeValid] = useState(true);
 
   useEffect(() => {
     if (submitEndpoint) return;
@@ -125,6 +126,7 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
       department_scope: formData.getAll("department_scope").map(String).filter(Boolean),
       position_scope: formData.getAll("position_scope").map(String).filter(Boolean),
       user_scope: formData.getAll("user_scope").map(String).filter(Boolean),
+      scope_mode: String(formData.get("scope_mode") ?? "").trim() || undefined,
       is_recurring: String(formData.get("is_recurring") ?? "") === "on",
       recurrence_type: String(formData.get("recurrence_type") ?? "daily").trim() || "daily",
       custom_days: String(formData.get("custom_days") ?? "[]"),
@@ -180,7 +182,7 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-      <div className="max-h-[90vh] w-[675px] max-w-[95vw] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
+      <div className="max-h-[90vh] w-[1060px] max-w-[96vw] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
         <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
           <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">{mode === "edit" ? "Editar Aviso" : "Nuevo Aviso"}</p>
           <button
@@ -231,6 +233,8 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
               className="w-full resize-y rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]"
             />
 
+            <div className="my-4 h-px bg-[var(--gbp-border)]" />
+
             <ScopeSelector
               namespace="announcement"
               branches={branches}
@@ -241,6 +245,10 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
               departmentInputName="department_scope"
               positionInputName="position_scope"
               userInputName="user_scope"
+              modeInputName="scope_mode"
+              question="¿Quién tiene que ver este aviso?"
+              audienceLabel="Lo verán"
+              onValidityChange={setScopeValid}
               initialLocations={initial?.location_scope ?? []}
               initialDepartments={initial?.department_scope ?? []}
               initialPositions={initial?.position_scope ?? []}
@@ -363,6 +371,7 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
               label={mode === "edit" ? "Guardar cambios" : "Publicar Aviso"}
               pendingLabel={mode === "edit" ? "Guardando..." : "Publicando..."}
               pending={pending}
+              disabled={!scopeValid}
               className="px-5 py-2 text-sm font-bold"
               data-testid="announcement-submit-btn"
             />

@@ -24,6 +24,61 @@ export function normalizeScopeSelection(values: string[], options?: { allowAllTo
   return normalized.filter((value) => value !== "__all__");
 }
 
+export type ScopeIntent = "all" | "group" | "people";
+
+export function parseScopeIntent(value: unknown): ScopeIntent | null {
+  return value === "all" || value === "group" || value === "people" ? value : null;
+}
+
+/**
+ * Comprueba que lo enviado coincida con la intencion declarada.
+ *
+ * Sin esto un alcance vacio es ambiguo: puede ser "toda la organizacion" a
+ * proposito o un formulario a medio llenar, y las dos cosas se guardan como
+ * difusion total. La pantalla manda la intencion (ver modeInputName en
+ * ScopeSelector) para que el servidor pueda distinguirlas.
+ *
+ * Cuando la intencion no viene (clientes viejos, llamadas directas a la API) no
+ * se valida nada: se mantiene el comportamiento anterior.
+ */
+export function assertScopeIntent(input: {
+  intent: unknown;
+  locationIds?: string[];
+  departmentIds?: string[];
+  positionIds?: string[];
+  userIds?: string[];
+}): { ok: true } | { ok: false; message: string } {
+  const intent = parseScopeIntent(input.intent);
+  if (!intent) return { ok: true };
+
+  const locations = unique(input.locationIds ?? []);
+  const departments = unique(input.departmentIds ?? []);
+  const positions = unique(input.positionIds ?? []);
+  const users = unique(input.userIds ?? []);
+  const hasFilters = locations.length > 0 || departments.length > 0 || positions.length > 0;
+
+  if (intent === "group" && !hasFilters) {
+    return {
+      ok: false,
+      message: "Elegiste un grupo pero no marcaste ninguna locación, departamento ni puesto.",
+    };
+  }
+
+  if (intent === "people") {
+    if (users.length === 0) {
+      return { ok: false, message: "Elegiste personas específicas pero no marcaste ninguna." };
+    }
+    if (hasFilters) {
+      return {
+        ok: false,
+        message: "Con personas específicas no se pueden combinar filtros de locación, departamento o puesto.",
+      };
+    }
+  }
+
+  return { ok: true };
+}
+
 export async function validateTenantScopeReferences(
   input: ValidateTenantScopeReferencesInput,
 ): Promise<{ ok: true } | { ok: false; field: ScopeValidationField }> {

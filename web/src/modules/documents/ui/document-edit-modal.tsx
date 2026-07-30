@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { ScopeSelector } from "@/shared/ui/scope-selector";
+import type { ScopedUserOption } from "@/shared/contracts/scope-options";
 
 type FolderRow = {
   id: string;
@@ -12,7 +13,7 @@ type FolderRow = {
 type Branch = { id: string; name: string; city?: string | null };
 type Department = { id: string; name: string };
 type Position = { id: string; department_id: string; name: string };
-type User = { id: string; user_id: string | null; first_name: string; last_name: string; role_label?: string };
+type User = ScopedUserOption;
 
 type DocumentInput = {
   id: string;
@@ -54,10 +55,11 @@ const MODAL_PRIMARY = "rounded-lg bg-[var(--gbp-text)] px-5 py-2 text-sm font-bo
 export function DocumentEditModal({ document, folders, branches, departments, positions, users, busy, initialScope, onCancel, onSave }: Props) {
   const [title, setTitle] = useState(document.title);
   const [folderId, setFolderId] = useState(document.folder_id ?? "");
+  const [scopeValid, setScopeValid] = useState(true);
 
   return (
     <div className="fixed inset-0 z-[1020] flex items-center justify-center bg-black/45 p-5">
-      <div className={`w-[700px] max-w-[95vw] ${MODAL_PANEL}`}>
+      <div className={`w-[1040px] max-w-[96vw] ${MODAL_PANEL}`}>
         <div className={MODAL_HEADER}><p className={MODAL_TITLE}>Editar Documento</p><button type="button" className={MODAL_CLOSE} onClick={onCancel}>✕</button></div>
         <form
           onSubmit={(event) => {
@@ -115,6 +117,9 @@ export function DocumentEditModal({ document, folders, branches, departments, po
                     departmentInputName="_scope_department"
                     positionInputName="_scope_position"
                     userInputName="_scope_user"
+                    question="¿Quién tiene que ver este documento?"
+                    audienceLabel="Tendrán acceso"
+                    onValidityChange={setScopeValid}
                     initialLocations={initialScope.locations}
                     initialDepartments={initialScope.departments}
                     initialPositions={initialScope.positions}
@@ -128,7 +133,7 @@ export function DocumentEditModal({ document, folders, branches, departments, po
               </section>
             )}
           </div>
-          <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="submit" disabled={busy || !title.trim()} className={MODAL_PRIMARY}>{busy ? "Guardando..." : "Guardar"}</button></div>
+          <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="submit" disabled={busy || !title.trim() || !scopeValid} className={MODAL_PRIMARY}>{busy ? "Guardando..." : "Guardar"}</button></div>
         </form>
       </div>
     </div>

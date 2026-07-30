@@ -7,12 +7,13 @@ import { toast } from "sonner";
 
 import { ScopeSelectorOrInherited } from "@/shared/ui/scope-selector";
 import { SubmitButton } from "@/shared/ui/submit-button";
+import type { ScopedUserOption } from "@/shared/contracts/scope-options";
 
 type Folder = { id: string; name: string };
 type Branch = { id: string; name: string };
 type Department = { id: string; name: string };
 type Position = { id: string; department_id: string; name: string };
-type Employee = { id: string; user_id: string | null; first_name: string; last_name: string; role_label?: string };
+type Employee = ScopedUserOption;
 type RecentDocument = { id: string; title: string; branch_id: string | null; created_at: string };
 
 type Props = {
@@ -55,6 +56,7 @@ export function UploadDocumentModal({
   const [selectedFolderId, setSelectedFolderId] = useState("");
   const [isClosing, setIsClosing] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
+  const [scopeValid, setScopeValid] = useState(true);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -184,6 +186,10 @@ export function UploadDocumentModal({
                     departmentInputName="department_scope"
                     positionInputName="position_scope"
                     userInputName="user_scope"
+                    modeInputName="scope_mode"
+                    question="¿Quién tiene que ver este archivo?"
+                    audienceLabel="Tendrán acceso"
+                    onValidityChange={setScopeValid}
                     allowedLocationIds={allowedLocationIds}
                     lockLocationSelection={lockLocationSelection}
                     locationHelperText={lockLocationSelection ? "Tu alcance base queda limitado a tus locaciones asignadas." : undefined}
@@ -227,7 +233,7 @@ export function UploadDocumentModal({
               label="Subir Archivo" 
               pendingLabel="Subiendo..." 
               pending={isUploading} 
-              disabled={showSuccessOverlay}
+              disabled={showSuccessOverlay || !scopeValid}
               className="px-5 py-2 text-sm font-bold"
             />
           </div>
