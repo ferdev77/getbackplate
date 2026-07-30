@@ -1,6 +1,5 @@
 "use client";
 
-import { Pin, Smartphone, Clock3, Mail } from "lucide-react";
 import { useActionState, useEffect, useState, startTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -9,7 +8,14 @@ import { createAnnouncementAction } from "@/modules/announcements/actions";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import {
   ScopeModalContent,
+  ScopeModalDivider,
+  ScopeModalField,
+  ScopeModalSection,
+  ScopeModalToggleRow,
   ScopeModalZones,
+  SCOPE_MODAL_INPUT,
+  SCOPE_MODAL_SELECT,
+  SCOPE_MODAL_TEXTAREA,
   SCOPE_MODAL_FOOTER,
   SCOPE_MODAL_FORM,
   SCOPE_MODAL_HEADER,
@@ -192,7 +198,14 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
       <div className={SCOPE_MODAL_PANEL}>
         <div className={SCOPE_MODAL_HEADER}>
-          <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">{mode === "edit" ? "Editar Aviso" : "Nuevo Aviso"}</p>
+          <div>
+            <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">{mode === "edit" ? "Editar aviso" : "Nuevo aviso"}</p>
+            <p className="mt-0.5 text-[11.5px] text-[var(--gbp-text2)]">
+              {mode === "edit"
+                ? "Los cambios se ven en el portal al guardar"
+                : "Se publica en el portal y se notifica según el alcance"}
+            </p>
+          </div>
           <button
             type="button"
             onClick={handleClose}
@@ -210,144 +223,92 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
           {mode === "edit" && initial ? <input type="hidden" name="announcement_id" value={initial.id} /> : null}
           <ScopeModalZones>
             <ScopeModalContent>
-            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Tipo de aviso</label>
-            <select name="kind" defaultValue={initial?.kind ?? "general"} className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]">
-              <option value="general">General</option>
-              <option value="urgent">Urgente</option>
-              <option value="reminder">Recordatorio</option>
-              <option value="celebration">Celebracion</option>
-            </select>
+              <ScopeModalSection label="Contenido" />
 
-            <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Publicado por</label>
-            <input
-              value={publisherName}
-              readOnly
-              className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface2)] px-3 py-2 text-sm text-[var(--gbp-text2)]"
-            />
+              <ScopeModalField label="Tipo de aviso">
+                <select name="kind" defaultValue={initial?.kind ?? "general"} className={SCOPE_MODAL_SELECT}>
+                  <option value="general">General</option>
+                  <option value="urgent">Urgente</option>
+                  <option value="reminder">Recordatorio</option>
+                  <option value="celebration">Celebración</option>
+                </select>
+              </ScopeModalField>
 
-            <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Titulo del aviso</label>
-              <input
-                name="title"
-                required
-                defaultValue={initial?.title ?? ""}
-                placeholder="ej. Reunion obligatoria"
-                data-testid="announcement-title-input"
-              className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]"
-            />
-
-            <label className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Mensaje</label>
-              <textarea
-                name="body"
-                required
-                rows={4}
-                defaultValue={initial?.body ?? ""}
-                placeholder="Escribe el mensaje completo"
-                data-testid="announcement-body-textarea"
-              className="w-full resize-y rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]"
-            />
-
-            <div className="my-4 h-px bg-[var(--gbp-border)]" />
-
-
-            {mode === "create" ? (
-              <>
-                <div className="my-4 h-px bg-[var(--gbp-border)]" />
-
-                <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Notificar tambien via</label>
-                <div className="flex flex-wrap gap-2">
-                  {SHOW_SMS_CHANNEL ? (
-                    <button
-                      type="button"
-                      onClick={() => setNotifySms((prev) => !prev)}
-                      className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
-                        notifySms
-                          ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
-                          : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"
-                      }`}
-                    >
-                      <Smartphone className="h-3.5 w-3.5" /> SMS
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => setNotifyEmail((prev) => !prev)}
-                    className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
-                      notifyEmail
-                        ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
-                        : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"
-                    }`}
-                  >
-                    <Mail className="h-3.5 w-3.5" /> Email
-                  </button>
-                </div>
-                {notifySms ? <input type="hidden" name="notify_channel" value="sms" /> : null}
-                {notifyEmail ? <input type="hidden" name="notify_channel" value="email" /> : null}
-                <input type="hidden" name="notify_channel" value="push" />
-              </>
-            ) : null}
-
-            <div className="my-4 h-px bg-[var(--gbp-border)]" />
-
-            <div className="mb-2 flex items-center justify-between rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2.5">
-              <div className="inline-flex items-center gap-2 text-sm text-[var(--gbp-text)]">
-                <Pin className="h-3.5 w-3.5 text-[var(--gbp-text2)]" /> Fijar aviso arriba de la lista
-              </div>
-              <label className="relative inline-flex h-[22px] w-[38px] cursor-pointer items-center">
-                <input type="checkbox" name="is_featured" defaultChecked={Boolean(initial?.is_featured)} className="peer sr-only" />
-                <span className="absolute inset-0 rounded-[22px] bg-[var(--gbp-border2)] transition peer-checked:bg-[var(--gbp-accent)]" />
-                <span className="absolute left-[3px] top-[3px] h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-4" />
-              </label>
-            </div>
-
-            <div className="mb-0 flex items-center justify-between rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2.5">
-              <div className="inline-flex items-center gap-2 text-sm text-[var(--gbp-text)]">
-                <Clock3 className="h-3.5 w-3.5 text-[var(--gbp-text2)]" /> Este aviso tiene caducidad
-              </div>
-              <label className="relative inline-flex h-[22px] w-[38px] cursor-pointer items-center">
+              <ScopeModalField label="Título">
                 <input
-                  type="checkbox"
-                  checked={hasExpiry}
-                  onChange={(event) => setHasExpiry(event.target.checked)}
-                  className="peer sr-only"
+                  name="title"
+                  required
+                  defaultValue={initial?.title ?? ""}
+                  placeholder="ej. Reunión obligatoria"
+                  data-testid="announcement-title-input"
+                  className={SCOPE_MODAL_INPUT}
                 />
-                <span className="absolute inset-0 rounded-[22px] bg-[var(--gbp-border2)] transition peer-checked:bg-[var(--gbp-accent)]" />
-                <span className="absolute left-[3px] top-[3px] h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-4" />
-              </label>
-            </div>
-            {hasExpiry ? (
-              <div className="mt-2">
+              </ScopeModalField>
+
+              <ScopeModalField label="Mensaje">
+                <textarea
+                  name="body"
+                  required
+                  defaultValue={initial?.body ?? ""}
+                  placeholder="Escribí el mensaje completo"
+                  data-testid="announcement-body-textarea"
+                  className={SCOPE_MODAL_TEXTAREA}
+                />
+              </ScopeModalField>
+
+              <ScopeModalDivider />
+              <ScopeModalSection label="Publicación" />
+
+              <ScopeModalToggleRow
+                label="Fijar arriba de la lista"
+                name="is_featured"
+                defaultChecked={Boolean(initial?.is_featured)}
+              />
+
+              <ScopeModalToggleRow
+                label="Tiene caducidad"
+                sub="Se oculta solo al vencer"
+                checked={hasExpiry}
+                onChange={setHasExpiry}
+              />
+              {hasExpiry ? (
                 <input
                   name="expires_at"
                   type="date"
                   defaultValue={initial?.expires_at ? initial.expires_at.slice(0, 10) : ""}
-                  className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]"
+                  className={SCOPE_MODAL_INPUT}
                 />
-              </div>
-            ) : null}
+              ) : null}
 
-            <div className="mb-0 mt-3 flex items-center justify-between rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2.5">
-              <div className="inline-flex items-center gap-2 text-sm text-[var(--gbp-text)]">
-                <Clock3 className="h-3.5 w-3.5 text-[var(--gbp-text2)]" /> Enviar periódicamente
-              </div>
-              <label className="relative inline-flex h-[22px] w-[38px] cursor-pointer items-center">
-                <input
-                  type="checkbox"
-                  name="is_recurring"
-                  checked={isRecurring}
-                  onChange={(event) => setIsRecurring(event.target.checked)}
-                  className="peer sr-only"
-                  value="on"
-                />
-                <span className="absolute inset-0 rounded-[22px] bg-[var(--gbp-border2)] transition peer-checked:bg-[var(--gbp-accent)]" />
-                <span className="absolute left-[3px] top-[3px] h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-4" />
-              </label>
-            </div>
-            {isRecurring ? (
-              <RecurrenceSelector 
-                initialType={initial?.recurrence_type} 
-                initialDays={initial?.custom_days} 
+              <ScopeModalToggleRow
+                label="Repetir"
+                sub="Diario, semanal o a medida"
+                name="is_recurring"
+                value="on"
+                checked={isRecurring}
+                onChange={setIsRecurring}
               />
-            ) : null}
+              {isRecurring ? (
+                <RecurrenceSelector initialType={initial?.recurrence_type} initialDays={initial?.custom_days} />
+              ) : null}
+
+              {mode === "create" ? (
+                <>
+                  <ScopeModalToggleRow
+                    label="Enviar también por email"
+                    sub="Solo a quien tenga email cargado"
+                    checked={notifyEmail}
+                    onChange={setNotifyEmail}
+                  />
+                  {SHOW_SMS_CHANNEL ? (
+                    <ScopeModalToggleRow label="Enviar también por SMS" checked={notifySms} onChange={setNotifySms} />
+                  ) : null}
+                  {notifySms ? <input type="hidden" name="notify_channel" value="sms" /> : null}
+                  {notifyEmail ? <input type="hidden" name="notify_channel" value="email" /> : null}
+                  {/* La notificacion interna y el push van siempre. */}
+                  <input type="hidden" name="notify_channel" value="push" />
+                </>
+              ) : null}
             </ScopeModalContent>
 
             <ScopeSelector

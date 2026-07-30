@@ -3,11 +3,16 @@
 import { useActionState, useEffect, useState, startTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Mail, Smartphone } from "lucide-react";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import {
   ScopeModalContent,
+  ScopeModalDivider,
+  ScopeModalField,
+  ScopeModalSection,
+  ScopeModalToggleRow,
   ScopeModalZones,
+  SCOPE_MODAL_INPUT,
+  SCOPE_MODAL_SELECT,
   SCOPE_MODAL_FOOTER,
   SCOPE_MODAL_FORM,
   SCOPE_MODAL_HEADER,
@@ -182,7 +187,14 @@ export function ChecklistUpsertModal({
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
       <div className={SCOPE_MODAL_PANEL}>
         <div className={SCOPE_MODAL_HEADER}>
-          <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">{action === "edit" ? "Editar Checklist" : "Nuevo Checklist"}</p>
+          <div>
+            <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">{action === "edit" ? "Editar checklist" : "Nuevo checklist"}</p>
+            <p className="mt-0.5 text-[11.5px] text-[var(--gbp-text2)]">
+              {action === "edit"
+                ? "Los cambios en los ítems se aplican en el próximo reparto"
+                : "Quien esté en el alcance lo verá en su portal para completarlo"}
+            </p>
+          </div>
           <button type="button" onClick={handleClose} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</button>
         </div>
         <form
@@ -193,86 +205,85 @@ export function ChecklistUpsertModal({
           {editingTemplate ? <input type="hidden" name="template_id" value={editingTemplate.id} /> : null}
           <ScopeModalZones>
             <ScopeModalContent>
-            <h3 className="mb-3 border-b-[1.5px] border-[var(--gbp-border)] pb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Informacion general</h3>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="grid gap-1.5 sm:col-span-2">
-                <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Nombre del checklist</span>
-                <input name="name" required defaultValue={editingTemplate?.name ?? ""} placeholder="Ej: Apertura Cocina - Turno Manana" className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)]" data-testid="checklist-title-input" />
-              </label>
-              <label className="grid gap-1.5">
-                <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Tipo de checklist</span>
-                <select name="checklist_type" defaultValue={editingTemplate?.checklist_type ?? "opening"} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]">
+              <ScopeModalSection label="Información general" />
+
+              <ScopeModalField label="Nombre del checklist">
+                <input
+                  name="name"
+                  required
+                  defaultValue={editingTemplate?.name ?? ""}
+                  placeholder="Ej: Apertura Cocina - Turno Mañana"
+                  data-testid="checklist-title-input"
+                  className={SCOPE_MODAL_INPUT}
+                />
+              </ScopeModalField>
+
+              <ScopeModalField label="Tipo de checklist">
+                <select
+                  name="checklist_type"
+                  defaultValue={editingTemplate?.checklist_type ?? "opening"}
+                  className={SCOPE_MODAL_SELECT}
+                >
                   <option value="opening">Apertura</option>
                   <option value="closing">Cierre</option>
                   <option value="prep">Prep</option>
                   <option value="custom">Otro</option>
                 </select>
-              </label>
-              <label className="grid gap-1.5">
-                <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Shift</span>
-                <select name="shift" defaultValue={editingTemplate?.shift ?? "1er Shift"} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]">
+              </ScopeModalField>
+
+              <ScopeModalField label="Turno">
+                <select name="shift" defaultValue={editingTemplate?.shift ?? "1er Shift"} className={SCOPE_MODAL_SELECT}>
                   <option>1er Shift</option>
                   <option>2do Shift</option>
                   <option>3er Shift</option>
                 </select>
-              </label>
-              <div className="mt-4 grid gap-1.5 border-t border-[var(--gbp-border)] pt-4 sm:col-span-2">
-                <RecurrenceSelector 
-                  initialType={editingTemplate?.scheduledJob?.recurrence_type || editingTemplate?.repeat_every || "daily"} 
-                  initialDays={editingTemplate?.scheduledJob?.custom_days || []} 
-                />
-              </div>
-              <label className="grid gap-1.5">
-                <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Estado</span>
-                <select name="template_status" defaultValue={editingTemplate?.is_active ? "active" : "draft"} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]">
+              </ScopeModalField>
+
+              <ScopeModalField label="Estado">
+                <select
+                  name="template_status"
+                  defaultValue={editingTemplate?.is_active ? "active" : "draft"}
+                  className={SCOPE_MODAL_SELECT}
+                >
                   <option value="active">Activo</option>
                   <option value="draft">Borrador</option>
                 </select>
-              </label>
-            </div>
-            <h3 className="mb-3 mt-6 border-b-[1.5px] border-[var(--gbp-border)] pb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Items del checklist</h3>
-            <ChecklistItemsBuilder
-              initialSections={
-                editingTemplate?.templateSections?.length
-                  ? editingTemplate.templateSections
-                  : [{ name: "General", items: editingTemplate?.templateItems?.map((item) => item.label) ?? [""] }]
-              }
-            />
+              </ScopeModalField>
 
-            {!editingTemplate ? (
-              <>
-                <div className="my-4 h-px bg-[var(--gbp-border)]" />
-                <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Notificar tambien via</label>
-                <div className="flex flex-wrap gap-2">
+              <ScopeModalDivider />
+              <ScopeModalSection label="Frecuencia" />
+              <RecurrenceSelector
+                initialType={editingTemplate?.scheduledJob?.recurrence_type || editingTemplate?.repeat_every || "daily"}
+                initialDays={editingTemplate?.scheduledJob?.custom_days || []}
+              />
+
+              <ScopeModalDivider />
+              <ScopeModalSection label="Ítems del checklist" />
+              <ChecklistItemsBuilder
+                initialSections={
+                  editingTemplate?.templateSections?.length
+                    ? editingTemplate.templateSections
+                    : [{ name: "General", items: editingTemplate?.templateItems?.map((item) => item.label) ?? [""] }]
+                }
+              />
+
+              {!editingTemplate ? (
+                <>
+                  <ScopeModalDivider />
+                  <ScopeModalSection label="Publicación" />
+                  <ScopeModalToggleRow
+                    label="Enviar también por email"
+                    sub="Solo a quien tenga email cargado"
+                    checked={notifyEmail}
+                    onChange={setNotifyEmail}
+                  />
                   {SHOW_SMS_CHANNEL ? (
-                    <button
-                      type="button"
-                      onClick={() => setNotifySms((prev) => !prev)}
-                      className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
-                        notifySms
-                          ? "border-[var(--gbp-accent)] bg-[color-mix(in_oklab,var(--gbp-accent)_14%,transparent)] text-[var(--gbp-accent)]"
-                          : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
-                      }`}
-                    >
-                      <Smartphone className="h-3.5 w-3.5" /> SMS
-                    </button>
+                    <ScopeModalToggleRow label="Enviar también por SMS" checked={notifySms} onChange={setNotifySms} />
                   ) : null}
-                  <button
-                    type="button"
-                    onClick={() => setNotifyEmail((prev) => !prev)}
-                    className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold ${
-                      notifyEmail
-                        ? "border-[var(--gbp-accent)] bg-[color-mix(in_oklab,var(--gbp-accent)_14%,transparent)] text-[var(--gbp-accent)]"
-                        : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
-                    }`}
-                  >
-                    <Mail className="h-3.5 w-3.5" /> Email
-                  </button>
-                </div>
-                {notifySms ? <input type="hidden" name="notify_channel" value="sms" /> : null}
-                {notifyEmail ? <input type="hidden" name="notify_channel" value="email" /> : null}
-              </>
-            ) : null}
+                  {notifySms ? <input type="hidden" name="notify_channel" value="sms" /> : null}
+                  {notifyEmail ? <input type="hidden" name="notify_channel" value="email" /> : null}
+                </>
+              ) : null}
             </ScopeModalContent>
 
             <ScopeSelector

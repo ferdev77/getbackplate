@@ -67,3 +67,83 @@ export function ScopeModalContent({
     </section>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Piezas de campo, calcadas de la maqueta
+// ---------------------------------------------------------------------------
+
+export const SCOPE_MODAL_KICKER =
+  "flex items-center gap-2.5 text-[10.5px] font-bold uppercase tracking-[0.11em] text-[var(--gbp-muted)] after:h-px after:flex-1 after:bg-[var(--gbp-border)] after:content-['']";
+
+export const SCOPE_MODAL_LABEL =
+  "text-[10.5px] font-bold uppercase tracking-[0.11em] text-[var(--gbp-muted)]";
+
+const CONTROL =
+  "w-full rounded-[9px] border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-[11px] py-[9px] text-[13.5px] text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--gbp-accent)]";
+
+export const SCOPE_MODAL_INPUT = CONTROL;
+export const SCOPE_MODAL_SELECT = CONTROL;
+
+/**
+ * min-h y shrink-0 no son decorativos: la columna de contenido es un flex
+ * column, y sin ellos el textarea se aplasta hasta quedar de una linea.
+ */
+export const SCOPE_MODAL_TEXTAREA = `${CONTROL} min-h-[92px] shrink-0 resize-y leading-[1.5]`;
+
+export function ScopeModalSection({ label }: { label: string }) {
+  return <p className={SCOPE_MODAL_KICKER}>{label}</p>;
+}
+
+export function ScopeModalDivider() {
+  return <div className="my-0.5 h-px shrink-0 bg-[var(--gbp-border)]" />;
+}
+
+export function ScopeModalField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="flex shrink-0 flex-col gap-[5px]">
+      <span className={SCOPE_MODAL_LABEL}>{label}</span>
+      {children}
+    </label>
+  );
+}
+
+/** Fila con titulo, aclaracion opcional y un interruptor a la derecha. */
+export function ScopeModalToggleRow({
+  label,
+  sub,
+  name,
+  value,
+  checked,
+  defaultChecked,
+  onChange,
+}: {
+  label: string;
+  sub?: string;
+  name?: string;
+  value?: string;
+  checked?: boolean;
+  defaultChecked?: boolean;
+  onChange?: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex shrink-0 cursor-pointer items-center justify-between gap-3 rounded-[9px] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-[11px] py-[9px] text-[13px] text-[var(--gbp-text)]">
+      <span>
+        {label}
+        {sub ? <small className="block text-[11px] font-medium text-[var(--gbp-muted)]">{sub}</small> : null}
+      </span>
+      <span className="relative h-[22px] w-[38px] shrink-0">
+        <input
+          type="checkbox"
+          name={name}
+          value={value}
+          checked={checked}
+          defaultChecked={defaultChecked}
+          onChange={onChange ? (event) => onChange(event.target.checked) : undefined}
+          className="peer absolute inset-0 m-0 h-full w-full cursor-pointer opacity-0"
+        />
+        <span className="absolute inset-0 rounded-[22px] bg-[var(--gbp-border2)] transition-colors peer-checked:bg-[var(--gbp-accent)] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--gbp-accent)]" />
+        <span className="pointer-events-none absolute left-[3px] top-[3px] h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-4" />
+      </span>
+    </label>
+  );
+}
