@@ -12,6 +12,7 @@ import {
 } from "@/shared/lib/scope-validation";
 import { enforceLocationPolicy } from "@/shared/lib/scope-policy";
 import { resolveEmployeeAllowedLocationIds } from "@/shared/lib/employee-api-scope";
+import { deleteChecklistTemplate, syncChecklistScheduledJob } from "@/modules/checklists/services/checklist-template.service";
 import {
   flattenChecklistSectionTexts,
   parseChecklistSections,
@@ -48,6 +49,8 @@ export async function POST(request: Request) {
         checklist_type?: string;
         shift?: string;
         repeat_every?: string;
+        recurrence_type?: string;
+        custom_days?: string;
         template_status?: string;
         location_scope?: string[];
         department_scope?: string[];
@@ -65,6 +68,12 @@ export async function POST(request: Request) {
   const checklistType = normalizeChecklistType(body?.checklist_type);
   const shift = String(body?.shift ?? "1er Shift").trim() || "1er Shift";
   const repeatEvery = String(body?.repeat_every ?? "daily").trim() || "daily";
+  const recurrenceType = String(body?.recurrence_type ?? repeatEvery).trim() || "daily";
+  let customDays: number[] = [];
+  try {
+    const parsed = JSON.parse(String(body?.custom_days ?? "[]"));
+    if (Array.isArray(parsed)) customDays = parsed.filter((d): d is number => typeof d === "number");
+  } catch {}
   const isActive = String(body?.template_status ?? "active").trim() !== "draft";
   const requestedLocationScope = normalizeScopeSelection(
     Array.isArray(body?.location_scope) ? body.location_scope.map(String) : [],
@@ -225,6 +234,15 @@ export async function POST(request: Request) {
     }
   }
 
+  await syncChecklistScheduledJob({
+    supabase: admin,
+    organizationId: access.tenant.organizationId,
+    templateId: createdTemplate.id,
+    recurrenceType,
+    customDays,
+    isActive,
+  });
+
   await logAuditEvent({
     action: "employee.checklist.template.create",
     entityType: "checklist_template",
@@ -254,6 +272,8 @@ export async function PATCH(request: Request) {
         checklist_type?: string;
         shift?: string;
         repeat_every?: string;
+        recurrence_type?: string;
+        custom_days?: string;
         template_status?: string;
         location_scope?: string[];
         department_scope?: string[];
@@ -272,6 +292,12 @@ export async function PATCH(request: Request) {
   const checklistType = normalizeChecklistType(body?.checklist_type);
   const shift = String(body?.shift ?? "1er Shift").trim() || "1er Shift";
   const repeatEvery = String(body?.repeat_every ?? "daily").trim() || "daily";
+  const recurrenceType = String(body?.recurrence_type ?? repeatEvery).trim() || "daily";
+  let customDays: number[] = [];
+  try {
+    const parsed = JSON.parse(String(body?.custom_days ?? "[]"));
+    if (Array.isArray(parsed)) customDays = parsed.filter((d): d is number => typeof d === "number");
+  } catch {}
   const isActive = String(body?.template_status ?? "active").trim() !== "draft";
   const requestedLocationScope = normalizeScopeSelection(
     Array.isArray(body?.location_scope) ? body.location_scope.map(String) : [],
@@ -450,6 +476,16 @@ export async function PATCH(request: Request) {
     }
   }
 
+  // El reparto programado va por el mismo camino que el del panel de admin.
+  await syncChecklistScheduledJob({
+    supabase: admin,
+    organizationId: access.tenant.organizationId,
+    templateId,
+    recurrenceType,
+    customDays,
+    isActive,
+  });
+
   await logAuditEvent({
     action: "employee.checklist.template.update",
     entityType: "checklist_template",
@@ -492,49 +528,16 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Solo puedes eliminar checklists creados por ti" }, { status: 403 });
   }
 
-  const { count: submissionsCount } = await admin
-    .from("checklist_submissions")
-    .select("id", { count: "exact", head: true })
-    .eq("organization_id", access.tenant.organizationId)
-    .eq("template_id", templateId);
+  // Mismo camino que el panel de admin: borra de verdad y el historial queda,
+  // porque cada respuesta guarda su nombre y sus textos.
+  const result = await deleteChecklistTemplate({
+    supabase: admin,
+    organizationId: access.tenant.organizationId,
+    templateId,
+  });
 
-  if ((submissionsCount ?? 0) > 0) {
-    const { error: archiveError } = await admin
-      .from("checklist_templates")
-      .update({ is_active: false })
-      .eq("organization_id", access.tenant.organizationId)
-      .eq("id", templateId);
-    if (archiveError) {
-      return NextResponse.json({ error: archiveError.message }, { status: 400 });
-    }
-  } else {
-    const { data: sections } = await admin
-      .from("checklist_template_sections")
-      .select("id")
-      .eq("organization_id", access.tenant.organizationId)
-      .eq("template_id", templateId);
-    const sectionIds = (sections ?? []).map((row) => row.id);
-    if (sectionIds.length > 0) {
-      await admin
-        .from("checklist_template_items")
-        .delete()
-        .eq("organization_id", access.tenant.organizationId)
-        .in("section_id", sectionIds);
-      await admin
-        .from("checklist_template_sections")
-        .delete()
-        .eq("organization_id", access.tenant.organizationId)
-        .eq("template_id", templateId);
-    }
-
-    const { error: deleteError } = await admin
-      .from("checklist_templates")
-      .delete()
-      .eq("organization_id", access.tenant.organizationId)
-      .eq("id", templateId);
-    if (deleteError) {
-      return NextResponse.json({ error: deleteError.message }, { status: 400 });
-    }
+  if (!result.ok) {
+    return NextResponse.json({ error: result.message }, { status: 400 });
   }
 
   await logAuditEvent({
@@ -544,10 +547,10 @@ export async function DELETE(request: Request) {
     organizationId: access.tenant.organizationId,
     eventDomain: "checklists",
     outcome: "success",
-    severity: "medium",
+    severity: "critical",
     actorId: access.userId,
-    metadata: {},
+    metadata: { kept_submissions: result.keptSubmissions },
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, message: result.message });
 }

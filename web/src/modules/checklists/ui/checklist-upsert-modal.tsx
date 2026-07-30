@@ -152,6 +152,10 @@ export function ChecklistUpsertModal({
           checklist_type: String(formData.get("checklist_type") ?? "custom").trim() || "custom",
           shift: String(formData.get("shift") ?? "1er Shift").trim() || "1er Shift",
           repeat_every: String(formData.get("recurrence_type") ?? formData.get("repeat_every") ?? "daily").trim() || "daily",
+          // La frecuencia y los dias elegidos van aparte: con solo repeat_every,
+          // el portal de empleado no podia armar un reparto semanal o a medida.
+          recurrence_type: String(formData.get("recurrence_type") ?? "daily").trim() || "daily",
+          custom_days: String(formData.get("custom_days") ?? "[]"),
           template_status: String(formData.get("template_status") ?? "active").trim() || "active",
           location_scope: formData.getAll("location_scope").map(String).filter(Boolean),
           department_scope: formData.getAll("department_scope").map(String).filter(Boolean),

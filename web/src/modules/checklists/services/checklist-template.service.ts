@@ -162,6 +162,65 @@ export async function applyPendingChecklistSections(params: {
   return { ok: true };
 }
 
+/**
+ * Deja el reparto programado del checklist en sincronia con su frecuencia.
+ *
+ * Vive aparte porque el portal de empleado tiene su propia ruta de alta y
+ * edicion: sin esto, un checklist creado por un empleado mostraba "Diaria" y
+ * nunca se repartia, porque nadie le creaba el scheduled_job.
+ */
+export async function syncChecklistScheduledJob(params: {
+  supabase: SupabaseClient;
+  organizationId: string;
+  templateId: string;
+  recurrenceType: string;
+  customDays: number[];
+  isActive: boolean;
+}) {
+  const { supabase, organizationId, templateId, recurrenceType, customDays, isActive } = params;
+
+  const { data: existingJob } = await supabase
+    .from("scheduled_jobs")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("job_type", "checklist_generator")
+    .eq("target_id", templateId)
+    .maybeSingle();
+
+  const shouldRun = recurrenceType !== "none" && isActive;
+
+  if (existingJob) {
+    if (shouldRun) {
+      const nextRun = calculateNextRunAt(recurrenceType as RecurrenceType, null, customDays);
+      await supabase
+        .from("scheduled_jobs")
+        .update({
+          recurrence_type: recurrenceType,
+          custom_days: customDays,
+          next_run_at: nextRun.toISOString(),
+        })
+        .eq("id", existingJob.id);
+      return;
+    }
+
+    // Sin frecuencia o con el checklist inactivo, el reparto no debe existir.
+    await supabase.from("scheduled_jobs").delete().eq("id", existingJob.id);
+    return;
+  }
+
+  if (shouldRun) {
+    const nextRun = calculateNextRunAt(recurrenceType as RecurrenceType, null, customDays);
+    await supabase.from("scheduled_jobs").insert({
+      organization_id: organizationId,
+      job_type: "checklist_generator",
+      target_id: templateId,
+      recurrence_type: recurrenceType,
+      custom_days: customDays,
+      next_run_at: nextRun.toISOString(),
+    });
+  }
+}
+
 export async function upsertChecklistTemplate(
   input: UpsertChecklistTemplateInput,
 ): Promise<UpsertChecklistTemplateResult> {
@@ -566,42 +625,14 @@ export async function upsertChecklistTemplate(
     }
   }
 
-  // Handle recurrence / scheduled_jobs
-  if (template.id) {
-    const { data: existingJob } = await supabase
-      .from("scheduled_jobs")
-      .select("id")
-      .eq("organization_id", organizationId)
-      .eq("job_type", "checklist_generator")
-      .eq("target_id", template.id)
-      .maybeSingle();
-
-    const isRecurring = recurrenceType !== "none";
-
-    if (existingJob) {
-      if (isRecurring && templateStatus === "active") {
-        const nextRun = calculateNextRunAt(recurrenceType as RecurrenceType, null, customDays);
-        await supabase.from("scheduled_jobs").update({
-          recurrence_type: recurrenceType,
-          custom_days: customDays,
-          next_run_at: nextRun.toISOString()
-        }).eq("id", existingJob.id);
-      } else {
-        // Sin recurrencia o template inactivo: eliminar el job
-        await supabase.from("scheduled_jobs").delete().eq("id", existingJob.id);
-      }
-    } else if (isRecurring && templateStatus === "active") {
-      const nextRun = calculateNextRunAt(recurrenceType as RecurrenceType, null, customDays);
-      await supabase.from("scheduled_jobs").insert({
-        organization_id: organizationId,
-        job_type: "checklist_generator",
-        target_id: template.id,
-        recurrence_type: recurrenceType,
-        custom_days: customDays,
-        next_run_at: nextRun.toISOString()
-      });
-    }
-  }
+  await syncChecklistScheduledJob({
+    supabase,
+    organizationId,
+    templateId: template.id,
+    recurrenceType,
+    customDays,
+    isActive: templateStatus === "active",
+  });
 
   return { ok: true, templateId: template.id, preservedHistory, totalItems };
 }
