@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
@@ -12,11 +13,14 @@ import {
 } from "@/shared/lib/scope-validation";
 import { enforceLocationPolicy } from "@/shared/lib/scope-policy";
 import { resolveEmployeeAllowedLocationIds } from "@/shared/lib/employee-api-scope";
-import { deleteChecklistTemplate, syncChecklistScheduledJob } from "@/modules/checklists/services/checklist-template.service";
+import {
+  deleteChecklistTemplate,
+  upsertChecklistTemplate,
+} from "@/modules/checklists/services/checklist-template.service";
+import { sendChecklistAudiencePush } from "@/modules/checklists/services/checklist-audience.service";
 import {
   flattenChecklistSectionTexts,
   parseChecklistSections,
-  sectionItemLabels,
   type ChecklistSection,
 } from "@/modules/checklists/lib/sections";
 
@@ -75,6 +79,9 @@ export async function POST(request: Request) {
     if (Array.isArray(parsed)) customDays = parsed.filter((d): d is number => typeof d === "number");
   } catch {}
   const isActive = String(body?.template_status ?? "active").trim() !== "draft";
+  // El respaldo se arma en el mismo formato que `sections`.
+  const sectionsToPersist: ChecklistSection[] =
+    sections.length > 0 ? sections : [{ name: "General", items: items.map((text) => ({ id: null, text })) }];
   const requestedLocationScope = normalizeScopeSelection(
     Array.isArray(body?.location_scope) ? body.location_scope.map(String) : [],
     { allowAllToken: true },
@@ -97,16 +104,10 @@ export async function POST(request: Request) {
   }
 
   const admin = createSupabaseAdminClient();
-  const [allowedLocations, { data: empRow }] = await Promise.all([
-    resolveEmployeeAllowedLocationIds(access.tenant.organizationId, access.userId),
-    admin
-      .from("employees")
-      .select("branch_id")
-      .eq("organization_id", access.tenant.organizationId)
-      .eq("user_id", access.userId)
-      .maybeSingle(),
-  ]);
-  const primaryBranchId = empRow?.branch_id ?? null;
+  const allowedLocations = await resolveEmployeeAllowedLocationIds(
+    access.tenant.organizationId,
+    access.userId,
+  );
 
   const scopeMode = parseScopeIntent(body?.scope_mode);
 
@@ -163,99 +164,72 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Solo puedes agregar usuarios de tus locaciones permitidas" }, { status: 400 });
   }
 
-  const { data: createdTemplate, error: createTemplateError } = await admin
-    .from("checklist_templates")
-    .insert({
-        organization_id: access.tenant.organizationId,
-        branch_id: primaryBranchId,
-        department_id: null,
-        checklist_type: checklistType,
-        shift,
-        repeat_every: repeatEvery,
-        name,
-        is_active: isActive,
-        created_by: access.userId,
-        target_scope: {
-          locations: locationPolicy.locations,
-          department_ids: departmentScope,
-          position_ids: positionScope,
-          users: userScope,
-        },
-      })
-    .select("id")
-    .single();
-
-  if (createTemplateError || !createdTemplate) {
-    return NextResponse.json({ error: createTemplateError?.message ?? "No se pudo crear checklist" }, { status: 400 });
-  }
-
-  // El respaldo se arma en el mismo formato que `sections`: si quedara como
-  // texto suelto, el item viajaria como objeto y se guardaria como tal en label.
-  const sectionsToPersist: ChecklistSection[] =
-    sections.length > 0 ? sections : [{ name: "General", items: items.map((text) => ({ id: null, text })) }];
-  for (let sectionIndex = 0; sectionIndex < sectionsToPersist.length; sectionIndex += 1) {
-    const currentSection = sectionsToPersist[sectionIndex];
-    const { data: section, error: sectionError } = await admin
-      .from("checklist_template_sections")
-      .insert({
-        organization_id: access.tenant.organizationId,
-        template_id: createdTemplate.id,
-        name: currentSection.name,
-        sort_order: sectionIndex + 1,
-      })
-      .select("id")
-      .single();
-
-    if (sectionError || !section) {
-      await admin
-        .from("checklist_templates")
-        .delete()
-        .eq("organization_id", access.tenant.organizationId)
-        .eq("id", createdTemplate.id);
-      return NextResponse.json({ error: sectionError?.message ?? "No se pudo crear sección" }, { status: 400 });
-    }
-
-    const rows = sectionItemLabels(currentSection).map((label, itemIndex) => ({
-      organization_id: access.tenant.organizationId,
-      section_id: section.id,
-      label,
-      priority: "medium",
-      sort_order: itemIndex + 1,
-    }));
-
-    const { error: itemError } = await admin.from("checklist_template_items").insert(rows);
-    if (itemError) {
-      await admin
-        .from("checklist_templates")
-        .delete()
-        .eq("organization_id", access.tenant.organizationId)
-        .eq("id", createdTemplate.id);
-      return NextResponse.json({ error: itemError.message }, { status: 400 });
-    }
-  }
-
-  await syncChecklistScheduledJob({
+  // A partir de aca manda el servicio compartido: la persistencia, el reparto
+  // programado y el diferido de items son identicos a los del panel de admin.
+  // Lo de arriba es lo propio del rol: sus locaciones, sus usuarios, su permiso.
+  const result = await upsertChecklistTemplate({
     supabase: admin,
     organizationId: access.tenant.organizationId,
-    templateId: createdTemplate.id,
+    createdBy: access.userId,
+    templateId: null,
+    name,
+    checklistType,
+    checklistTypeOther: undefined,
+    branchId: null,
+    shift,
+    departmentId: null,
+    department: null,
+    repeatEvery,
     recurrenceType,
     customDays,
-    isActive,
+    templateStatus: isActive ? "active" : "draft",
+    locationScopes: locationPolicy.locations,
+    departmentScopes: departmentScope,
+    positionScopes: positionScope,
+    userScopes: userScope,
+    normalizedSections: sectionsToPersist,
+    notifyVia: [],
+    scopeMode,
+  });
+
+  if (!result.ok) {
+    return NextResponse.json({ error: result.message }, { status: 400 });
+  }
+
+  // El push y la campanita son el canal siempre activo, igual que en el panel de
+  // admin. Antes esta ruta no notificaba nada: el checklist aparecia en el portal
+  // y nadie se enteraba.
+  await sendChecklistAudiencePush({
+    supabase: admin,
+    organizationId: access.tenant.organizationId,
+    templateName: name,
+    event: "created",
+    itemsCount: result.totalItems,
+    targetScope: {
+      locations: locationPolicy.locations,
+      department_ids: departmentScope,
+      position_ids: positionScope,
+      users: userScope,
+    },
+    templateBranchId: null,
   });
 
   await logAuditEvent({
     action: "employee.checklist.template.create",
     entityType: "checklist_template",
-    entityId: createdTemplate.id,
+    entityId: result.templateId,
     organizationId: access.tenant.organizationId,
     eventDomain: "checklists",
     outcome: "success",
-    severity: "medium",
+    severity: "low",
     actorId: access.userId,
     metadata: { items_count: items.length },
   });
 
-  return NextResponse.json({ ok: true, templateId: createdTemplate.id });
+  revalidatePath("/portal/checklist");
+  revalidatePath("/app/checklists");
+
+  return NextResponse.json({ ok: true, templateId: result.templateId });
 }
 
 export async function PATCH(request: Request) {
@@ -299,6 +273,8 @@ export async function PATCH(request: Request) {
     if (Array.isArray(parsed)) customDays = parsed.filter((d): d is number => typeof d === "number");
   } catch {}
   const isActive = String(body?.template_status ?? "active").trim() !== "draft";
+  const sectionsToPersist: ChecklistSection[] =
+    sections.length > 0 ? sections : [{ name: "General", items: items.map((text) => ({ id: null, text })) }];
   const requestedLocationScope = normalizeScopeSelection(
     Array.isArray(body?.location_scope) ? body.location_scope.map(String) : [],
     { allowAllToken: true },
@@ -391,99 +367,51 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Solo puedes editar checklists creados por ti" }, { status: 403 });
   }
 
-  const { error: updateError } = await admin
-    .from("checklist_templates")
-    .update({
-      name,
-      checklist_type: checklistType,
-      shift,
-      repeat_every: repeatEvery,
-      is_active: isActive,
-      target_scope: {
-        locations: locationPolicy.locations,
-        department_ids: departmentScope,
-        position_ids: positionScope,
-        users: userScope,
-      },
-    })
-    .eq("organization_id", access.tenant.organizationId)
-    .eq("id", templateId);
-
-  if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 400 });
-  }
-
-  const { data: existingSections } = await admin
-    .from("checklist_template_sections")
-    .select("id")
-    .eq("organization_id", access.tenant.organizationId)
-    .eq("template_id", templateId);
-
-  const sectionIds = (existingSections ?? []).map((row) => row.id);
-  if (sectionIds.length > 0) {
-    // Si un borrado falla y se sigue igual, los items viejos quedan mezclados
-    // con los nuevos y el checklist termina con el doble.
-    const { error: itemsDeleteError } = await admin
-      .from("checklist_template_items")
-      .delete()
-      .eq("organization_id", access.tenant.organizationId)
-      .in("section_id", sectionIds);
-    if (itemsDeleteError) {
-      return NextResponse.json({ error: itemsDeleteError.message }, { status: 400 });
-    }
-
-    const { error: sectionsDeleteError } = await admin
-      .from("checklist_template_sections")
-      .delete()
-      .eq("organization_id", access.tenant.organizationId)
-      .eq("template_id", templateId);
-    if (sectionsDeleteError) {
-      return NextResponse.json({ error: sectionsDeleteError.message }, { status: 400 });
-    }
-  }
-
-  // El respaldo se arma en el mismo formato que `sections`: si quedara como
-  // texto suelto, el item viajaria como objeto y se guardaria como tal en label.
-  const sectionsToPersist: ChecklistSection[] =
-    sections.length > 0 ? sections : [{ name: "General", items: items.map((text) => ({ id: null, text })) }];
-  for (let sectionIndex = 0; sectionIndex < sectionsToPersist.length; sectionIndex += 1) {
-    const currentSection = sectionsToPersist[sectionIndex];
-    const { data: section } = await admin
-      .from("checklist_template_sections")
-      .insert({
-        organization_id: access.tenant.organizationId,
-        template_id: templateId,
-        name: currentSection.name,
-        sort_order: sectionIndex + 1,
-      })
-      .select("id")
-      .single();
-
-    if (!section?.id) {
-      return NextResponse.json({ error: "No se pudieron actualizar las secciones" }, { status: 400 });
-    }
-
-    const rows = sectionItemLabels(currentSection).map((label, itemIndex) => ({
-      organization_id: access.tenant.organizationId,
-      section_id: section.id,
-      label,
-      priority: "medium",
-      sort_order: itemIndex + 1,
-    }));
-    const { error: itemsError } = await admin.from("checklist_template_items").insert(rows);
-    if (itemsError) {
-      return NextResponse.json({ error: itemsError.message }, { status: 400 });
-    }
-  }
-
-  // El reparto programado va por el mismo camino que el del panel de admin.
-  await syncChecklistScheduledJob({
+  // Igual que en el alta: la regla del rol ya se aplico arriba; el que edita es
+  // el servicio compartido, asi que el diferido de items al proximo reparto y la
+  // deteccion de renombre valen tambien en el portal de empleado.
+  const result = await upsertChecklistTemplate({
     supabase: admin,
     organizationId: access.tenant.organizationId,
+    createdBy: access.userId,
     templateId,
+    name,
+    checklistType,
+    checklistTypeOther: undefined,
+    branchId: null,
+    shift,
+    departmentId: null,
+    department: null,
+    repeatEvery,
     recurrenceType,
     customDays,
-    isActive,
+    templateStatus: isActive ? "active" : "draft",
+    locationScopes: locationPolicy.locations,
+    departmentScopes: departmentScope,
+    positionScopes: positionScope,
+    userScopes: userScope,
+    normalizedSections: sectionsToPersist,
+    notifyVia: [],
+    scopeMode,
+  });
+
+  if (!result.ok) {
+    return NextResponse.json({ error: result.message }, { status: 400 });
+  }
+
+  await sendChecklistAudiencePush({
+    supabase: admin,
+    organizationId: access.tenant.organizationId,
+    templateName: name,
+    event: "updated",
+    itemsCount: result.totalItems,
+    targetScope: {
+      locations: locationPolicy.locations,
+      department_ids: departmentScope,
+      position_ids: positionScope,
+      users: userScope,
+    },
+    templateBranchId: null,
   });
 
   await logAuditEvent({
@@ -495,10 +423,17 @@ export async function PATCH(request: Request) {
     outcome: "success",
     severity: "low",
     actorId: access.userId,
-    metadata: { items_count: items.length },
+    metadata: { items_count: items.length, pending_until: result.pendingUntil ?? null },
   });
 
-  return NextResponse.json({ ok: true });
+  revalidatePath("/portal/checklist");
+  revalidatePath("/app/checklists");
+
+  return NextResponse.json({
+    ok: true,
+    // Cuando los items quedaron pendientes, la pantalla tiene que poder decirlo.
+    pendingUntil: result.pendingUntil,
+  });
 }
 
 export async function DELETE(request: Request) {
