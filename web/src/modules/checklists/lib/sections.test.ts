@@ -4,6 +4,7 @@ import {
   flattenChecklistSectionTexts,
   isTextOnlyChecklistEdit,
   parseChecklistSections,
+  sectionItemLabels,
 } from "@/modules/checklists/lib/sections";
 
 describe("parseChecklistSections", () => {
@@ -204,5 +205,42 @@ describe("isTextOnlyChecklistEdit", () => {
       ],
     });
     expect(result).toBe(false);
+  });
+});
+
+describe("sectionItemLabels", () => {
+  it("devuelve texto, nunca el item entero", () => {
+    // Este es el caso que se rompio en produccion de codigo: al cambiar el
+    // formato de los items, un lugar siguio guardando `label: item` y el objeto
+    // entero terminaba en la columna de texto. Recorriendo etiquetas ya no se
+    // puede escribir mal.
+    const labels = sectionItemLabels({
+      name: "Cámaras",
+      items: [
+        { id: "it-1", text: "Revisar temperatura" },
+        { id: null, text: "Controlar stock" },
+      ],
+    });
+
+    expect(labels).toEqual(["Revisar temperatura", "Controlar stock"]);
+    for (const label of labels) {
+      expect(typeof label).toBe("string");
+    }
+  });
+
+  it("respeta el orden", () => {
+    const labels = sectionItemLabels({
+      name: "A",
+      items: [
+        { id: null, text: "primero" },
+        { id: null, text: "segundo" },
+        { id: null, text: "tercero" },
+      ],
+    });
+    expect(labels).toEqual(["primero", "segundo", "tercero"]);
+  });
+
+  it("una seccion sin items no aporta etiquetas", () => {
+    expect(sectionItemLabels({ name: "Vacía", items: [] })).toEqual([]);
   });
 });

@@ -1,7 +1,11 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { assertScopeIntent, normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
 import { calculateNextRunAt, RecurrenceType } from "@/shared/lib/cron-utils";
-import { isTextOnlyChecklistEdit, type ChecklistSection } from "@/modules/checklists/lib/sections";
+import {
+  isTextOnlyChecklistEdit,
+  sectionItemLabels,
+  type ChecklistSection,
+} from "@/modules/checklists/lib/sections";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -135,10 +139,10 @@ export async function applyPendingChecklistSections(params: {
     const { error: itemsError } = await supabase
       .from("checklist_template_items")
       .insert(
-        section.items.map((item, itemIndex) => ({
+        sectionItemLabels(section).map((label, itemIndex) => ({
           organization_id: organizationId,
           section_id: sectionRow.id,
-          label: item.text,
+          label,
           priority: normalizePriority("medium"),
           sort_order: itemIndex,
         })),
@@ -542,10 +546,10 @@ export async function upsertChecklistTemplate(
       };
     }
 
-    const itemsPayload = section.items.map((item, index) => ({
+    const itemsPayload = sectionItemLabels(section).map((label, index) => ({
       organization_id: organizationId,
       section_id: sectionRow.id,
-      label: item.text,
+      label,
       priority: normalizePriority("medium"),
       sort_order: index,
     }));

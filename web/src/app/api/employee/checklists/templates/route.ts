@@ -12,7 +12,12 @@ import {
 } from "@/shared/lib/scope-validation";
 import { enforceLocationPolicy } from "@/shared/lib/scope-policy";
 import { resolveEmployeeAllowedLocationIds } from "@/shared/lib/employee-api-scope";
-import { flattenChecklistSectionTexts, parseChecklistSections } from "@/modules/checklists/lib/sections";
+import {
+  flattenChecklistSectionTexts,
+  parseChecklistSections,
+  sectionItemLabels,
+  type ChecklistSection,
+} from "@/modules/checklists/lib/sections";
 
 function parseItems(input: string) {
   return input
@@ -175,7 +180,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: createTemplateError?.message ?? "No se pudo crear checklist" }, { status: 400 });
   }
 
-  const sectionsToPersist = sections.length > 0 ? sections : [{ name: "General", items }];
+  // El respaldo se arma en el mismo formato que `sections`: si quedara como
+  // texto suelto, el item viajaria como objeto y se guardaria como tal en label.
+  const sectionsToPersist: ChecklistSection[] =
+    sections.length > 0 ? sections : [{ name: "General", items: items.map((text) => ({ id: null, text })) }];
   for (let sectionIndex = 0; sectionIndex < sectionsToPersist.length; sectionIndex += 1) {
     const currentSection = sectionsToPersist[sectionIndex];
     const { data: section, error: sectionError } = await admin
@@ -198,10 +206,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: sectionError?.message ?? "No se pudo crear sección" }, { status: 400 });
     }
 
-    const rows = currentSection.items.map((item, itemIndex) => ({
+    const rows = sectionItemLabels(currentSection).map((label, itemIndex) => ({
       organization_id: access.tenant.organizationId,
       section_id: section.id,
-      label: item,
+      label,
       priority: "medium",
       sort_order: itemIndex + 1,
     }));
@@ -387,19 +395,31 @@ export async function PATCH(request: Request) {
 
   const sectionIds = (existingSections ?? []).map((row) => row.id);
   if (sectionIds.length > 0) {
-    await admin
+    // Si un borrado falla y se sigue igual, los items viejos quedan mezclados
+    // con los nuevos y el checklist termina con el doble.
+    const { error: itemsDeleteError } = await admin
       .from("checklist_template_items")
       .delete()
       .eq("organization_id", access.tenant.organizationId)
       .in("section_id", sectionIds);
-    await admin
+    if (itemsDeleteError) {
+      return NextResponse.json({ error: itemsDeleteError.message }, { status: 400 });
+    }
+
+    const { error: sectionsDeleteError } = await admin
       .from("checklist_template_sections")
       .delete()
       .eq("organization_id", access.tenant.organizationId)
       .eq("template_id", templateId);
+    if (sectionsDeleteError) {
+      return NextResponse.json({ error: sectionsDeleteError.message }, { status: 400 });
+    }
   }
 
-  const sectionsToPersist = sections.length > 0 ? sections : [{ name: "General", items }];
+  // El respaldo se arma en el mismo formato que `sections`: si quedara como
+  // texto suelto, el item viajaria como objeto y se guardaria como tal en label.
+  const sectionsToPersist: ChecklistSection[] =
+    sections.length > 0 ? sections : [{ name: "General", items: items.map((text) => ({ id: null, text })) }];
   for (let sectionIndex = 0; sectionIndex < sectionsToPersist.length; sectionIndex += 1) {
     const currentSection = sectionsToPersist[sectionIndex];
     const { data: section } = await admin
@@ -417,10 +437,10 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "No se pudieron actualizar las secciones" }, { status: 400 });
     }
 
-    const rows = currentSection.items.map((item, itemIndex) => ({
+    const rows = sectionItemLabels(currentSection).map((label, itemIndex) => ({
       organization_id: access.tenant.organizationId,
       section_id: section.id,
-      label: item,
+      label,
       priority: "medium",
       sort_order: itemIndex + 1,
     }));

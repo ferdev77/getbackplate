@@ -112,3 +112,15 @@ export function isTextOnlyChecklistEdit(input: {
   if (previousIds.length !== submittedIds.size) return false;
   return previousIds.every((id) => submittedIds.has(id));
 }
+
+/**
+ * Las etiquetas de una seccion, en orden.
+ *
+ * Existe para que nadie vuelva a escribir `label: item` sobre un item que es un
+ * objeto: al recorrer strings, pasar el objeto entero deja de ser posible. Es el
+ * error que se colo al cambiar el formato de los items, y que ni el compilador
+ * detecto porque el cliente admin no tipa el insert.
+ */
+export function sectionItemLabels(section: ChecklistSection): string[] {
+  return section.items.map((item) => item.text);
+}
