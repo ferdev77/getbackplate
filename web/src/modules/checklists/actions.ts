@@ -241,11 +241,20 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     notificationsSummary.push(`SMS messages sent: ${checklistAudienceSmsCount}`);
   }
 
-  const baseMessage = parsed.data.template_id
-    ? result.preservedHistory
-      ? "Checklist updated by creating a new version (history preserved)"
-      : "Checklist updated successfully"
-    : "Template created successfully";
+  // Cuando la vuelta actual ya tenia respuestas, los items quedaron pendientes
+  // y se aplican al iniciar la vuelta siguiente (ver upsertChecklistTemplate).
+  // Hay que decirlo: si no, el diferido es invisible y parece que no se guardo.
+  const pendingMessage = result.pendingUntil
+    ? (() => {
+        const cuando = new Date(result.pendingUntil);
+        const fecha = cuando.toLocaleDateString("es-AR", { day: "numeric", month: "long" });
+        const hora = cuando.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+        return `Los datos del checklist se guardaron. Como ya hay respuestas de esta vuelta, los cambios en los ítems se aplican el ${fecha} a las ${hora}, al iniciar el próximo reparto.`;
+      })()
+    : null;
+
+  const baseMessage = pendingMessage
+    ?? (parsed.data.template_id ? "Checklist updated successfully" : "Template created successfully");
 
   return {
     success: true,
