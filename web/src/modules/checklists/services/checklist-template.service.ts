@@ -255,17 +255,40 @@ export async function upsertChecklistTemplate(
 
   const oldSectionIds = (oldSections ?? []).map((row) => row.id);
   if (oldSectionIds.length) {
-    await supabase
+    // Estos borrados NO se chequeaban. Cuando la plantilla ya tenia respuestas,
+    // la FK desde checklist_submission_items los bloqueaba, el error se
+    // ignoraba y mas abajo se insertaban las secciones e items nuevos: quedaban
+    // los dos juegos y la plantilla terminaba con todo duplicado, sin ningun
+    // aviso. Reproducido en dev: 2 items + 1 respuesta -> 5 items y 2 secciones.
+    //
+    // La migracion 20260730000001 quito ese bloqueo (el historial ahora guarda
+    // su propio texto), pero el guardado igual tiene que fallar fuerte si el
+    // borrado no se puede hacer, en lugar de duplicar en silencio.
+    const { error: itemsDeleteError } = await supabase
       .from("checklist_template_items")
       .delete()
       .eq("organization_id", organizationId)
       .in("section_id", oldSectionIds);
 
-    await supabase
+    if (itemsDeleteError) {
+      return {
+        ok: false,
+        message: `No se pudieron reemplazar los items del checklist: ${itemsDeleteError.message}`,
+      };
+    }
+
+    const { error: sectionsDeleteError } = await supabase
       .from("checklist_template_sections")
       .delete()
       .eq("organization_id", organizationId)
       .eq("template_id", template.id);
+
+    if (sectionsDeleteError) {
+      return {
+        ok: false,
+        message: `No se pudieron reemplazar las secciones del checklist: ${sectionsDeleteError.message}`,
+      };
+    }
   }
 
   // Insert new sections & items

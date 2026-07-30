@@ -246,7 +246,7 @@ export async function buildChecklistReportsSnapshot({
     submissionIds.length
       ? supabase
           .from("checklist_submission_items")
-          .select("id, submission_id, template_item_id, is_checked, is_flagged")
+          .select("id, submission_id, template_item_id, item_label, is_checked, is_flagged")
           .eq("organization_id", organizationId)
           .in("submission_id", submissionIds)
       : Promise.resolve({ data: null }),
@@ -369,11 +369,11 @@ export async function buildChecklistReportsSnapshot({
     }),
   );
 
-  const itemsBySubmissionId = new Map<string, Array<{ id: string; templateItemId: string; checked: boolean; flagged: boolean }>>();
+  const itemsBySubmissionId = new Map<string, Array<{ id: string; templateItemId: string; itemLabel: string | null; checked: boolean; flagged: boolean }>>();
   const metricsBySubmissionId = new Map<string, { total: number; done: number; flagged: number; photos: number; comments: number }>();
   for (const row of submissionItems ?? []) {
     const list = itemsBySubmissionId.get(row.submission_id) ?? [];
-    list.push({ id: row.id, templateItemId: row.template_item_id, checked: row.is_checked, flagged: row.is_flagged });
+    list.push({ id: row.id, templateItemId: row.template_item_id, itemLabel: row.item_label ?? null, checked: row.is_checked, flagged: row.is_flagged });
     itemsBySubmissionId.set(row.submission_id, list);
     const metrics = metricsBySubmissionId.get(row.submission_id) ?? { total: 0, done: 0, flagged: 0, photos: 0, comments: 0 };
     metrics.total += 1;
@@ -414,7 +414,11 @@ export async function buildChecklistReportsSnapshot({
       const comment = latestCommentBySubmissionItemId.get(submissionItem.id) ?? "";
       section.items.push({
         id: submissionItem.id,
-        text: itemMeta?.label ?? "Item",
+        // El texto congelado en la respuesta manda: el reporte de un dia anterior
+        // no debe cambiar si despues se renombra o se borra el item de la
+        // plantilla. La plantilla queda solo como respaldo para las respuestas
+        // anteriores a la migracion 20260730000001, que no tienen la copia.
+        text: submissionItem.itemLabel ?? itemMeta?.label ?? "Item",
         ok: submissionItem.checked,
         flag: submissionItem.flagged,
         note: flag?.reason ?? comment,
