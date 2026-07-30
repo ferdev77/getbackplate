@@ -1,5 +1,8 @@
 import { after } from "next/server";
-import { sendFolderAudiencePush } from "@/modules/documents/services/document-audience.service";
+import {
+  notifyDocumentAccessGranted,
+  sendFolderAudiencePush,
+} from "@/modules/documents/services/document-audience.service";
 import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
@@ -323,6 +326,8 @@ export async function PATCH(request: Request) {
   if (parentId !== undefined) {
     updatePayload.parent_id = parentId;
   }
+  let scopeAnterior: { locations: string[]; department_ids: string[]; position_ids: string[]; users: string[] } | null = null;
+
   if (locationScope || departmentScope || positionScope || userScope) {
     const { data: current } = await supabase
       .from("document_folders")
@@ -335,6 +340,13 @@ export async function PATCH(request: Request) {
     const existingDepartments = Array.isArray(existing.department_ids) ? (existing.department_ids as string[]) : [];
     const existingPositions = Array.isArray(existing.position_ids) ? (existing.position_ids as string[]) : [];
     const existingUsers = Array.isArray(existing.users) ? (existing.users as string[]) : [];
+
+    scopeAnterior = {
+      locations: existingLocations,
+      department_ids: existingDepartments,
+      position_ids: existingPositions,
+      users: existingUsers,
+    };
 
     updatePayload.access_scope = {
       locations: locationScope ?? existingLocations,
@@ -392,6 +404,25 @@ export async function PATCH(request: Request) {
       updated_fields: Object.keys(updatePayload),
     },
   });
+
+  // Cambiar el alcance de una carpeta arrastra a todo lo que tiene adentro, asi
+  // que se avisa a quien pasa a poder verlo.
+  if (updatePayload.access_scope && scopeAnterior) {
+    const scopeNuevo = updatePayload.access_scope;
+    const titulo = updatePayload.name ?? "Carpeta";
+
+    after(async () => {
+      await notifyDocumentAccessGranted({
+        supabase,
+        organizationId: tenant.organizationId,
+        kind: "folder",
+        title: titulo,
+        scopeAnterior,
+        scopeNuevo,
+        actorUserId: userId,
+      });
+    });
+  }
 
   revalidateDocumentsCaches();
 

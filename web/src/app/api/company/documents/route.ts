@@ -1,5 +1,8 @@
 import { after } from "next/server";
-import { sendDocumentAudiencePush } from "@/modules/documents/services/document-audience.service";
+import {
+  notifyDocumentAccessGranted,
+  sendDocumentAudiencePush,
+} from "@/modules/documents/services/document-audience.service";
 import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
@@ -591,6 +594,25 @@ export async function PATCH(request: Request) {
       updated_fields: Object.keys(updatePayload),
     },
   });
+
+  // Solo si cambio el alcance: se avisa a quien gana acceso, no a todos.
+  if (updatePayload.access_scope) {
+    const scopeAnterior = parseDocumentScope(currentDocument.access_scope);
+    const scopeNuevo = updatePayload.access_scope;
+    const titulo = updatePayload.title ?? title ?? "Documento";
+
+    after(async () => {
+      await notifyDocumentAccessGranted({
+        supabase,
+        organizationId: tenant.organizationId,
+        kind: "document",
+        title: titulo,
+        scopeAnterior,
+        scopeNuevo,
+        actorUserId: context.userId,
+      });
+    });
+  }
 
   revalidateDocumentsCaches();
 

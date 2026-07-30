@@ -74,3 +74,57 @@ export async function sendDocumentAudiencePush(input: DocumentAudienceInput) {
 export async function sendFolderAudiencePush(input: DocumentAudienceInput) {
   return notify({ ...input, kind: "folder" });
 }
+
+/**
+ * Cambio el alcance de un documento o carpeta.
+ *
+ * Solo se avisa a quien *gana* acceso: se compara la audiencia anterior con la
+ * nueva y se notifica la diferencia. Avisarle a todos seria ruido -- los que ya
+ * tenian acceso no se enteran de nada nuevo -- y a los que lo pierden no tiene
+ * sentido avisarles de algo que ya no pueden abrir.
+ */
+export async function notifyDocumentAccessGranted(input: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any;
+  organizationId: string;
+  kind: "document" | "folder";
+  title: string;
+  scopeAnterior: unknown;
+  scopeNuevo: unknown;
+  branchId?: string | null;
+  actorUserId?: string | null;
+}) {
+  const [antes, ahora] = await Promise.all([
+    resolveAudienceContacts({
+      supabase: input.supabase,
+      organizationId: input.organizationId,
+      scope: parseScope(input.scopeAnterior),
+      templateBranchId: input.branchId ?? null,
+    }),
+    resolveAudienceContacts({
+      supabase: input.supabase,
+      organizationId: input.organizationId,
+      scope: parseScope(input.scopeNuevo),
+      templateBranchId: input.branchId ?? null,
+    }),
+  ]);
+
+  const yaTenian = new Set(antes.userIds);
+  const nuevos = ahora.userIds.filter(
+    (userId) => userId && userId !== input.actorUserId && !yaTenian.has(userId),
+  );
+
+  if (!nuevos.length) return 0;
+
+  const result = await sendPushToUsers(
+    nuevos,
+    {
+      title: input.kind === "document" ? "Tenés acceso a un documento" : "Tenés acceso a una carpeta",
+      body: input.title,
+      url: "/portal/documents",
+    },
+    { source: "documents_access_granted", organizationId: input.organizationId },
+  );
+
+  return result.sent;
+}
