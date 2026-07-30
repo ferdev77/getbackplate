@@ -30,10 +30,22 @@ export type UpsertChecklistTemplateInput = {
   userScopes: string[];
   normalizedSections: Array<{ name: string; items: string[] }>;
   notifyVia: Array<"sms">;
+  /**
+   * Forzar que los items se apliquen ya, aunque la vuelta actual tenga
+   * respuestas. Es la salida del aviso "se aplican en el proximo reparto".
+   */
+  applyNow?: boolean;
 };
 
 export type UpsertChecklistTemplateResult =
-  | { ok: true; templateId: string; preservedHistory: boolean; totalItems: number }
+  | {
+      ok: true;
+      templateId: string;
+      preservedHistory: boolean;
+      totalItems: number;
+      /** Cuando los items quedaron pendientes, momento en que se aplicaran. */
+      pendingUntil?: string;
+    }
   | { ok: false; message: string; redirect?: string };
 
 // ---------------------------------------------------------------------------
@@ -55,6 +67,89 @@ function qs(message: string) {
 // ---------------------------------------------------------------------------
 // Upsert Template (Create or Update)
 // ---------------------------------------------------------------------------
+
+/**
+ * Reemplaza las secciones e items de una plantilla por los que habian quedado
+ * pendientes, y limpia la marca de pendiente.
+ *
+ * La llama el cron de recurrencia al iniciar una vuelta nueva. Los items
+ * anteriores se borran: el historial no los necesita porque cada respuesta
+ * guarda su propio texto (migracion 20260730000001).
+ */
+export async function applyPendingChecklistSections(params: {
+  supabase: SupabaseClient;
+  organizationId: string;
+  templateId: string;
+  sections: Array<{ name: string; items: string[] }>;
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { supabase, organizationId, templateId, sections } = params;
+
+  const { data: oldSections } = await supabase
+    .from("checklist_template_sections")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("template_id", templateId);
+
+  const oldSectionIds = (oldSections ?? []).map((row) => row.id);
+  if (oldSectionIds.length) {
+    const { error: itemsError } = await supabase
+      .from("checklist_template_items")
+      .delete()
+      .eq("organization_id", organizationId)
+      .in("section_id", oldSectionIds);
+    if (itemsError) return { ok: false, message: itemsError.message };
+
+    const { error: sectionsError } = await supabase
+      .from("checklist_template_sections")
+      .delete()
+      .eq("organization_id", organizationId)
+      .eq("template_id", templateId);
+    if (sectionsError) return { ok: false, message: sectionsError.message };
+  }
+
+  for (const [index, section] of sections.entries()) {
+    const { data: sectionRow, error: sectionError } = await supabase
+      .from("checklist_template_sections")
+      .insert({
+        organization_id: organizationId,
+        template_id: templateId,
+        name: section.name,
+        sort_order: index,
+      })
+      .select("id")
+      .single();
+
+    if (sectionError || !sectionRow) {
+      return { ok: false, message: sectionError?.message ?? "no se pudo crear la seccion" };
+    }
+
+    if (!section.items.length) continue;
+
+    const { error: itemsError } = await supabase
+      .from("checklist_template_items")
+      .insert(
+        section.items.map((label, itemIndex) => ({
+          organization_id: organizationId,
+          section_id: sectionRow.id,
+          label,
+          priority: normalizePriority("medium"),
+          sort_order: itemIndex,
+        })),
+      );
+
+    if (itemsError) return { ok: false, message: itemsError.message };
+  }
+
+  const { error: clearError } = await supabase
+    .from("checklist_templates")
+    .update({ pending_sections: null, pending_since: null })
+    .eq("organization_id", organizationId)
+    .eq("id", templateId);
+
+  if (clearError) return { ok: false, message: clearError.message };
+
+  return { ok: true };
+}
 
 export async function upsertChecklistTemplate(
   input: UpsertChecklistTemplateInput,
@@ -244,6 +339,81 @@ export async function upsertChecklistTemplate(
 
   if (templateError || !template) {
     return { ok: false, message: `Unable to create template: ${templateError?.message ?? "error"}` };
+  }
+
+  // ── Los items no se cambian al medio de una vuelta que ya tiene respuestas ──
+  //
+  // Si dos personas responden la misma vuelta con listas distintas, el resultado
+  // del dia queda inconsistente y no se puede comparar. Asi que al editar una
+  // plantilla que ya recibio respuestas en la vuelta actual:
+  //   · con frecuencia definida -> los items quedan pendientes y el cron los
+  //     aplica al iniciar la vuelta siguiente;
+  //   · sin frecuencia -> no hay proxima vuelta donde aplicarlos, se bloquea.
+  //
+  // El resto de la plantilla (nombre, tipo, turno, alcance) ya se guardo arriba:
+  // solo se posterga la lista de items, que es lo que rompe la comparacion.
+  if (templateId && !input.applyNow) {
+    const { data: cycleSubmissions, error: cycleError } = await supabase.rpc(
+      "checklist_current_cycle_submissions",
+      { p_organization_id: organizationId, p_template_id: template.id },
+    );
+
+    if (cycleError) {
+      return { ok: false, message: `No se pudo verificar el estado del checklist: ${cycleError.message}` };
+    }
+
+    const responsesInCycle = typeof cycleSubmissions === "number" ? cycleSubmissions : 0;
+
+    if (responsesInCycle > 0) {
+      const { data: job } = await supabase
+        .from("scheduled_jobs")
+        .select("next_run_at")
+        .eq("organization_id", organizationId)
+        .eq("job_type", "checklist_generator")
+        .eq("target_id", template.id)
+        .maybeSingle();
+
+      if (!job?.next_run_at) {
+        return {
+          ok: false,
+          message:
+            `No se pueden cambiar los items: este checklist ya tiene ${responsesInCycle} ` +
+            `${responsesInCycle === 1 ? "respuesta" : "respuestas"} y no tiene una frecuencia definida, ` +
+            "asi que no hay un proximo reparto donde aplicarlos sin mezclar los resultados. " +
+            "Podes duplicarlo como checklist nuevo, o asignarle una frecuencia y editarlo despues.",
+        };
+      }
+
+      const { error: pendingError } = await supabase
+        .from("checklist_templates")
+        .update({
+          pending_sections: normalizedSections,
+          pending_since: new Date().toISOString(),
+        })
+        .eq("organization_id", organizationId)
+        .eq("id", template.id);
+
+      if (pendingError) {
+        return { ok: false, message: `No se pudieron guardar los cambios pendientes: ${pendingError.message}` };
+      }
+
+      return {
+        ok: true,
+        templateId: template.id,
+        preservedHistory: true,
+        totalItems,
+        pendingUntil: job.next_run_at,
+      };
+    }
+  }
+
+  // Al aplicar ya, cualquier cambio pendiente anterior queda sin efecto.
+  if (templateId) {
+    await supabase
+      .from("checklist_templates")
+      .update({ pending_sections: null, pending_since: null })
+      .eq("organization_id", organizationId)
+      .eq("id", template.id);
   }
 
   // Clean old sections & items

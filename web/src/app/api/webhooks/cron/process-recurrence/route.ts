@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { calculateNextRunAt, RecurrenceType } from "@/shared/lib/cron-utils";
 import { processAnnouncementDeliveries } from "@/modules/announcements/services/deliveries";
+import { applyPendingChecklistSections } from "@/modules/checklists/services/checklist-template.service";
 
 type JobError = { id: string; error: string };
 
@@ -104,10 +105,42 @@ async function processRecurrence(req: Request) {
         if (job.job_type === 'checklist_generator') {
            const { data: template } = await supabaseAdmin
              .from('checklist_templates')
-             .select('name, target_scope, is_active, branch_id, department_id, organization_id')
+             .select('name, target_scope, is_active, branch_id, department_id, organization_id, pending_sections')
              .eq('organization_id', job.organization_id)
              .eq('id', job.target_id)
              .maybeSingle();
+
+           // Arranca una vuelta nueva: es el momento de aplicar los items que
+           // quedaron pendientes por haberse editado con la vuelta anterior ya
+           // en curso (ver upsertChecklistTemplate). Se aplica ANTES de avisar,
+           // para que quien reciba el recordatorio ya vea la lista nueva.
+           if (template?.pending_sections) {
+             const pending = Array.isArray(template.pending_sections)
+               ? (template.pending_sections as Array<{ name?: unknown; items?: unknown }>)
+               : [];
+
+             const sections = pending
+               .map((section) => ({
+                 name: typeof section?.name === "string" ? section.name.trim() : "",
+                 items: Array.isArray(section?.items)
+                   ? section.items.filter((item): item is string => typeof item === "string" && item.trim() !== "")
+                   : [],
+               }))
+               .filter((section) => section.name !== "" || section.items.length > 0);
+
+             const applied = await applyPendingChecklistSections({
+               supabase: supabaseAdmin,
+               organizationId: job.organization_id,
+               templateId: job.target_id,
+               sections,
+             });
+
+             if (!applied.ok) {
+               console.error(
+                 `[process-recurrence] no se pudieron aplicar los items pendientes del checklist ${job.target_id}: ${applied.message}`,
+               );
+             }
+           }
 
            if (template && template.is_active) {
               const targetScope =
