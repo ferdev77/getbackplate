@@ -36,11 +36,6 @@ export type UpsertChecklistTemplateInput = {
   normalizedSections: ChecklistSection[];
   notifyVia: Array<"sms">;
   /**
-   * Forzar que los items se apliquen ya, aunque la vuelta actual tenga
-   * respuestas. Es la salida del aviso "se aplican en el proximo reparto".
-   */
-  applyNow?: boolean;
-  /**
    * Intencion declarada por la pantalla ("all" | "group" | "people"). Sirve para
    * distinguir un alcance vacio a proposito de uno a medio llenar. Ver
    * assertScopeIntent.
@@ -476,7 +471,7 @@ export async function upsertChecklistTemplate(
     });
   }
 
-  if (templateId && !input.applyNow && !onlyTextEdits) {
+  if (templateId && !onlyTextEdits) {
     const { data: cycleSubmissions, error: cycleError } = await supabase.rpc(
       "checklist_current_cycle_submissions",
       { p_organization_id: organizationId, p_template_id: template.id },

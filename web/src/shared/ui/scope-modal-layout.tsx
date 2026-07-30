@@ -14,7 +14,7 @@ import type { ReactNode } from "react";
 export const SCOPE_MODAL_PANEL =
   "grid max-h-[92vh] w-[1300px] min-w-0 max-w-full grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-xl)] xl:h-[min(800px,92vh)]";
 
-export const SCOPE_MODAL_HEADER =
+const SCOPE_MODAL_HEADER =
   "flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-4";
 
 export const SCOPE_MODAL_FOOTER =
@@ -72,10 +72,10 @@ export function ScopeModalContent({
 // Piezas de campo, calcadas de la maqueta
 // ---------------------------------------------------------------------------
 
-export const SCOPE_MODAL_KICKER =
+const SCOPE_MODAL_KICKER =
   "flex items-center gap-2.5 text-[10.5px] font-bold uppercase tracking-[0.11em] text-[var(--gbp-muted)] after:h-px after:flex-1 after:bg-[var(--gbp-border)] after:content-['']";
 
-export const SCOPE_MODAL_LABEL =
+const SCOPE_MODAL_LABEL =
   "text-[10.5px] font-bold uppercase tracking-[0.11em] text-[var(--gbp-muted)]";
 
 const CONTROL =

@@ -256,49 +256,6 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   };
 }
 
-export async function reviewChecklistSubmissionAction(_prevState: unknown, formData: FormData) {
-  const tenant = await requireTenantModule("checklists");
-  const supabase = await createSupabaseServerClient();
-  const { data: authData } = await supabase.auth.getUser();
-
-  if (tenant.roleCode !== "company_admin") {
-    return { success: false, message: "You do not have permission to review submissions" };
-  }
-
-  const submissionId = String(formData.get("submission_id") ?? "").trim();
-  if (!submissionId) {
-    return { success: false, message: "Invalid submission" };
-  }
-
-  const { error } = await supabase
-    .from("checklist_submissions")
-    .update({
-      status: "reviewed",
-      reviewed_by: authData.user?.id ?? null,
-      reviewed_at: new Date().toISOString(),
-    })
-    .eq("id", submissionId)
-    .eq("organization_id", tenant.organizationId);
-
-  if (error) {
-    return { success: false, message: `Unable to review the submission: ${error.message}` };
-  }
-
-  await logAuditEvent({
-    action: "checklist.submission.review",
-    entityType: "checklist_submission",
-    entityId: submissionId,
-    organizationId: tenant.organizationId,
-    eventDomain: "checklists",
-    outcome: "success",
-    severity: "medium",
-  });
-
-  revalidatePath("/app/checklists");
-  revalidatePath("/app/reports");
-  return { success: true, message: "Checklist marked as reviewed" };
-}
-
 export async function deleteChecklistTemplateAction(_prevState: unknown, formData: FormData) {
   const tenant = await requireTenantModule("checklists");
   const supabase = await createSupabaseServerClient();

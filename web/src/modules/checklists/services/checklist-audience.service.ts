@@ -26,7 +26,7 @@ export type ChecklistAudienceInput = {
 // Audience Resolution
 // ---------------------------------------------------------------------------
 
-export async function resolveChecklistAudienceContacts(input: ChecklistAudienceInput) {
+async function resolveChecklistAudienceContacts(input: ChecklistAudienceInput) {
   const raw = input.targetScope ?? {};
   const contacts = await resolveAudienceContacts({
     supabase: input.supabase,
