@@ -5,6 +5,11 @@ import { useState } from "react";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import {
   ScopeModalContent,
+  ScopeModalField,
+  ScopeModalNote,
+  ScopeModalSection,
+  SCOPE_MODAL_INPUT,
+  SCOPE_MODAL_SELECT,
   ScopeModalZones,
   SCOPE_MODAL_FOOTER,
   SCOPE_MODAL_FORM,
@@ -34,6 +39,8 @@ type ScopeState = {
   departments: string[];
   positions: string[];
   users: string[];
+  /** Intencion declarada por el selector; el servidor la valida (assertScopeIntent). */
+  mode?: string;
 };
 
 type Props = {
@@ -51,9 +58,6 @@ type Props = {
 
 const MODAL_TITLE = "font-serif text-sm font-bold text-[var(--gbp-text)]";
 const MODAL_CLOSE = "grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-bg)]";
-const MODAL_SOFT_BOX = "rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3";
-const MODAL_LABEL = "text-[11px] font-bold tracking-[0.1em] text-[var(--gbp-text2)] uppercase";
-const MODAL_INPUT = "rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]";
 const MODAL_CANCEL = "rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
 const MODAL_PRIMARY = "rounded-lg bg-[var(--gbp-text)] px-5 py-2 text-sm font-bold text-white hover:bg-[var(--gbp-accent)] disabled:opacity-60";
 
@@ -78,6 +82,7 @@ export function DocumentEditModal({ document, folders, branches, departments, po
                 departments: toList("_scope_department"),
                 positions: toList("_scope_position"),
                 users: toList("_scope_user"),
+                mode: String(form.get("_scope_mode") ?? "") || undefined,
               };
             }
             onSave({ documentId: document.id, title: title.trim(), folderId: folderId || null, scope });
@@ -86,32 +91,37 @@ export function DocumentEditModal({ document, folders, branches, departments, po
         >
           <ScopeModalZones withScope={!folderId}>
             <ScopeModalContent withScope={!folderId}>
-            <section className={MODAL_SOFT_BOX}>
-              <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Datos del documento</p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <label className="grid gap-1.5">
-                  <span className={MODAL_LABEL}>Titulo</span>
-                  <input value={title} onChange={(event) => setTitle(event.target.value)} className={MODAL_INPUT} required />
-                </label>
-                <label className="grid gap-1.5">
-                  <span className={MODAL_LABEL}>Carpeta</span>
-                  <select value={folderId} onChange={(event) => setFolderId(event.target.value)} className={MODAL_INPUT}>
-                    <option value="">Sin carpeta</option>
-                    {folders.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </section>
+              <ScopeModalSection label="Datos del documento" />
 
-              {folderId ? (
-                <section className="rounded-lg border border-amber-300/50 bg-amber-50 px-4 py-3 text-xs text-amber-900">
-                  El documento hereda permisos de su carpeta. Edita la carpeta para cambiar acceso.
-                </section>
-              ) : null}
+              <ScopeModalField label="Título">
+                <input
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  className={SCOPE_MODAL_INPUT}
+                  required
+                />
+              </ScopeModalField>
+
+              <ScopeModalField label="Carpeta">
+                <select
+                  value={folderId}
+                  onChange={(event) => setFolderId(event.target.value)}
+                  className={SCOPE_MODAL_SELECT}
+                >
+                  <option value="">Sin carpeta</option>
+                  {folders.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                    </option>
+                  ))}
+                </select>
+              </ScopeModalField>
+
+              <ScopeModalNote>
+                {folderId
+                  ? "El documento hereda los permisos de su carpeta. Editá la carpeta para cambiar quién accede."
+                  : "El alcance de la derecha define quién puede abrirlo y descargarlo."}
+              </ScopeModalNote>
             </ScopeModalContent>
 
             {!folderId ? (
@@ -125,6 +135,7 @@ export function DocumentEditModal({ document, folders, branches, departments, po
                     departmentInputName="_scope_department"
                     positionInputName="_scope_position"
                     userInputName="_scope_user"
+                    modeInputName="_scope_mode"
                     question="¿Quién tiene que ver este documento?"
                     audienceLabel="Tendrán acceso"
                     onValidityChange={setScopeValid}

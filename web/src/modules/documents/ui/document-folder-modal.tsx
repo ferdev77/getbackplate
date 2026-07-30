@@ -6,6 +6,11 @@ import { toast } from "sonner";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import {
   ScopeModalContent,
+  ScopeModalField,
+  ScopeModalNote,
+  ScopeModalSection,
+  SCOPE_MODAL_INPUT,
+  SCOPE_MODAL_SELECT,
   ScopeModalZones,
   SCOPE_MODAL_FOOTER,
   SCOPE_MODAL_FORM,
@@ -123,21 +128,26 @@ export function DocumentFolderModal({
         <form onSubmit={onSubmit} className={SCOPE_MODAL_FORM}>
           <ScopeModalZones withScope={!hideScopeSelector}>
             <ScopeModalContent withScope={!hideScopeSelector}>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label>
-                  <span className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Nombre de la carpeta</span>
-                  <input name="name" required className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]" placeholder="ej. Manuales, Operaciones" />
-                </label>
+              <ScopeModalSection label="Datos de la carpeta" />
 
-                <label>
-                  <span className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Crear en</span>
-                  <select name="parent_id" defaultValue="" className="w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]">
-                    <option value="">Sin carpeta</option>
-                    {folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
-                  </select>
-                </label>
-              </div>
+              <ScopeModalField label="Nombre">
+                <input name="name" required className={SCOPE_MODAL_INPUT} placeholder="ej. Manuales, Operaciones" />
+              </ScopeModalField>
 
+              <ScopeModalField label="Carpeta padre">
+                <select name="parent_id" defaultValue="" className={SCOPE_MODAL_SELECT}>
+                  <option value="">Sin carpeta</option>
+                  {folders.map((folder) => (
+                    <option key={folder.id} value={folder.id}>
+                      {folder.name}
+                    </option>
+                  ))}
+                </select>
+              </ScopeModalField>
+
+              <ScopeModalNote>
+                Los documentos que se guarden acá sin alcance propio usarán el de esta carpeta.
+              </ScopeModalNote>
             </ScopeModalContent>
 
             {!hideScopeSelector ? (

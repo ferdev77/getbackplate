@@ -174,13 +174,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Consulta no soportada" }, { status: 400 });
   }
 
-  const [{ data: employees }, { data: positions }] = await Promise.all([
-    supabase
-      .from("employees")
-      .select("id, user_id, first_name, last_name")
-      .eq("organization_id", tenant.organizationId)
-      .not("user_id", "is", null)
-      .order("first_name"),
+  const [employees, { data: positions }] = await Promise.all([
+    // Catalogo completo (con branch_id, department_id y position_id): el selector
+    // compara por id para decidir igual que el servidor. Con solo el nombre, la
+    // columna de audiencia de este modal quedaba siempre vacia.
+    buildScopeUsersCatalog(tenant.organizationId),
     (async () => {
       const primary = await supabase
         .from("department_positions")
@@ -206,7 +204,7 @@ export async function GET(request: Request) {
   ]);
 
   return NextResponse.json({
-    employees: employees ?? [],
+    employees,
     positions: positions ?? [],
   });
 }
@@ -432,6 +430,7 @@ export async function PATCH(request: Request) {
         departmentScope?: string[];
         positionScope?: string[];
         userScope?: string[];
+        scopeMode?: string;
       }
     | null;
 
@@ -490,6 +489,17 @@ export async function PATCH(request: Request) {
   }
 
   if (locationScope || departmentScope || positionScope || userScope) {
+    const intentCheck = assertScopeIntent({
+      intent: body?.scopeMode,
+      locationIds: locationScope,
+      departmentIds: departmentScope,
+      positionIds: positionScope,
+      userIds: userScope,
+    });
+    if (!intentCheck.ok) {
+      return NextResponse.json({ error: intentCheck.message }, { status: 400 });
+    }
+
     const scopeValidation = await validateTenantScopeReferences({
       supabase,
       organizationId: tenant.organizationId,

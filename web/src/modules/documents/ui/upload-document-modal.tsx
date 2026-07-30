@@ -8,6 +8,13 @@ import { toast } from "sonner";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import {
   ScopeModalContent,
+  ScopeModalDivider,
+  ScopeModalField,
+  ScopeModalNote,
+  ScopeModalSection,
+  SCOPE_MODAL_INPUT,
+  SCOPE_MODAL_SELECT,
+  SCOPE_MODAL_TEXTAREA,
   ScopeModalZones,
   SCOPE_MODAL_FOOTER,
   SCOPE_MODAL_FORM,
@@ -163,62 +170,109 @@ export function UploadDocumentModal({
           isClosing ? "scale-[0.985] opacity-0" : "scale-100 opacity-100"
         }`}
       >
-        <div className={SCOPE_MODAL_HEADER}><p className="font-serif text-sm font-bold text-[var(--gbp-text)]">Subir Archivo</p><button type="button" onClick={closeModal} className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</button></div>
+        <div className={SCOPE_MODAL_HEADER}><div>
+          <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">Subir archivo</p>
+          <p className="mt-0.5 text-[11.5px] text-[var(--gbp-text2)]">Queda visible para quien esté en el alcance</p>
+        </div><button type="button" onClick={closeModal} className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</button></div>
         <form onSubmit={handleSubmit} className={SCOPE_MODAL_FORM}>
           <ScopeModalZones withScope={showScopeSelector}>
             <ScopeModalContent withScope={showScopeSelector}>
-              <div>
-                <label className="mb-4 block cursor-pointer rounded-2xl border-2 border-dashed border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-5 py-8 text-center transition hover:border-[var(--gbp-border)]">
-                  <p className="text-3xl">📂</p>
-                  <p className="mt-2 text-sm font-bold text-[var(--gbp-text)]">Arrastra tu archivo aquí</p>
-                  <p className="mt-1 text-xs text-[var(--gbp-text2)]">o haz clic para seleccionar desde tu computadora</p>
-                  <span className="mt-4 inline-flex rounded-lg bg-[var(--gbp-accent)] px-3 py-2 text-xs font-bold text-white">Seleccionar archivo</span>
-                  <p className="mt-3 text-[11px] text-[var(--gbp-muted)]">PDF, DOCX, XLSX · Máx. 10 MB</p>
-                  {selectedFileName ? <p className="mt-2 truncate text-xs font-semibold text-[var(--gbp-text)]">Archivo: {selectedFileName}</p> : null}
-                  <input name="file" type="file" required className="sr-only" onChange={(event) => setSelectedFileName(event.target.files?.[0]?.name ?? "")} />
-                </label>
+              <ScopeModalSection label="Archivo" />
 
-                <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Título (opcional)</label>
-                <input name="title" placeholder="Se usa el nombre del archivo si lo dejas vacío" className="mb-3 w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]" />
-
-                <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Guardar en carpeta</label>
-                <select name="folder_id" value={selectedFolderId} onChange={(event) => setSelectedFolderId(event.target.value)} className="mb-3 w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]"><option value="">Sin carpeta</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select>
-
-                {!showScopeSelector ? (
-                  <p className="mb-3 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs text-[var(--gbp-text2)]">
-                    {hideScopeSelector
-                      ? scopeLockedMessage
-                      : "Este archivo heredará automáticamente los permisos de la carpeta seleccionada."}
-                  </p>
+              <label className="flex shrink-0 cursor-pointer flex-col items-center gap-1 rounded-[11px] border-[1.5px] border-dashed border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-4 py-5 text-center transition hover:border-[var(--gbp-accent)]">
+                <strong className="text-[13px] font-bold text-[var(--gbp-text)]">
+                  Arrastrá el archivo o hacé clic para elegirlo
+                </strong>
+                <span className="text-[11.5px] text-[var(--gbp-muted)]">PDF, DOCX, XLSX · hasta 10 MB</span>
+                {selectedFileName ? (
+                  <span className="mt-1 max-w-full truncate text-[12px] font-semibold text-[var(--gbp-accent)]">
+                    {selectedFileName}
+                  </span>
                 ) : null}
+                <input
+                  name="file"
+                  type="file"
+                  required
+                  className="sr-only"
+                  onChange={(event) => setSelectedFileName(event.target.files?.[0]?.name ?? "")}
+                />
+              </label>
 
-                <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Descripción (opcional)</label>
-                <textarea className="mb-2 h-24 w-full resize-none rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]" placeholder="Describe brevemente el contenido del documento..." />
+              <ScopeModalField label="Título (opcional)">
+                <input
+                  name="title"
+                  placeholder="Se usa el nombre del archivo si lo dejás vacío"
+                  className={SCOPE_MODAL_INPUT}
+                />
+              </ScopeModalField>
 
-                {isUploading ? (
-                  <div className="mt-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
-                    <div className="mb-2 flex items-center justify-between text-xs text-[var(--gbp-text2)]"><span>Subiendo archivo...</span><span className="font-semibold">{progress}%</span></div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--gbp-border)]"><div className="h-full rounded-full bg-[var(--gbp-accent)] transition-all duration-300" style={{ width: `${progress}%` }} /></div>
+              <ScopeModalField label="Descripción (opcional)">
+                <textarea
+                  className={SCOPE_MODAL_TEXTAREA}
+                  placeholder="Describí brevemente el contenido del documento…"
+                />
+              </ScopeModalField>
+
+              <ScopeModalField label="Guardar en carpeta">
+                <select
+                  name="folder_id"
+                  value={selectedFolderId}
+                  onChange={(event) => setSelectedFolderId(event.target.value)}
+                  className={SCOPE_MODAL_SELECT}
+                >
+                  <option value="">Sin carpeta</option>
+                  {folders.map((folder) => (
+                    <option key={folder.id} value={folder.id}>
+                      {folder.name}
+                    </option>
+                  ))}
+                </select>
+              </ScopeModalField>
+
+              {!showScopeSelector ? (
+                <ScopeModalNote>
+                  {hideScopeSelector
+                    ? scopeLockedMessage
+                    : "Este archivo hereda los permisos de la carpeta elegida."}
+                </ScopeModalNote>
+              ) : null}
+
+              {isUploading ? (
+                <div className="shrink-0 rounded-[9px] border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
+                  <div className="mb-2 flex items-center justify-between text-[11.5px] text-[var(--gbp-text2)]">
+                    <span>Subiendo archivo…</span>
+                    <span className="font-semibold tabular-nums">{progress}%</span>
                   </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--gbp-border)]">
+                    <div
+                      className="h-full rounded-full bg-[var(--gbp-accent)] transition-all duration-300"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+              ) : null}
+
+              <ScopeModalDivider />
+              <ScopeModalSection label="Subidos recientemente" />
+              <div className="flex shrink-0 flex-col gap-1.5">
+                {recentDocuments.slice(0, 4).map((document) => {
+                  const branchName = document.branch_id ? branchMap.get(document.branch_id) ?? "Locación" : "Global";
+                  return (
+                    <div
+                      key={document.id}
+                      className="rounded-[9px] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-[11px] py-[9px]"
+                    >
+                      <p className="truncate text-[12.5px] font-semibold text-[var(--gbp-text)]">{document.title}</p>
+                      <p className="mt-0.5 text-[11px] text-[var(--gbp-muted)]">
+                        {branchName} · {new Date(document.created_at).toLocaleDateString("es-AR")}
+                      </p>
+                    </div>
+                  );
+                })}
+                {!recentDocuments.length ? (
+                  <p className="text-[11.5px] text-[var(--gbp-text2)]">Sin cargas recientes.</p>
                 ) : null}
               </div>
-
-              <aside className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4">
-                <p className="mb-3 text-xs font-bold text-[var(--gbp-text)]">Subidos recientemente</p>
-                <div className="space-y-2.5">
-                  {recentDocuments.slice(0, 4).map((document) => {
-                    const branchName = document.branch_id ? branchMap.get(document.branch_id) ?? "Locación" : "Global";
-                    return (
-                      <div key={document.id} className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2">
-                        <p className="truncate text-xs font-semibold text-[var(--gbp-text)]">{document.title}</p>
-                        <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">{branchName} · {new Date(document.created_at).toLocaleDateString("es-US")}</p>
-                        <p className="mt-1 text-[11px] font-semibold text-[var(--gbp-success)]">Activo</p>
-                      </div>
-                    );
-                  })}
-                  {!recentDocuments.length ? <p className="text-xs text-[var(--gbp-text2)]">Sin cargas recientes.</p> : null}
-                </div>
-              </aside>
             </ScopeModalContent>
 
             {showScopeSelector ? (

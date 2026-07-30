@@ -608,7 +608,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
     documentId: string;
     title: string;
     folderId: string | null;
-    scope?: { locations: string[]; departments: string[]; positions: string[]; users: string[] };
+    scope?: { locations: string[]; departments: string[]; positions: string[]; users: string[]; mode?: string };
   }) {
     setBusy(true);
     try {
@@ -623,6 +623,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
           departmentScope: payload.scope?.departments,
           positionScope: payload.scope?.positions,
           userScope: payload.scope?.users,
+          scopeMode: payload.scope?.mode,
         }),
       });
       if (!response.ok) throw new Error("Unable to update the document.");
@@ -657,7 +658,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
     folderId: string;
     name: string;
     parentId: string | null;
-    scope?: { locations: string[]; departments: string[]; positions: string[]; users: string[] };
+    scope?: { locations: string[]; departments: string[]; positions: string[]; users: string[]; mode?: string };
   }) {
     setBusy(true);
     try {
@@ -672,6 +673,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
           departmentScope: payload.scope?.departments,
           positionScope: payload.scope?.positions,
           userScope: payload.scope?.users,
+          scopeMode: payload.scope?.mode,
         }),
       });
       if (!response.ok) throw new Error("Unable to update the folder.");
@@ -915,6 +917,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
     departments: string[];
     positions: string[];
     users: string[];
+    mode?: string;
   }) {
     setBusy(true);
     try {
@@ -930,6 +933,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
           departmentScope: target.departments,
           positionScope: target.positions,
           userScope: target.users,
+          scopeMode: target.mode,
         }),
       });
       if (!response.ok) throw new Error("Unable to update access permissions.");

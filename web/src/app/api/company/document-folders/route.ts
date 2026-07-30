@@ -280,6 +280,17 @@ export async function PATCH(request: Request) {
   }
 
   if (locationScope || departmentScope || positionScope || userScope) {
+    const intentCheck = assertScopeIntent({
+      intent: body?.scopeMode,
+      locationIds: locationScope,
+      departmentIds: departmentScope,
+      positionIds: positionScope,
+      userIds: userScope,
+    });
+    if (!intentCheck.ok) {
+      return NextResponse.json({ error: intentCheck.message }, { status: 400 });
+    }
+
     const scopeValidation = await validateTenantScopeReferences({
       supabase,
       organizationId: tenant.organizationId,

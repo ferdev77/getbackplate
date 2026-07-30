@@ -5,6 +5,11 @@ import { useState } from "react";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import {
   ScopeModalContent,
+  ScopeModalField,
+  ScopeModalNote,
+  ScopeModalSection,
+  SCOPE_MODAL_INPUT,
+  SCOPE_MODAL_SELECT,
   ScopeModalZones,
   SCOPE_MODAL_FOOTER,
   SCOPE_MODAL_FORM,
@@ -29,6 +34,8 @@ type ScopeState = {
   departments: string[];
   positions: string[];
   users: string[];
+  /** Intencion declarada por el selector; el servidor la valida (assertScopeIntent). */
+  mode?: string;
 };
 
 type Props = {
@@ -46,9 +53,6 @@ type Props = {
 
 const MODAL_TITLE = "font-serif text-sm font-bold text-[var(--gbp-text)]";
 const MODAL_CLOSE = "grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-bg)]";
-const MODAL_SOFT_BOX = "rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3";
-const MODAL_LABEL = "text-[11px] font-bold tracking-[0.1em] text-[var(--gbp-text2)] uppercase";
-const MODAL_INPUT = "rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]";
 const MODAL_CANCEL = "rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
 const MODAL_PRIMARY = "rounded-lg bg-[var(--gbp-text)] px-5 py-2 text-sm font-bold text-white hover:bg-[var(--gbp-accent)] disabled:opacity-60";
 
@@ -71,6 +75,7 @@ export function FolderEditModal({ folder, folders, branches, departments, positi
               departments: toList("_scope_department"),
               positions: toList("_scope_position"),
               users: toList("_scope_user"),
+              mode: String(form.get("_scope_mode") ?? "") || undefined,
             };
             onSave({ folderId: folder.id, name: name.trim(), parentId: parentId || null, scope });
           }}
@@ -78,29 +83,37 @@ export function FolderEditModal({ folder, folders, branches, departments, positi
         >
           <ScopeModalZones>
             <ScopeModalContent>
-            <section className={MODAL_SOFT_BOX}>
-              <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Datos de la carpeta</p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <label className="grid gap-1.5">
-                  <span className={MODAL_LABEL}>Nombre</span>
-                  <input value={name} onChange={(event) => setName(event.target.value)} className={MODAL_INPUT} required />
-                </label>
-                <label className="grid gap-1.5">
-                  <span className={MODAL_LABEL}>Carpeta padre</span>
-                  <select value={parentId} onChange={(event) => setParentId(event.target.value)} className={MODAL_INPUT}>
-                    <option value="">Sin carpeta padre</option>
-                    {folders
-                      .filter((f) => f.id !== folder.id)
-                      .map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {f.name}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-              </div>
-            </section>
+              <ScopeModalSection label="Datos de la carpeta" />
 
+              <ScopeModalField label="Nombre">
+                <input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className={SCOPE_MODAL_INPUT}
+                  required
+                />
+              </ScopeModalField>
+
+              <ScopeModalField label="Carpeta padre">
+                <select
+                  value={parentId}
+                  onChange={(event) => setParentId(event.target.value)}
+                  className={SCOPE_MODAL_SELECT}
+                >
+                  <option value="">Sin carpeta</option>
+                  {folders
+                    .filter((row) => row.id !== folder.id)
+                    .map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {row.name}
+                      </option>
+                    ))}
+                </select>
+              </ScopeModalField>
+
+              <ScopeModalNote>
+                Los documentos guardados acá que no tengan alcance propio usan el de esta carpeta.
+              </ScopeModalNote>
             </ScopeModalContent>
 
             <ScopeSelector
@@ -113,6 +126,7 @@ export function FolderEditModal({ folder, folders, branches, departments, positi
                   departmentInputName="_scope_department"
                   positionInputName="_scope_position"
                   userInputName="_scope_user"
+                  modeInputName="_scope_mode"
                   question="¿Quién tiene que acceder a esta carpeta?"
                   audienceLabel="Tendrán acceso"
                   onValidityChange={setScopeValid}

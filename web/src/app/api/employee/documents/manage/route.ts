@@ -14,6 +14,8 @@ import { ensureEmployeeDocumentsRootFolder } from "@/shared/lib/employee-documen
 import {
   normalizeScopeSelection,
   validateEmployeeUserScopeWithinLocations,
+  assertScopeIntent,
+  parseScopeIntent,
   validateTenantScopeReferences,
 } from "@/shared/lib/scope-validation";
 import { enforceLocationPolicy } from "@/shared/lib/scope-policy";
@@ -78,6 +80,7 @@ export async function POST(request: Request) {
   const requestedDepartments = normalizeScopeSelection(formData.getAll("department_scope").map(String), { allowAllToken: true });
   const requestedPositions = normalizeScopeSelection(formData.getAll("position_scope").map(String), { allowAllToken: true });
   const requestedUsers = normalizeScopeSelection(formData.getAll("user_scope").map(String), { allowAllToken: true });
+  const scopeMode = parseScopeIntent(formData.get("scope_mode"));
   const file = formData.get("file");
   if (!(file instanceof File) || file.size <= 0) {
     return NextResponse.json({ error: "Selecciona un archivo" }, { status: 400 });
@@ -118,7 +121,10 @@ export async function POST(request: Request) {
   const locationPolicy = enforceLocationPolicy({
     requestedLocations,
     allowedLocations,
-    fallbackToAllowedWhenEmpty: true,
+    // Con "solo estas personas" no se rellena con las locaciones del empleado:
+    // si se rellenara, los filtros alcanzarian a toda su locacion y las personas
+    // elegidas solo sumarian encima.
+    fallbackToAllowedWhenEmpty: scopeMode !== "people",
   });
 
   if (!locationPolicy.ok) {
@@ -131,6 +137,17 @@ export async function POST(request: Request) {
     position_ids: requestedPositions,
     users: requestedUsers,
   };
+
+  const intentCheck = assertScopeIntent({
+    intent: scopeMode,
+    locationIds: requestedLocations,
+    departmentIds: requestedDepartments,
+    positionIds: requestedPositions,
+    userIds: requestedUsers,
+  });
+  if (!intentCheck.ok) {
+    return NextResponse.json({ error: intentCheck.message }, { status: 400 });
+  }
 
   const scopeValidation = await validateTenantScopeReferences({
     supabase: admin,

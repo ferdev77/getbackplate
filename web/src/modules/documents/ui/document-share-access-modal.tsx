@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import {
   ScopeModalContent,
+  ScopeModalNote,
+  ScopeModalSection,
   ScopeModalZones,
   SCOPE_MODAL_FOOTER,
   SCOPE_MODAL_FORM,
@@ -18,7 +20,14 @@ type Department = { id: string; name: string };
 type Position = { id: string; department_id: string; name: string };
 type User = ScopedUserOption;
 
-type ScopeState = { locations: string[]; departments: string[]; positions: string[]; users: string[] };
+type ScopeState = {
+  locations: string[];
+  departments: string[];
+  positions: string[];
+  users: string[];
+  /** Intencion declarada por el selector; el servidor la valida (assertScopeIntent). */
+  mode?: string;
+};
 
 type Props = {
   title: string;
@@ -35,7 +44,6 @@ type Props = {
 
 const MODAL_TITLE = "font-serif text-sm font-bold text-[var(--gbp-text)]";
 const MODAL_CLOSE = "grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-bg)]";
-const MODAL_SOFT_BOX = "rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3";
 const MODAL_CANCEL = "rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
 const MODAL_PRIMARY = "rounded-lg bg-[var(--gbp-text)] px-5 py-2 text-sm font-bold text-white hover:bg-[var(--gbp-accent)] disabled:opacity-60";
 
@@ -89,21 +97,24 @@ export function DocumentShareAccessModal({
               departments: toList("_scope_department"),
               positions: toList("_scope_position"),
               users: toList("_scope_user"),
+              mode: String(form.get("_scope_mode") ?? "") || undefined,
             });
           }}
           className={SCOPE_MODAL_FORM}
         >
           <ScopeModalZones withScope={!loading}>
             <ScopeModalContent withScope={!loading}>
-              <div className={MODAL_SOFT_BOX}>
-              <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-[var(--gbp-text2)] uppercase">Item</p>
-                <p className="text-sm font-semibold text-[var(--gbp-text)]">{itemName}</p>
-              </div>
+              <ScopeModalSection label="Documento" />
+              <p className="shrink-0 rounded-[9px] border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-[11px] py-[9px] text-[13px] font-semibold text-[var(--gbp-text)]">
+                {itemName}
+              </p>
+
+              <ScopeModalNote>
+                Lo que definas a la derecha reemplaza el acceso actual.
+              </ScopeModalNote>
 
               {loading ? (
-                <div className="flex items-center justify-center p-12">
-                  <span className="animate-pulse text-xs font-semibold text-[var(--gbp-text2)]">Loading permissions...</span>
-                </div>
+                <p className="shrink-0 text-[11.5px] text-[var(--gbp-text2)]">Cargando permisos…</p>
               ) : null}
             </ScopeModalContent>
 
@@ -118,6 +129,7 @@ export function DocumentShareAccessModal({
                 departmentInputName="_scope_department"
                 positionInputName="_scope_position"
                 userInputName="_scope_user"
+                modeInputName="_scope_mode"
                 question="¿Quién tiene que acceder?"
                 audienceLabel="Tendrán acceso"
                 onValidityChange={setScopeValid}

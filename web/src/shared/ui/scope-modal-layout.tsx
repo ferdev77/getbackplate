@@ -147,3 +147,13 @@ export function ScopeModalToggleRow({
     </label>
   );
 }
+
+/** Aclaracion con vinieta, para explicar una consecuencia del alcance. */
+export function ScopeModalNote({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex shrink-0 items-start gap-2 rounded-[9px] border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-[11px] py-[9px]">
+      <span className="mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--gbp-accent)]" aria-hidden="true" />
+      <p className="text-[11.5px] leading-[1.45] text-[var(--gbp-text2)]">{children}</p>
+    </div>
+  );
+}
