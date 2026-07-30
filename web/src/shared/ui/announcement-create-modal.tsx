@@ -8,6 +8,7 @@ import { createAnnouncementAction } from "@/modules/announcements/actions";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import {
   ScopeModalContent,
+  ScopeModalHeader,
   ScopeModalDivider,
   ScopeModalField,
   ScopeModalSection,
@@ -18,7 +19,6 @@ import {
   SCOPE_MODAL_TEXTAREA,
   SCOPE_MODAL_FOOTER,
   SCOPE_MODAL_FORM,
-  SCOPE_MODAL_HEADER,
   SCOPE_MODAL_PANEL,
 } from "@/shared/ui/scope-modal-layout";
 import { SubmitButton } from "@/shared/ui/submit-button";
@@ -197,23 +197,15 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
       <div className={SCOPE_MODAL_PANEL}>
-        <div className={SCOPE_MODAL_HEADER}>
-          <div>
-            <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">{mode === "edit" ? "Editar aviso" : "Nuevo aviso"}</p>
-            <p className="mt-0.5 text-[11.5px] text-[var(--gbp-text2)]">
-              {mode === "edit"
-                ? "Los cambios se ven en el portal al guardar"
-                : "Se publica en el portal y se notifica según el alcance"}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"
-          >
-            ✕
-          </button>
-        </div>
+        <ScopeModalHeader
+          title={mode === "edit" ? "Editar aviso" : "Nuevo aviso"}
+          subtitle={
+            mode === "edit"
+              ? "Los cambios se ven en el portal al guardar"
+              : "Se publica en el portal y se notifica según el alcance"
+          }
+          onClose={handleClose}
+        />
 
         <form
           action={submitEndpoint ? undefined : formAction}

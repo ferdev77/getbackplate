@@ -3,14 +3,16 @@
 import { useEffect, useState } from "react";
 
 import { ScopeSelector } from "@/shared/ui/scope-selector";
+import { SubmitButton } from "@/shared/ui/submit-button";
 import {
   ScopeModalContent,
+  ScopeModalHeader,
   ScopeModalNote,
   ScopeModalSection,
   ScopeModalZones,
+  SCOPE_MODAL_CANCEL,
   SCOPE_MODAL_FOOTER,
   SCOPE_MODAL_FORM,
-  SCOPE_MODAL_HEADER,
   SCOPE_MODAL_PANEL,
 } from "@/shared/ui/scope-modal-layout";
 import type { ScopedUserOption } from "@/shared/contracts/scope-options";
@@ -42,10 +44,6 @@ type Props = {
   onSave: (scope: ScopeState) => void;
 };
 
-const MODAL_TITLE = "font-serif text-sm font-bold text-[var(--gbp-text)]";
-const MODAL_CLOSE = "grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-bg)]";
-const MODAL_CANCEL = "rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
-const MODAL_PRIMARY = "rounded-lg bg-[var(--gbp-text)] px-5 py-2 text-sm font-bold text-white hover:bg-[var(--gbp-accent)] disabled:opacity-60";
 
 export function DocumentShareAccessModal({
   title,
@@ -85,7 +83,7 @@ export function DocumentShareAccessModal({
   return (
     <div className="fixed inset-0 z-[1060] flex items-center justify-center bg-black/45 p-5">
       <div className={SCOPE_MODAL_PANEL}>
-        <div className={SCOPE_MODAL_HEADER}><p className={MODAL_TITLE}>{title}</p><button type="button" className={MODAL_CLOSE} onClick={onCancel}>✕</button></div>
+        <ScopeModalHeader title={title} subtitle={itemName} onClose={onCancel} />
         <form
           id={scopeFormId}
           onSubmit={(event) => {
@@ -140,7 +138,18 @@ export function DocumentShareAccessModal({
               />
             ) : null}
           </ScopeModalZones>
-          <div className={SCOPE_MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancel</button><button type="submit" disabled={busy || !scopeValid} className={MODAL_PRIMARY}>{busy ? "Saving..." : "Save permissions"}</button></div>
+          <div className={SCOPE_MODAL_FOOTER}>
+            <button type="button" onClick={onCancel} className={SCOPE_MODAL_CANCEL}>
+              Cancelar
+            </button>
+            <SubmitButton
+              label="Guardar acceso"
+              pendingLabel="Guardando..."
+              pending={busy}
+              disabled={!scopeValid}
+              className="px-5 py-2 text-sm font-bold"
+            />
+          </div>
         </form>
       </div>
     </div>

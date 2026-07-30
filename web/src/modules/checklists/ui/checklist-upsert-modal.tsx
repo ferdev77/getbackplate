@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import {
   ScopeModalContent,
+  ScopeModalHeader,
   ScopeModalDivider,
   ScopeModalField,
   ScopeModalSection,
@@ -15,7 +16,6 @@ import {
   SCOPE_MODAL_SELECT,
   SCOPE_MODAL_FOOTER,
   SCOPE_MODAL_FORM,
-  SCOPE_MODAL_HEADER,
   SCOPE_MODAL_PANEL,
 } from "@/shared/ui/scope-modal-layout";
 import { SubmitButton } from "@/shared/ui/submit-button";
@@ -186,17 +186,15 @@ export function ChecklistUpsertModal({
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
       <div className={SCOPE_MODAL_PANEL}>
-        <div className={SCOPE_MODAL_HEADER}>
-          <div>
-            <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">{action === "edit" ? "Editar checklist" : "Nuevo checklist"}</p>
-            <p className="mt-0.5 text-[11.5px] text-[var(--gbp-text2)]">
-              {action === "edit"
-                ? "Los cambios en los ítems se aplican en el próximo reparto"
-                : "Quien esté en el alcance lo verá en su portal para completarlo"}
-            </p>
-          </div>
-          <button type="button" onClick={handleClose} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</button>
-        </div>
+        <ScopeModalHeader
+          title={action === "edit" ? "Editar checklist" : "Nuevo checklist"}
+          subtitle={
+            action === "edit"
+              ? "Los cambios en los ítems se aplican en el próximo reparto"
+              : "Quien esté en el alcance lo verá en su portal para completarlo"
+          }
+          onClose={handleClose}
+        />
         <form
           action={submitEndpoint ? undefined : formAction}
           onSubmit={submitEndpoint ? handleApiSubmit : undefined}

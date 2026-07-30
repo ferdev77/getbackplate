@@ -157,3 +157,42 @@ export function ScopeModalNote({ children }: { children: ReactNode }) {
     </div>
   );
 }
+
+/**
+ * Encabezado unico de los modales con alcance.
+ *
+ * Estaba escrito a mano en cada archivo y ya habia divergido: titulos con
+ * mayusculas distintas ("Editar Documento" / "Subir archivo") y tres modales sin
+ * subtitulo.
+ */
+export function ScopeModalHeader({
+  title,
+  subtitle,
+  onClose,
+}: {
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className={SCOPE_MODAL_HEADER}>
+      <div className="min-w-0">
+        <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">{title}</p>
+        {subtitle ? (
+          <p className="mt-0.5 truncate text-[11.5px] text-[var(--gbp-text2)]">{subtitle}</p>
+        ) : null}
+      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Cerrar"
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"
+      >
+        ✕
+      </button>
+    </div>
+  );
+}
+
+export const SCOPE_MODAL_CANCEL =
+  "rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]";

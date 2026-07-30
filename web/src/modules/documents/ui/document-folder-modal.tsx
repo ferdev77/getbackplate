@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import {
   ScopeModalContent,
+  ScopeModalHeader,
   ScopeModalField,
   ScopeModalNote,
   ScopeModalSection,
@@ -14,7 +15,6 @@ import {
   ScopeModalZones,
   SCOPE_MODAL_FOOTER,
   SCOPE_MODAL_FORM,
-  SCOPE_MODAL_HEADER,
   SCOPE_MODAL_PANEL,
 } from "@/shared/ui/scope-modal-layout";
 import { SubmitButton } from "@/shared/ui/submit-button";
@@ -118,13 +118,11 @@ export function DocumentFolderModal({
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
       <div className={SCOPE_MODAL_PANEL}>
-        <div className={SCOPE_MODAL_HEADER}>
-          <div>
-            <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">Nueva Carpeta</p>
-            <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">Organiza documentos y define el alcance de acceso.</p>
-          </div>
-          <button type="button" onClick={closeModal} className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</button>
-        </div>
+        <ScopeModalHeader
+          title="Crear carpeta"
+          subtitle="Lo que guardes adentro hereda este alcance si no tiene uno propio"
+          onClose={closeModal}
+        />
         <form onSubmit={onSubmit} className={SCOPE_MODAL_FORM}>
           <ScopeModalZones withScope={!hideScopeSelector}>
             <ScopeModalContent withScope={!hideScopeSelector}>

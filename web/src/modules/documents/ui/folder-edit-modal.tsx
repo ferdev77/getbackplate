@@ -3,17 +3,19 @@
 import { useState } from "react";
 
 import { ScopeSelector } from "@/shared/ui/scope-selector";
+import { SubmitButton } from "@/shared/ui/submit-button";
 import {
   ScopeModalContent,
+  ScopeModalHeader,
   ScopeModalField,
   ScopeModalNote,
   ScopeModalSection,
   SCOPE_MODAL_INPUT,
   SCOPE_MODAL_SELECT,
   ScopeModalZones,
+  SCOPE_MODAL_CANCEL,
   SCOPE_MODAL_FOOTER,
   SCOPE_MODAL_FORM,
-  SCOPE_MODAL_HEADER,
   SCOPE_MODAL_PANEL,
 } from "@/shared/ui/scope-modal-layout";
 import type { ScopedUserOption } from "@/shared/contracts/scope-options";
@@ -51,10 +53,6 @@ type Props = {
   onSave: (payload: { folderId: string; name: string; parentId: string | null; scope?: ScopeState }) => void;
 };
 
-const MODAL_TITLE = "font-serif text-sm font-bold text-[var(--gbp-text)]";
-const MODAL_CLOSE = "grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-bg)]";
-const MODAL_CANCEL = "rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
-const MODAL_PRIMARY = "rounded-lg bg-[var(--gbp-text)] px-5 py-2 text-sm font-bold text-white hover:bg-[var(--gbp-accent)] disabled:opacity-60";
 
 export function FolderEditModal({ folder, folders, branches, departments, positions, users, busy, initialScope, onCancel, onSave }: Props) {
   const [name, setName] = useState(folder.name);
@@ -64,7 +62,11 @@ export function FolderEditModal({ folder, folders, branches, departments, positi
   return (
     <div className="fixed inset-0 z-[1020] flex items-center justify-center bg-black/45 p-5">
       <div className={SCOPE_MODAL_PANEL}>
-        <div className={SCOPE_MODAL_HEADER}><p className={MODAL_TITLE}>Editar Carpeta</p><button type="button" className={MODAL_CLOSE} onClick={onCancel}>✕</button></div>
+        <ScopeModalHeader
+          title="Editar carpeta"
+          subtitle="Lo que guardes adentro hereda este alcance si no tiene uno propio"
+          onClose={onCancel}
+        />
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -136,7 +138,18 @@ export function FolderEditModal({ folder, folders, branches, departments, positi
                   initialUsers={initialScope.users}
               />
           </ScopeModalZones>
-          <div className={SCOPE_MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="submit" disabled={busy || !name.trim() || !scopeValid} className={MODAL_PRIMARY}>{busy ? "Guardando..." : "Guardar"}</button></div>
+          <div className={SCOPE_MODAL_FOOTER}>
+            <button type="button" onClick={onCancel} className={SCOPE_MODAL_CANCEL}>
+              Cancelar
+            </button>
+            <SubmitButton
+              label="Guardar cambios"
+              pendingLabel="Guardando..."
+              pending={busy}
+              disabled={!name.trim() || !scopeValid}
+              className="px-5 py-2 text-sm font-bold"
+            />
+          </div>
         </form>
       </div>
     </div>

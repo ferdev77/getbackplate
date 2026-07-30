@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import {
   ScopeModalContent,
+  ScopeModalHeader,
   ScopeModalDivider,
   ScopeModalField,
   ScopeModalNote,
@@ -18,7 +19,6 @@ import {
   ScopeModalZones,
   SCOPE_MODAL_FOOTER,
   SCOPE_MODAL_FORM,
-  SCOPE_MODAL_HEADER,
   SCOPE_MODAL_PANEL,
 } from "@/shared/ui/scope-modal-layout";
 import { SubmitButton } from "@/shared/ui/submit-button";
@@ -170,10 +170,11 @@ export function UploadDocumentModal({
           isClosing ? "scale-[0.985] opacity-0" : "scale-100 opacity-100"
         }`}
       >
-        <div className={SCOPE_MODAL_HEADER}><div>
-          <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">Subir archivo</p>
-          <p className="mt-0.5 text-[11.5px] text-[var(--gbp-text2)]">Queda visible para quien esté en el alcance</p>
-        </div><button type="button" onClick={closeModal} className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</button></div>
+        <ScopeModalHeader
+          title="Subir archivo"
+          subtitle="Queda visible para quien esté en el alcance"
+          onClose={closeModal}
+        />
         <form onSubmit={handleSubmit} className={SCOPE_MODAL_FORM}>
           <ScopeModalZones withScope={showScopeSelector}>
             <ScopeModalContent withScope={showScopeSelector}>
