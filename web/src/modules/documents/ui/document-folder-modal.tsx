@@ -95,10 +95,10 @@ export function DocumentFolderModal({
       });
 
       if (!response.ok) {
-        throw new Error("Unable to create the folder.");
+        throw new Error("No se pudo crear la carpeta.");
       }
 
-      toast.success("Folder created successfully.");
+      toast.success("Carpeta creada.");
       startTransition(() => {
         if (onClose) {
           onClose();
@@ -109,7 +109,7 @@ export function DocumentFolderModal({
         router.refresh();
       });
     } catch {
-      toast.error("Unable to create the folder.");
+      toast.error("No se pudo crear la carpeta.");
     } finally {
       setIsPending(false);
     }

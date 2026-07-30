@@ -626,7 +626,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
           scopeMode: payload.scope?.mode,
         }),
       });
-      if (!response.ok) throw new Error("Unable to update the document.");
+      if (!response.ok) throw new Error("No se pudo actualizar el documento.");
 
       setDocumentRows((prev) =>
         prev.map((row) => {
@@ -646,9 +646,9 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
         })
       );
       setEditDocId(null);
-      toast.success("Document updated successfully.");
+      toast.success("Documento actualizado.");
     } catch {
-      toast.error("Unable to update the document.");
+      toast.error("No se pudo actualizar el documento.");
     } finally {
       setBusy(false);
     }
@@ -676,7 +676,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
           scopeMode: payload.scope?.mode,
         }),
       });
-      if (!response.ok) throw new Error("Unable to update the folder.");
+      if (!response.ok) throw new Error("No se pudo actualizar la carpeta.");
 
       setFolderRows((prev) =>
         prev.map((row) => {
@@ -696,9 +696,9 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
         })
       );
       setEditFolderId(null);
-      toast.success("Folder updated successfully.");
+      toast.success("Carpeta actualizada.");
     } catch {
-      toast.error("Unable to update the folder.");
+      toast.error("No se pudo actualizar la carpeta.");
     } finally {
       setBusy(false);
     }
@@ -712,13 +712,13 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ documentId }),
       });
-      if (!response.ok) throw new Error("Unable to delete the document.");
+      if (!response.ok) throw new Error("No se pudo eliminar el documento.");
 
       setDocumentRows((prev) => prev.filter((row) => row.id !== documentId));
       setDeleteDocId(null);
-      toast.success("Document deleted successfully.");
+      toast.success("Documento eliminado.");
     } catch {
-      toast.error("Unable to delete the document.");
+      toast.error("No se pudo eliminar el documento.");
     } finally {
       setBusy(false);
     }
@@ -732,13 +732,13 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ folderId }),
       });
-      if (!response.ok) throw new Error("Unable to delete the folder.");
+      if (!response.ok) throw new Error("No se pudo eliminar la carpeta.");
 
       setFolderRows((prev) => prev.filter((row) => row.id !== folderId));
       setDeleteFolderId(null);
-      toast.success("Folder deleted successfully.");
+      toast.success("Carpeta eliminada.");
     } catch {
-      toast.error("Unable to delete the folder.");
+      toast.error("No se pudo eliminar la carpeta.");
     } finally {
       setBusy(false);
     }
@@ -821,17 +821,17 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
 
     logDnd("move-folder:start", { folderId, parentId });
     if (movingFolder && isProtectedFolder(movingFolder)) {
-      toast.error("Protected employee folders cannot be moved.");
+      toast.error("Las carpetas protegidas de empleados no se pueden mover.");
       resetDndState();
       return;
     }
     if (parentId && employeesRootFolderId && parentId === employeesRootFolderId) {
-      toast.error("Manual folders cannot be moved into Employee folders.");
+      toast.error("Las carpetas manuales no pueden moverse dentro de carpetas de empleados.");
       resetDndState();
       return;
     }
     if (folderId === parentId) {
-      toast.error("A folder cannot be moved into itself.");
+      toast.error("Una carpeta no puede moverse dentro de sí misma.");
       resetDndState();
       return;
     }
@@ -840,7 +840,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
       let currentParentId = parentById.get(parentId) ?? null;
       while (currentParentId) {
         if (currentParentId === folderId) {
-          toast.error("A folder cannot be moved into one of its subfolders.");
+          toast.error("Una carpeta no puede moverse dentro de una de sus subcarpetas.");
           resetDndState();
           return;
         }
@@ -936,7 +936,7 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
           scopeMode: target.mode,
         }),
       });
-      if (!response.ok) throw new Error("Unable to update access permissions.");
+      if (!response.ok) throw new Error("No se pudieron actualizar los permisos.");
 
       if (target.kind === "document") {
         setDocumentRows((prev) =>
@@ -974,9 +974,9 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
         setShareFolderId(null);
       }
 
-      toast.success("Permissions updated successfully.");
+      toast.success("Permisos actualizados.");
     } catch {
-      toast.error("Unable to update access permissions.");
+      toast.error("No se pudieron actualizar los permisos.");
     } finally {
       setBusy(false);
     }
@@ -990,11 +990,11 @@ export function DocumentsTreeWorkspace({ organizationId, viewerUserId, viewerUse
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!response.ok) throw new Error("Unable to share the document by email.");
-      toast.success("Document shared by email.");
+      if (!response.ok) throw new Error("No se pudo compartir el documento por email.");
+      toast.success("Documento compartido por email.");
       setEmailShareDocId(null);
     } catch {
-      toast.error("Unable to share the document by email.");
+      toast.error("No se pudo compartir el documento por email.");
     } finally {
       setBusy(false);
     }

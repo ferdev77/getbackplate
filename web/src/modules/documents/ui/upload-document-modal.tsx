@@ -118,7 +118,7 @@ export function UploadDocumentModal({
       };
 
       xhr.onerror = () => {
-        resolve({ ok: false, message: "Unable to upload the file." });
+        resolve({ ok: false, message: "No se pudo subir el archivo." });
       };
 
       xhr.onreadystatechange = () => {
@@ -126,12 +126,12 @@ export function UploadDocumentModal({
         try {
           const data = JSON.parse(xhr.responseText) as { ok?: boolean; error?: string; message?: string };
           if (xhr.status >= 200 && xhr.status < 300 && data.ok) {
-          resolve({ ok: true, message: "Document uploaded successfully." });
+          resolve({ ok: true, message: "Archivo subido." });
             return;
           }
-          resolve({ ok: false, message: "Unable to upload the file." });
+          resolve({ ok: false, message: "No se pudo subir el archivo." });
         } catch {
-          resolve({ ok: false, message: "The server returned an invalid response." });
+          resolve({ ok: false, message: "El servidor devolvió una respuesta inválida." });
         }
       };
 
@@ -146,7 +146,7 @@ export function UploadDocumentModal({
     }
 
     setProgress(100);
-    toast.success("Document uploaded successfully.");
+    toast.success("Archivo subido.");
     setShowSuccessOverlay(true);
     setIsUploading(false);
 

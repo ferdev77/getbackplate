@@ -131,14 +131,14 @@ export function EmployeeAnnouncementsWorkspace({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ announcementId }),
       });
-      if (!response.ok) throw new Error("Unable to delete the announcement.");
+      if (!response.ok) throw new Error("No se pudo eliminar el aviso.");
 
       setMine((prev) => prev.filter((row) => row.id !== announcementId));
       setFeed((prev) => prev.filter((row) => row.id !== announcementId));
       setDeleteTarget(null);
-      toast.success("Announcement deleted successfully.");
+      toast.success("Aviso eliminado.");
     } catch {
-      toast.error("Unable to delete the announcement.");
+      toast.error("No se pudo eliminar el aviso.");
     } finally {
       setBusyDelete(false);
     }

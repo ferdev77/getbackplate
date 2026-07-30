@@ -28,12 +28,12 @@ export function useEmployeeDocumentMutations<TDocument extends BaseDocument>(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ documentId: doc.id, title: nextTitle }),
       });
-      if (!response.ok) throw new Error("Unable to update the document.");
+      if (!response.ok) throw new Error("No se pudo actualizar el documento.");
       setDocumentsState((prev) => prev.map((item) => (item.id === doc.id ? { ...item, title: nextTitle } : item)));
       setEditingDocument(null);
-      toast.success("Document updated successfully.");
+      toast.success("Documento actualizado.");
     } catch {
-      toast.error("Unable to update the document.");
+      toast.error("No se pudo actualizar el documento.");
     } finally {
       setBusy(false);
     }
@@ -47,12 +47,12 @@ export function useEmployeeDocumentMutations<TDocument extends BaseDocument>(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ documentId: doc.id }),
       });
-      if (!response.ok) throw new Error("Unable to delete the document.");
+      if (!response.ok) throw new Error("No se pudo eliminar el documento.");
       setDocumentsState((prev) => prev.filter((item) => item.id !== doc.id));
       setDeleteDocument(null);
-      toast.success("Document deleted successfully.");
+      toast.success("Documento eliminado.");
     } catch {
-      toast.error("Unable to delete the document.");
+      toast.error("No se pudo eliminar el documento.");
     } finally {
       setBusy(false);
     }

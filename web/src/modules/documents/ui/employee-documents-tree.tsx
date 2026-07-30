@@ -844,7 +844,7 @@ export function EmployeeDocumentsTree({
       let currentParentId = parentById.get(targetFolderId) ?? null;
       while (currentParentId) {
         if (currentParentId === folderId) {
-          toast.error("A folder cannot be moved into one of its subfolders.");
+          toast.error("Una carpeta no puede moverse dentro de una de sus subcarpetas.");
           resetDndState();
           return;
         }

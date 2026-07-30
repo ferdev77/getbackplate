@@ -191,3 +191,20 @@ servidor. Guardarla seria estado redundante que puede quedar desincronizado.
    rellena cuando la intencion es `people`, y el guard
    `validateEmployeeUserScopeWithinLocations` recibe las locaciones
    **habilitadas** del empleado en lugar de las elegidas para el item.
+
+## Idioma de los mensajes (2026-07-30)
+
+El codigo se escribe en **español**. El ingles sale de un diccionario por modulo
+(`settings.i18n.ts`, `qbo-r365.i18n.ts`, `company-shell.i18n.ts`), y quien decide
+el idioma es `resolveUserLocale`: los planes de integracion ven ingles, los de
+plataforma ven español.
+
+Avisos, checklists y documentos tenian sus mensajes en ingles escritos a mano, al
+reves de la convencion. Se pasaron a español y `mensajes-en-espanol.test.ts` evita
+que vuelvan a entrar.
+
+**Antes de habilitar avisos, checklists o documentos para un plan de integracion
+hay que escribir su diccionario.** Hoy no hace falta: verificado en produccion,
+la unica organizacion de integracion real (Prodel) tiene activos solo
+`qbo_r365`, `settings` y `custom_branding`, que ya estan traducidos. Si se le
+habilita cualquiera de los otros, veria español.

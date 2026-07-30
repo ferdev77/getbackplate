@@ -147,7 +147,7 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
 
   revalidatePath("/app/announcements");
   revalidatePath("/portal/home");
-  const baseMessage = announcementId ? "Announcement updated successfully" : "Announcement created successfully";
+  const baseMessage = announcementId ? "Aviso actualizado" : "Aviso publicado";
   const message = channelsForDelivery.length
     ? `${baseMessage}. Notifications sent: ${sentContactsCount}`
     : baseMessage;
@@ -240,6 +240,6 @@ export async function deleteAnnouncementAction(arg1: FormData | unknown, arg2?: 
   revalidatePath("/portal/home");
   redirect(
     "/app/announcements?status=success&message=" +
-      qs("Announcement deleted successfully"),
+      qs("Aviso eliminado"),
   );
 }

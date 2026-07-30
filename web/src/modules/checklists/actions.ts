@@ -19,7 +19,7 @@ import { parseChecklistSections, type ChecklistSection } from "@/modules/checkli
 
 const createChecklistSchema = z.object({
   template_id: z.string().trim().optional().transform(v => v || null),
-  name: z.string().trim().min(1, "Template name is required"),
+  name: z.string().trim().min(1, "Poné un nombre para el checklist"),
   checklist_type: z.enum(["opening", "closing", "prep", "custom"]).catch("custom"),
   checklist_type_other: z.string().trim().optional(),
   branch_id: z.string().trim().optional().transform(v => v || null),
@@ -90,7 +90,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   if (sectionsPayloadRaw) {
     normalizedSections = parseChecklistSections(sectionsPayloadRaw);
     if (normalizedSections.length === 0) {
-      return { success: false, message: "Invalid sections (JSON) format" };
+      return { success: false, message: "El formato de las secciones no es válido" };
     }
   } else if (itemsInput) {
     const fallbackItems = itemsInput
@@ -246,7 +246,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     : null;
 
   const baseMessage = pendingMessage
-    ?? (parsed.data.template_id ? "Checklist updated successfully" : "Template created successfully");
+    ?? (parsed.data.template_id ? "Checklist actualizado" : "Checklist creado");
 
   return {
     success: true,
@@ -261,12 +261,12 @@ export async function deleteChecklistTemplateAction(_prevState: unknown, formDat
   const supabase = await createSupabaseServerClient();
 
   if (tenant.roleCode !== "company_admin") {
-    return { success: false, message: "You do not have permission to delete checklists" };
+    return { success: false, message: "No tenés permiso para eliminar checklists" };
   }
 
   const templateId = String(formData.get("template_id") ?? "").trim();
   if (!templateId) {
-    return { success: false, message: "Invalid checklist" };
+    return { success: false, message: "Checklist inválido" };
   }
 
   // --- Delegate to service ---

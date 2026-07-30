@@ -246,11 +246,11 @@ export async function upsertChecklistTemplate(
   const totalItems = normalizedSections.reduce((acc, section) => acc + section.items.length, 0);
 
   if (!name) {
-    return { ok: false, message: "Template name is required" };
+    return { ok: false, message: "Poné un nombre para el checklist" };
   }
 
   if (!totalItems) {
-    return { ok: false, message: "Add at least one checklist item" };
+    return { ok: false, message: "Agregá al menos un ítem" };
   }
 
   // Validate branch
@@ -263,7 +263,7 @@ export async function upsertChecklistTemplate(
       .maybeSingle();
 
     if (branchError || !branch) {
-      return { ok: false, message: "Invalid base location for this organization" };
+      return { ok: false, message: "La locación base no pertenece a esta organización" };
     }
   }
 
@@ -278,7 +278,7 @@ export async function upsertChecklistTemplate(
       .maybeSingle();
 
     if (departmentError || !departmentRow) {
-      return { ok: false, message: "Invalid base department for this organization" };
+      return { ok: false, message: "El departamento base no pertenece a esta organización" };
     }
 
     department = departmentRow.name;
@@ -355,7 +355,7 @@ export async function upsertChecklistTemplate(
       .maybeSingle();
 
     if (!existingTemplate) {
-      return { ok: false, message: "The template to edit was not found" };
+      return { ok: false, message: "No se encontró el checklist que se quiere editar" };
     }
 
     const { data: hasSubmissions } = await supabase
@@ -660,7 +660,7 @@ export async function deleteChecklistTemplate(params: {
     .maybeSingle();
 
   if (!template) {
-    return { ok: false, message: "Checklist not found" };
+    return { ok: false, message: "No se encontró el checklist" };
   }
 
   const { count: submissionsCount, error: countError } = await supabase
