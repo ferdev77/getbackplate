@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
+import { notifyChecklistSubmitted } from "@/modules/checklists/services/checklist-events.service";
 
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
@@ -151,7 +152,7 @@ export async function POST(request: Request) {
 
   const { data: template } = await supabase
     .from("checklist_templates")
-    .select("id, branch_id, department_id, target_scope")
+    .select("id, name, created_by, branch_id, department_id, target_scope")
     .eq("organization_id", tenant.organizationId)
     .eq("id", templateId)
     .eq("is_active", true)
@@ -329,6 +330,20 @@ export async function POST(request: Request) {
       items_count: items.length,
       evidence_files_count: uploadedEvidencePaths.length,
     },
+  });
+
+  // Avisar despues de responder: el empleado no espera por el envio del push.
+  after(async () => {
+    await notifyChecklistSubmitted({
+      supabase: admin,
+      organizationId: tenant.organizationId,
+      templateId,
+      templateName: template?.name ?? "Checklist",
+      templateCreatedBy: template?.created_by ?? null,
+      submittedByUserId: userId,
+      itemsCount: items.length,
+      flaggedCount: rpcItemsPayload.filter((item) => item.flagged).length,
+    });
   });
 
   return NextResponse.json({ ok: true, submissionId });

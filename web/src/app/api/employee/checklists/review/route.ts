@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
+import { notifyChecklistReviewed } from "@/modules/checklists/services/checklist-events.service";
 import { z } from "zod";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
 
   const { data: submission } = await admin
     .from("checklist_submissions")
-    .select("id, status, template_id, branch_id")
+    .select("id, status, template_id, branch_id, submitted_by")
     .eq("organization_id", organizationId)
     .eq("id", submissionId)
     .maybeSingle();
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
 
   const { data: template } = await admin
     .from("checklist_templates")
-    .select("id")
+    .select("id, name, created_by")
     .eq("organization_id", organizationId)
     .eq("id", submission.template_id)
     .eq("created_by", moduleAccess.userId)
@@ -137,6 +138,17 @@ export async function POST(request: Request) {
       reviewed_by: moduleAccess.userId,
       actor_role: "employee",
     },
+  });
+
+  after(async () => {
+    await notifyChecklistReviewed({
+      supabase: admin,
+      organizationId,
+      templateName: template.name ?? "Checklist",
+      templateCreatedBy: template.created_by ?? null,
+      submittedByUserId: submission.submitted_by ?? null,
+      reviewedByUserId: moduleAccess.userId,
+    });
   });
 
   return NextResponse.json({ ok: true, status: "reviewed" });
