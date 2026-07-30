@@ -196,3 +196,10 @@ export function ScopeModalHeader({
 
 export const SCOPE_MODAL_CANCEL =
   "rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]";
+
+/**
+ * Panel para modales chicos, sin columnas de alcance. Comparte borde, radio y
+ * sombra con el panel grande; solo cambia el ancho, que lo pone quien lo usa.
+ */
+export const SCOPE_MODAL_PANEL_COMPACT =
+  "overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-xl)]";
