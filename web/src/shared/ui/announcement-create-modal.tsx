@@ -141,6 +141,9 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
       position_scope: formData.getAll("position_scope").map(String).filter(Boolean),
       user_scope: formData.getAll("user_scope").map(String).filter(Boolean),
       scope_mode: String(formData.get("scope_mode") ?? "").trim() || undefined,
+      // Sin esto, el portal de empleado guardaba el aviso y no notificaba a
+      // nadie: los canales se quedaban en el formulario.
+      notify_channels: formData.getAll("notify_channel").map(String).filter(Boolean),
       is_recurring: String(formData.get("is_recurring") ?? "") === "on",
       recurrence_type: String(formData.get("recurrence_type") ?? "daily").trim() || "daily",
       custom_days: String(formData.get("custom_days") ?? "[]"),

@@ -6,11 +6,10 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { z } from "zod";
 import { readAnnouncementScopeFromFormData } from "@/modules/announcements/lib/scope";
-import { processAnnouncementDeliveries } from "@/modules/announcements/services/deliveries";
+import { upsertAnnouncement } from "@/modules/announcements/services/announcement-upsert.service";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { requireTenantModule } from "@/shared/lib/access";
 import { assertScopeIntent, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
-import { calculateNextRunAt, RecurrenceType } from "@/shared/lib/cron-utils";
 
 function qs(message: string) {
   return encodeURIComponent(message);
@@ -103,136 +102,37 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
     return { success: false, message: messageByField[scopeValidation.field] };
   }
 
-  if (announcementId) {
-    const { data: existing } = await supabase
-      .from("announcements")
-      .select("id")
-      .eq("organization_id", tenant.organizationId)
-      .eq("id", announcementId)
-      .maybeSingle();
-
-    if (!existing) {
-      return { success: false, message: "The announcement to edit was not found" };
-    }
-  }
-
-  const upsertPayload = {
-    branch_id: null,
+  const result = await upsertAnnouncement({
+    supabase,
+    organizationId: tenant.organizationId,
+    createdBy: authData.user?.id ?? null,
+    announcementId: announcementId || null,
     title,
     body,
     kind,
-    is_featured: isFeatured,
-    expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
-    target_scope: {
+    isFeatured,
+    expiresAt,
+    scope: {
       locations: scope.locations,
       department_ids: scope.department_ids,
       position_ids: scope.position_ids,
       users: scope.users,
     },
-  };
+    deliveryChannels: channelsForDelivery,
+    recurrence: {
+      isRecurring,
+      recurrenceType,
+      customDays,
+      channels: normalizedNotifyChannels,
+    },
+  });
 
-  const announcementMutation = announcementId
-    ? await supabase
-        .from("announcements")
-        .update(upsertPayload)
-        .eq("id", announcementId)
-        .eq("organization_id", tenant.organizationId)
-        .select("id")
-        .single()
-    : await supabase
-        .from("announcements")
-        .insert({
-          organization_id: tenant.organizationId,
-          created_by: authData.user?.id,
-          publish_at: new Date().toISOString(),
-          ...upsertPayload,
-        })
-        .select("id")
-        .single();
-
-  const { data: announcement, error } = announcementMutation;
-
-  if (error || !announcement) {
-    return { success: false, message: `Could not create announcement: ${error?.message ?? "error"}` };
+  if (!result.ok) {
+    return { success: false, message: result.message };
   }
 
-  // La unica fuente de verdad del alcance de un aviso es target_scope.
-  // announcement_audiences era una copia desnormalizada cuyo filtro nunca
-  // restringio nada; se elimino en la migracion 20260729000004.
-
-  let sentContactsCount = 0;
-
-  if (channelsForDelivery.length) {
-    const { error: deliveriesError } = await supabase.from("announcement_deliveries").insert(
-      channelsForDelivery.map((channel) => ({
-        organization_id: tenant.organizationId,
-        announcement_id: announcement.id,
-        channel,
-        status: "queued",
-      })),
-    );
-
-    if (deliveriesError) {
-      return { success: false, message: `Announcement saved, but the notification could not be queued: ${deliveriesError.message}` };
-    }
-
-    const deliveryResult = await processAnnouncementDeliveries();
-    if (deliveryResult.success && typeof deliveryResult.sentContactsCount === "number") {
-      sentContactsCount = deliveryResult.sentContactsCount;
-    }
-  }
-
-  // Handle scheduled job for recurrence
-  if (isRecurring) {
-    const nextRun = calculateNextRunAt(recurrenceType as RecurrenceType, null, customDays);
-    
-    if (announcementId) {
-      // Intenta actualizar si existe, si no, crear
-      const { data: existingJob } = await supabase
-        .from("scheduled_jobs")
-        .select("id")
-        .eq("organization_id", tenant.organizationId)
-        .eq("job_type", "announcement_delivery")
-        .eq("target_id", announcement.id)
-        .maybeSingle();
-
-      if (existingJob) {
-        await supabase.from("scheduled_jobs").update({
-          recurrence_type: recurrenceType,
-          custom_days: customDays,
-          next_run_at: nextRun.toISOString(),
-          metadata: { channels: normalizedNotifyChannels }
-        }).eq("id", existingJob.id);
-      } else {
-        await supabase.from("scheduled_jobs").insert({
-          organization_id: tenant.organizationId,
-          job_type: "announcement_delivery",
-          target_id: announcement.id,
-          recurrence_type: recurrenceType,
-          custom_days: customDays,
-          next_run_at: nextRun.toISOString(),
-          metadata: { channels: normalizedNotifyChannels }
-        });
-      }
-    } else {
-      await supabase.from("scheduled_jobs").insert({
-        organization_id: tenant.organizationId,
-        job_type: "announcement_delivery",
-        target_id: announcement.id,
-        recurrence_type: recurrenceType,
-        custom_days: customDays,
-        next_run_at: nextRun.toISOString(),
-        metadata: { channels: normalizedNotifyChannels }
-      });
-    }
-  } else if (announcementId) {
-    // Si no es recurrente pero viene un id (y quiza le sacaron el toggle) borramos el job
-    await supabase.from("scheduled_jobs")
-      .delete()
-      .eq("organization_id", tenant.organizationId)
-      .eq("job_type", "announcement_delivery")
-      .eq("target_id", announcementId);
-  }
+  const announcement = { id: result.announcementId };
+  const sentContactsCount = result.sentContactsCount;
 
   await logAuditEvent({
     action: announcementId ? "announcement.update" : "announcement.create",

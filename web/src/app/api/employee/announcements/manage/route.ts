@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { upsertAnnouncement } from "@/modules/announcements/services/announcement-upsert.service";
 import {
   normalizeScopeSelection,
   validateEmployeeUserScopeWithinLocations,
@@ -40,6 +42,10 @@ export async function POST(request: Request) {
         position_scope?: string[];
         user_scope?: string[];
         scope_mode?: string;
+        notify_channels?: string[];
+        is_recurring?: boolean;
+        recurrence_type?: string;
+        custom_days?: string;
       }
     | null;
 
@@ -48,6 +54,17 @@ export async function POST(request: Request) {
   const kind = normalizeKind(String(body?.kind ?? "general"));
   const expiresAt = String(body?.expires_at ?? "").trim() || null;
   const isFeatured = body?.is_featured === true;
+  // El push va siempre, igual que en el panel de admin.
+  const notifyChannels = [
+    ...new Set([...(Array.isArray(body?.notify_channels) ? body.notify_channels.map(String) : []), "push"]),
+  ].filter((channel) => ["sms", "email", "in_app", "push"].includes(channel));
+  const isRecurring = body?.is_recurring === true;
+  const recurrenceType = String(body?.recurrence_type ?? "daily").trim() || "daily";
+  let customDays: number[] = [];
+  try {
+    const parsed = JSON.parse(String(body?.custom_days ?? "[]"));
+    if (Array.isArray(parsed)) customDays = parsed.filter((d): d is number => typeof d === "number");
+  } catch {}
 
   if (!title || !message) {
     return NextResponse.json({ error: "Titulo y mensaje son obligatorios" }, { status: 400 });
@@ -134,29 +151,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Solo puedes agregar usuarios de tus locaciones permitidas" }, { status: 400 });
   }
 
-  const { data: created, error } = await admin
-    .from("announcements")
-    .insert({
-      organization_id: access.tenant.organizationId,
-      created_by: access.userId,
-      branch_id: null,
-      title,
-      body: message,
-      kind,
-      publish_at: new Date().toISOString(),
-      target_scope: scope,
-      is_featured: isFeatured,
-      expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
-    })
-    .select("id")
-    .single();
+  // De aca en mas manda el servicio compartido: guarda, encola las entregas y
+  // arma el reparto periodico. Antes esta ruta solo guardaba, asi que un aviso
+  // creado por un empleado no notificaba a nadie.
+  const result = await upsertAnnouncement({
+    supabase: admin,
+    organizationId: access.tenant.organizationId,
+    createdBy: access.userId,
+    announcementId: null,
+    title,
+    body: message,
+    kind,
+    isFeatured,
+    expiresAt,
+    scope,
+    deliveryChannels: notifyChannels,
+    recurrence: { isRecurring, recurrenceType, customDays, channels: notifyChannels },
+  });
 
-  if (error || !created) {
-    return NextResponse.json({ error: error?.message ?? "No se pudo crear aviso" }, { status: 400 });
+  if (!result.ok) {
+    return NextResponse.json({ error: result.message }, { status: 400 });
   }
 
-  // announcement_audiences ya no se escribe: la unica fuente de verdad del
-  // alcance es target_scope (ver modules/announcements/actions.ts).
+  const created = { id: result.announcementId };
 
   await logAuditEvent({
     action: "employee.announcement.create",
@@ -169,6 +186,10 @@ export async function POST(request: Request) {
     actorId: access.userId,
     metadata: { kind },
   });
+
+  revalidatePath("/portal/announcements");
+  revalidatePath("/portal/home");
+  revalidatePath("/app/announcements");
 
   return NextResponse.json({ ok: true, announcementId: created.id });
 }
@@ -192,6 +213,10 @@ export async function PATCH(request: Request) {
         position_scope?: string[];
         user_scope?: string[];
         scope_mode?: string;
+        notify_channels?: string[];
+        is_recurring?: boolean;
+        recurrence_type?: string;
+        custom_days?: string;
       }
     | null;
 
@@ -201,6 +226,17 @@ export async function PATCH(request: Request) {
   const kind = normalizeKind(String(body?.kind ?? "general"));
   const expiresAt = String(body?.expires_at ?? "").trim() || null;
   const isFeatured = body?.is_featured === true;
+  // El push va siempre, igual que en el panel de admin.
+  const notifyChannels = [
+    ...new Set([...(Array.isArray(body?.notify_channels) ? body.notify_channels.map(String) : []), "push"]),
+  ].filter((channel) => ["sms", "email", "in_app", "push"].includes(channel));
+  const isRecurring = body?.is_recurring === true;
+  const recurrenceType = String(body?.recurrence_type ?? "daily").trim() || "daily";
+  let customDays: number[] = [];
+  try {
+    const parsed = JSON.parse(String(body?.custom_days ?? "[]"));
+    if (Array.isArray(parsed)) customDays = parsed.filter((d): d is number => typeof d === "number");
+  } catch {}
 
   if (!announcementId || !title || !message) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
@@ -304,21 +340,25 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Solo puedes agregar usuarios de tus locaciones permitidas" }, { status: 400 });
   }
 
-  const { error } = await admin
-    .from("announcements")
-    .update({
-      title,
-      body: message,
-      kind,
-      is_featured: isFeatured,
-      expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
-      target_scope: scope,
-    })
-    .eq("organization_id", access.tenant.organizationId)
-    .eq("id", announcementId);
+  const result = await upsertAnnouncement({
+    supabase: admin,
+    organizationId: access.tenant.organizationId,
+    createdBy: access.userId,
+    announcementId,
+    title,
+    body: message,
+    kind,
+    isFeatured,
+    expiresAt,
+    scope,
+    // Al editar no se vuelve a notificar: la notificacion es del momento de
+    // publicar, igual que en el panel de admin.
+    deliveryChannels: [],
+    recurrence: { isRecurring, recurrenceType, customDays, channels: notifyChannels },
+  });
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  if (!result.ok) {
+    return NextResponse.json({ error: result.message }, { status: 400 });
   }
 
   await logAuditEvent({
@@ -332,6 +372,10 @@ export async function PATCH(request: Request) {
     actorId: access.userId,
     metadata: { kind },
   });
+
+  revalidatePath("/portal/announcements");
+  revalidatePath("/portal/home");
+  revalidatePath("/app/announcements");
 
   return NextResponse.json({ ok: true });
 }
