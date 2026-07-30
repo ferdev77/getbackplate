@@ -12,7 +12,7 @@ import type { ReactNode } from "react";
  */
 
 export const SCOPE_MODAL_PANEL =
-  "grid max-h-[92vh] w-[1300px] max-w-[97vw] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-xl)] xl:h-[min(800px,92vh)]";
+  "grid max-h-[92vh] w-[1300px] min-w-0 max-w-full grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-xl)] xl:h-[min(800px,92vh)]";
 
 export const SCOPE_MODAL_HEADER =
   "flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-4";
@@ -21,7 +21,7 @@ export const SCOPE_MODAL_FOOTER =
   "flex flex-wrap items-center justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4";
 
 /** El form ocupa la fila del medio y deja su propio pie abajo. */
-export const SCOPE_MODAL_FORM = "grid min-h-0 grid-rows-[minmax(0,1fr)_auto]";
+export const SCOPE_MODAL_FORM = "grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_auto]";
 
 export function ScopeModalZones({
   children,
@@ -39,8 +39,8 @@ export function ScopeModalZones({
     <div
       className={
         withScope
-          ? "grid min-h-0 overflow-y-auto xl:grid-cols-[352px_minmax(0,1fr)_286px] xl:overflow-hidden"
-          : "grid min-h-0 overflow-y-auto"
+          ? "grid min-h-0 min-w-0 overflow-x-hidden overflow-y-auto xl:grid-cols-[minmax(0,340px)_minmax(0,1fr)_minmax(0,280px)] xl:overflow-hidden"
+          : "grid min-h-0 min-w-0 overflow-x-hidden overflow-y-auto"
       }
     >
       {children}
@@ -59,8 +59,8 @@ export function ScopeModalContent({
     <section
       className={
         withScope
-          ? "flex flex-col gap-3 border-b border-[var(--gbp-border)] px-5 py-4 xl:min-h-0 xl:overflow-y-auto xl:border-b-0 xl:border-r"
-          : "flex flex-col gap-3 px-6 py-5"
+          ? "flex min-w-0 flex-col gap-3 border-b border-[var(--gbp-border)] px-5 py-4 xl:min-h-0 xl:overflow-y-auto xl:border-b-0 xl:border-r"
+          : "flex min-w-0 flex-col gap-3 px-6 py-5"
       }
     >
       {children}

@@ -605,7 +605,7 @@ export function ScopeSelector({
       </section>
 
       <aside
-        className="flex flex-col gap-2 border-t border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-4 py-4 xl:min-h-0 xl:overflow-y-auto xl:border-t-0 xl:border-l"
+        className="flex min-w-0 flex-col gap-2 border-t border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-4 py-4 xl:min-h-0 xl:overflow-hidden xl:border-t-0 xl:border-l"
         aria-label={audienceLabel}
       >
         <p className={KICKER}>{audienceLabel}</p>
@@ -644,7 +644,7 @@ export function ScopeSelector({
           </p>
         ) : (
           <>
-            <div className="max-h-56 overflow-y-auto rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-1.5">
+            <div className="max-h-56 overflow-y-auto rounded-md border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-1.5 xl:max-h-none xl:min-h-0 xl:flex-1">
               <div className="flex flex-col gap-1">
                 {audience.group.map((user) => rosterRow(user, "group"))}
                 {audience.hand.map((user) => rosterRow(user, "hand"))}
@@ -712,7 +712,7 @@ export function ScopeSelector({
     }
 
     return (
-      <div className="mt-2 max-h-56 overflow-y-auto rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-1.5">
+      <div className="mt-2 max-h-56 overflow-y-auto rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-1.5 xl:max-h-80">
         <div className="grid gap-1 sm:grid-cols-2">
           {candidates.map((user) => {
             if (!user.user_id) return null;
