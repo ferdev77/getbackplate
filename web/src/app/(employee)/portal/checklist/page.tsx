@@ -185,7 +185,11 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
         .from("checklist_templates")
         .select("id, name, created_at, checklist_type, shift, repeat_every, is_active, target_scope")
         .eq("organization_id", tenant.organizationId)
-        .eq("is_active", true)
+        // Sin filtrar por estado: son los checklists propios, y un borrador
+        // tiene que poder verse y editarse. La seccion ya trae su filtro por
+        // estado y la etiqueta Activa/Inactiva; antes nunca le llegaba un
+        // borrador y ese filtro no encontraba nada. El panel de admin tampoco
+        // filtra al listar.
         .eq("created_by", userId)
         .order("created_at", { ascending: false })
         .limit(40)
