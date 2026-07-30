@@ -352,7 +352,59 @@ export async function upsertChecklistTemplate(
   //
   // El resto de la plantilla (nombre, tipo, turno, alcance) ya se guardo arriba:
   // solo se posterga la lista de items, que es lo que rompe la comparacion.
-  if (templateId && !input.applyNow) {
+  // Corregir el texto de un item no cambia QUE se controla, solo como esta
+  // escrito, asi que no hay razon para hacerte esperar un dia por un error de
+  // tipeo. Solo se difiere cuando se agrega o se quita algo.
+  //
+  // Sin identificadores de item en el payload no se puede distinguir con
+  // exactitud un renombre de un alta+baja, asi que se compara la estructura:
+  // mismas secciones con los mismos nombres y la misma cantidad de items en cada
+  // una => lo unico que pudo cambiar es el texto.
+  //
+  // El unico caso que se le escapa es cambiar un item por otro distinto
+  // manteniendo la cantidad, que se tomaria como renombre. Cualquier alta o baja
+  // real mueve las cantidades y cae del lado seguro: se difiere.
+  let onlyTextEdits = false;
+  if (templateId) {
+    const { data: previousSections } = await supabase
+      .from("checklist_template_sections")
+      .select("id, name, sort_order")
+      .eq("organization_id", organizationId)
+      .eq("template_id", template.id)
+      .order("sort_order", { ascending: true });
+
+    const previousIds = (previousSections ?? []).map((row) => row.id);
+    const { data: previousItems } = previousIds.length
+      ? await supabase
+          .from("checklist_template_items")
+          .select("section_id")
+          .eq("organization_id", organizationId)
+          .in("section_id", previousIds)
+      : { data: [] as Array<{ section_id: string }> };
+
+    const countBySectionId = new Map<string, number>();
+    for (const row of previousItems ?? []) {
+      countBySectionId.set(row.section_id, (countBySectionId.get(row.section_id) ?? 0) + 1);
+    }
+
+    const previousShape = (previousSections ?? []).map((row) => ({
+      name: row.name,
+      items: countBySectionId.get(row.id) ?? 0,
+    }));
+    const nextShape = normalizedSections.map((section) => ({
+      name: section.name,
+      items: section.items.length,
+    }));
+
+    onlyTextEdits =
+      previousShape.length > 0 &&
+      previousShape.length === nextShape.length &&
+      previousShape.every(
+        (section, index) => section.name === nextShape[index].name && section.items === nextShape[index].items,
+      );
+  }
+
+  if (templateId && !input.applyNow && !onlyTextEdits) {
     const { data: cycleSubmissions, error: cycleError } = await supabase.rpc(
       "checklist_current_cycle_submissions",
       { p_organization_id: organizationId, p_template_id: template.id },
