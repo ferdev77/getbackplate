@@ -3922,6 +3922,11 @@ async function fetchAndCaptureWebhookInvoice(input: {
       .eq("organization_id", input.organizationId)
       .eq("entity_id", input.entityId)
       .eq("entity_type", input.entityType);
+    await admin.from("qbo_webhook_events").update({
+      status: "ignored",
+      ignore_reason: "customer_not_in_r365_scope",
+      processed_at: nowIso,
+    }).eq("id", input.webhookEventId);
     return;
   }
 
@@ -5098,6 +5103,13 @@ export async function processQboUnifiedQueue(): Promise<{
         await admin.from("qbo_unified_invoices").delete().eq("id", unifiedInvoiceId);
         // QuickBooks emits events for every emailed transaction, including
         // customers that are intentionally outside the R365 integration.
+        if (row.webhook_event_id) {
+          await admin.from("qbo_webhook_events").update({
+            status: "ignored",
+            ignore_reason: "customer_not_in_r365_scope",
+            processed_at: new Date().toISOString(),
+          }).eq("id", row.webhook_event_id);
+        }
         results.push({ unifiedInvoiceId, status: "skipped", error: "Customer has no synchronization configuration." });
         continue;
       }
