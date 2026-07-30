@@ -66,16 +66,6 @@ export async function notifyIntegrationEvent(input: IntegrationAlertInput): Prom
     const superadminIds = Array.from(new Set((superadmins ?? []).map((s) => String(s.user_id))));
     if (superadminIds.length === 0) return;
 
-    const { data: subs, error: subsError } = await admin
-      .from("push_subscriptions")
-      .select("user_id")
-      .eq("is_active", true)
-      .in("user_id", superadminIds);
-    if (subsError) throw new Error(subsError.message);
-
-    const userIds = Array.from(new Set((subs ?? []).map((s) => String(s.user_id))));
-    if (userIds.length === 0) return;
-
     let orgName: string | null = null;
     if (input.kind !== "receipt_processing_failed") {
       const { data: org } = await admin
@@ -87,7 +77,7 @@ export async function notifyIntegrationEvent(input: IntegrationAlertInput): Prom
     }
 
     const payload = buildPayload(orgName, input);
-    await sendPushToUsers(userIds, { ...payload, url: "/superadmin/notifications" }, {
+    await sendPushToUsers(superadminIds, { ...payload, url: "/superadmin/notifications" }, {
       source: "integration_alert",
       ...(input.kind !== "receipt_processing_failed" ? { organizationId: input.organizationId } : {}),
     });
