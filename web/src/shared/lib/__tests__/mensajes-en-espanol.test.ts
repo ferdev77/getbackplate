@@ -27,6 +27,7 @@ const MODULOS = [
   "modules/checklists",
   "modules/announcements",
   "modules/documents",
+  "modules/reports",
   "shared/ui/announcement-create-modal.tsx",
 ];
 
@@ -44,7 +45,7 @@ const DELATORES = [
 ];
 
 /** Textos de `toast.success(...)`, `toast.error(...)` y `message: "..."`. */
-const MENSAJE = /(?:toast\.(?:success|error)\s*\(|message:\s*)"([^"]{6,})"/g;
+const MENSAJE = /(?:toast\.(?:success|error)\s*\(|setReviewError\s*\(|message:\s*)"([^"]{6,})"/g;
 
 function archivosDe(objetivo: string): string[] {
   const completo = path.join(RAIZ, objetivo);

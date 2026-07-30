@@ -349,7 +349,7 @@ export function ChecklistReportsDashboard({
     setIsReviewing(false);
 
     if (!response.ok || !payload?.ok) {
-      setReviewError("Unable to mark the report as reviewed.");
+      setReviewError("No se pudo marcar el reporte como revisado.");
       return;
     }
 

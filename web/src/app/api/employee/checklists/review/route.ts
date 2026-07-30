@@ -5,6 +5,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { resolveEmployeeLocationScope } from "@/shared/lib/employee-location-scope";
 
 const requestSchema = z.object({
   submissionId: z.string().uuid(),
@@ -27,27 +28,34 @@ export async function POST(request: Request) {
   const submissionId = parsed.data.submissionId;
   const organizationId = moduleAccess.tenant.organizationId;
 
+  // Las locaciones salen del mismo resolvedor que usa la pantalla de reportes.
+  // Antes esta ruta armaba la lista a mano con branch_id y se olvidaba de
+  // location_scope_ids y all_locations: un empleado asignado a varias locaciones
+  // veia el reporte en la lista y despues no podia marcarlo como revisado.
   const [{ data: employeeRow }, { data: membershipRows }] = await Promise.all([
     supabase
       .from("employees")
-      .select("branch_id")
+      .select("branch_id, all_locations, location_scope_ids")
       .eq("organization_id", organizationId)
       .eq("user_id", moduleAccess.userId)
       .maybeSingle(),
     supabase
       .from("memberships")
-      .select("branch_id")
+      .select("branch_id, all_locations, location_scope_ids")
       .eq("organization_id", organizationId)
       .eq("user_id", moduleAccess.userId)
       .eq("status", "active")
       .limit(20),
   ]);
 
-  const activeLocationIds = [...new Set([
-    moduleAccess.tenant.branchId,
-    employeeRow?.branch_id,
-    ...(membershipRows ?? []).map((row) => row.branch_id),
-  ].filter((value): value is string => Boolean(value)))];
+  const locationScope = await resolveEmployeeLocationScope(supabase, organizationId, {
+    tenantBranchId: moduleAccess.tenant.branchId,
+    employeeBranchId: employeeRow?.branch_id ?? null,
+    employeeLocationIds: employeeRow?.location_scope_ids ?? [],
+    membershipRows: membershipRows ?? [],
+    employeeAllLocations: employeeRow?.all_locations ?? false,
+  });
+  const activeLocationIds = locationScope.locationIds;
 
   const { data: submission } = await admin
     .from("checklist_submissions")
