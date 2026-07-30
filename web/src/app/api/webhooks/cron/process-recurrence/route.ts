@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { calculateNextRunAt, RecurrenceType } from "@/shared/lib/cron-utils";
 import { processAnnouncementDeliveries } from "@/modules/announcements/services/deliveries";
 import { applyPendingChecklistSections } from "@/modules/checklists/services/checklist-template.service";
+import { parseChecklistSections } from "@/modules/checklists/lib/sections";
 
 type JobError = { id: string; error: string };
 
@@ -115,18 +116,10 @@ async function processRecurrence(req: Request) {
            // en curso (ver upsertChecklistTemplate). Se aplica ANTES de avisar,
            // para que quien reciba el recordatorio ya vea la lista nueva.
            if (template?.pending_sections) {
-             const pending = Array.isArray(template.pending_sections)
-               ? (template.pending_sections as Array<{ name?: unknown; items?: unknown }>)
-               : [];
-
-             const sections = pending
-               .map((section) => ({
-                 name: typeof section?.name === "string" ? section.name.trim() : "",
-                 items: Array.isArray(section?.items)
-                   ? section.items.filter((item): item is string => typeof item === "string" && item.trim() !== "")
-                   : [],
-               }))
-               .filter((section) => section.name !== "" || section.items.length > 0);
+             // parseChecklistSections acepta la forma vieja (items como texto) y
+             // la nueva (items con id), asi que los pendientes ya guardados antes
+             // del cambio siguen aplicandose.
+             const sections = parseChecklistSections(template.pending_sections);
 
              const applied = await applyPendingChecklistSections({
                supabase: supabaseAdmin,

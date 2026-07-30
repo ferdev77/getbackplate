@@ -4,6 +4,14 @@ import { type FormEvent, useState, startTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
+import {
+  ScopeModalContent,
+  ScopeModalZones,
+  SCOPE_MODAL_FOOTER,
+  SCOPE_MODAL_FORM,
+  SCOPE_MODAL_HEADER,
+  SCOPE_MODAL_PANEL,
+} from "@/shared/ui/scope-modal-layout";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import type { ScopedUserOption } from "@/shared/contracts/scope-options";
 
@@ -104,17 +112,17 @@ export function DocumentFolderModal({
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-      <div className="max-h-[92vh] w-[1040px] max-w-[97vw] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-        <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
+      <div className={SCOPE_MODAL_PANEL}>
+        <div className={SCOPE_MODAL_HEADER}>
           <div>
             <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">Nueva Carpeta</p>
             <p className="mt-0.5 text-[11px] text-[var(--gbp-text2)]">Organiza documentos y define el alcance de acceso.</p>
           </div>
           <button type="button" onClick={closeModal} className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</button>
         </div>
-        <form onSubmit={onSubmit}>
-          <div className="max-h-[74vh] overflow-y-auto px-6 py-5">
-            <div className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-4">
+        <form onSubmit={onSubmit} className={SCOPE_MODAL_FORM}>
+          <ScopeModalZones withScope={!hideScopeSelector}>
+            <ScopeModalContent withScope={!hideScopeSelector}>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label>
                   <span className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Nombre de la carpeta</span>
@@ -130,9 +138,10 @@ export function DocumentFolderModal({
                 </label>
               </div>
 
-              {!hideScopeSelector ? (
-                <div className="mt-4 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-4">
-                  <ScopeSelector
+            </ScopeModalContent>
+
+            {!hideScopeSelector ? (
+              <ScopeSelector
                     namespace="folder"
                     branches={branches}
                     departments={departments}
@@ -149,12 +158,10 @@ export function DocumentFolderModal({
                     allowedLocationIds={allowedLocationIds}
                     lockLocationSelection={lockLocationSelection}
                     locationHelperText={lockLocationSelection ? "Tu alcance base queda limitado a tus locaciones asignadas." : undefined}
-                  />
-                </div>
-              ) : null}
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
+              />
+            ) : null}
+          </ScopeModalZones>
+          <div className={SCOPE_MODAL_FOOTER}>
             <button type="button" onClick={closeModal} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">Cancelar</button>
             <SubmitButton 
               label="Crear Carpeta" 

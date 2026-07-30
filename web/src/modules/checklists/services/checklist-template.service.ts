@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { assertScopeIntent, normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
 import { calculateNextRunAt, RecurrenceType } from "@/shared/lib/cron-utils";
+import { isTextOnlyChecklistEdit, type ChecklistSection } from "@/modules/checklists/lib/sections";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -28,7 +29,7 @@ export type UpsertChecklistTemplateInput = {
   departmentScopes: string[];
   positionScopes: string[];
   userScopes: string[];
-  normalizedSections: Array<{ name: string; items: string[] }>;
+  normalizedSections: ChecklistSection[];
   notifyVia: Array<"sms">;
   /**
    * Forzar que los items se apliquen ya, aunque la vuelta actual tenga
@@ -86,7 +87,7 @@ export async function applyPendingChecklistSections(params: {
   supabase: SupabaseClient;
   organizationId: string;
   templateId: string;
-  sections: Array<{ name: string; items: string[] }>;
+  sections: ChecklistSection[];
 }): Promise<{ ok: true } | { ok: false; message: string }> {
   const { supabase, organizationId, templateId, sections } = params;
 
@@ -134,10 +135,10 @@ export async function applyPendingChecklistSections(params: {
     const { error: itemsError } = await supabase
       .from("checklist_template_items")
       .insert(
-        section.items.map((label, itemIndex) => ({
+        section.items.map((item, itemIndex) => ({
           organization_id: organizationId,
           section_id: sectionRow.id,
-          label,
+          label: item.text,
           priority: normalizePriority("medium"),
           sort_order: itemIndex,
         })),
@@ -375,12 +376,9 @@ export async function upsertChecklistTemplate(
   //
   // Sin identificadores de item en el payload no se puede distinguir con
   // exactitud un renombre de un alta+baja, asi que se compara la estructura:
-  // mismas secciones con los mismos nombres y la misma cantidad de items en cada
-  // una => lo unico que pudo cambiar es el texto.
-  //
-  // El unico caso que se le escapa es cambiar un item por otro distinto
-  // manteniendo la cantidad, que se tomaria como renombre. Cualquier alta o baja
-  // real mueve las cantidades y cae del lado seguro: se difiere.
+  // Corregir el texto de un item se aplica ya; agregar o quitar se difiere al
+  // proximo reparto. La distincion es exacta porque el formulario devuelve el id
+  // de cada item que ya existia (ver isTextOnlyChecklistEdit).
   let onlyTextEdits = false;
   if (templateId) {
     const { data: previousSections } = await supabase
@@ -390,35 +388,29 @@ export async function upsertChecklistTemplate(
       .eq("template_id", template.id)
       .order("sort_order", { ascending: true });
 
-    const previousIds = (previousSections ?? []).map((row) => row.id);
-    const { data: previousItems } = previousIds.length
+    const previousSectionIds = (previousSections ?? []).map((row) => row.id);
+    const { data: previousItems } = previousSectionIds.length
       ? await supabase
           .from("checklist_template_items")
-          .select("section_id")
+          .select("id, section_id")
           .eq("organization_id", organizationId)
-          .in("section_id", previousIds)
-      : { data: [] as Array<{ section_id: string }> };
+          .in("section_id", previousSectionIds)
+      : { data: [] as Array<{ id: string; section_id: string }> };
 
-    const countBySectionId = new Map<string, number>();
+    const itemIdsBySectionId = new Map<string, string[]>();
     for (const row of previousItems ?? []) {
-      countBySectionId.set(row.section_id, (countBySectionId.get(row.section_id) ?? 0) + 1);
+      const list = itemIdsBySectionId.get(row.section_id) ?? [];
+      list.push(row.id);
+      itemIdsBySectionId.set(row.section_id, list);
     }
 
-    const previousShape = (previousSections ?? []).map((row) => ({
-      name: row.name,
-      items: countBySectionId.get(row.id) ?? 0,
-    }));
-    const nextShape = normalizedSections.map((section) => ({
-      name: section.name,
-      items: section.items.length,
-    }));
-
-    onlyTextEdits =
-      previousShape.length > 0 &&
-      previousShape.length === nextShape.length &&
-      previousShape.every(
-        (section, index) => section.name === nextShape[index].name && section.items === nextShape[index].items,
-      );
+    onlyTextEdits = isTextOnlyChecklistEdit({
+      previousSections: (previousSections ?? []).map((row) => ({
+        name: row.name,
+        itemIds: itemIdsBySectionId.get(row.id) ?? [],
+      })),
+      nextSections: normalizedSections,
+    });
   }
 
   if (templateId && !input.applyNow && !onlyTextEdits) {
@@ -550,10 +542,10 @@ export async function upsertChecklistTemplate(
       };
     }
 
-    const itemsPayload = section.items.map((label, index) => ({
+    const itemsPayload = section.items.map((item, index) => ({
       organization_id: organizationId,
       section_id: sectionRow.id,
-      label,
+      label: item.text,
       priority: normalizePriority("medium"),
       sort_order: index,
     }));

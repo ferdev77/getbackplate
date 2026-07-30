@@ -14,7 +14,7 @@ type EditingTemplate = {
   repeat_every?: string;
   is_active?: boolean;
   target_scope?: Record<string, string[]>;
-  templateSections?: Array<{ name: string; items: string[] }>;
+  templateSections?: Array<{ name: string; items: Array<{ id: string; label: string }> }>;
   templateItems?: Array<{ label: string }>;
   scheduledJob?: { recurrence_type: string; custom_days: number[]; cron_expression?: string } | null;
 };

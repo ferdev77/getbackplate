@@ -12,6 +12,7 @@ import {
 } from "@/shared/lib/scope-validation";
 import { enforceLocationPolicy } from "@/shared/lib/scope-policy";
 import { resolveEmployeeAllowedLocationIds } from "@/shared/lib/employee-api-scope";
+import { flattenChecklistSectionTexts, parseChecklistSections } from "@/modules/checklists/lib/sections";
 
 function parseItems(input: string) {
   return input
@@ -27,25 +28,6 @@ function normalizeChecklistType(value: string | null | undefined) {
   return "custom";
 }
 
-function parseSectionsPayload(raw: string | null | undefined) {
-  const value = String(raw ?? "").trim();
-  if (!value) return [] as Array<{ name: string; items: string[] }>;
-  try {
-    const parsed = JSON.parse(value) as Array<{ name?: unknown; items?: unknown }>;
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map((section) => ({
-        name: typeof section?.name === "string" && section.name.trim() ? section.name.trim() : "General",
-        items: Array.isArray(section?.items)
-          ? section.items.map((item) => String(item).trim()).filter(Boolean)
-          : [],
-      }))
-      .filter((section) => section.items.length > 0)
-      .slice(0, 20);
-  } catch {
-    return [];
-  }
-}
 
 
 export async function POST(request: Request) {
@@ -73,8 +55,8 @@ export async function POST(request: Request) {
 
   const name = String(body?.name ?? "").trim();
   const fallbackItems = parseItems(String(body?.items ?? ""));
-  const sections = parseSectionsPayload(body?.sections_payload);
-  const items = sections.length > 0 ? sections.flatMap((section) => section.items) : fallbackItems;
+  const sections = parseChecklistSections(body?.sections_payload);
+  const items = sections.length > 0 ? flattenChecklistSectionTexts(sections) : fallbackItems;
   const checklistType = normalizeChecklistType(body?.checklist_type);
   const shift = String(body?.shift ?? "1er Shift").trim() || "1er Shift";
   const repeatEvery = String(body?.repeat_every ?? "daily").trim() || "daily";
@@ -277,8 +259,8 @@ export async function PATCH(request: Request) {
   const templateId = String(body?.templateId ?? "").trim();
   const name = String(body?.name ?? "").trim();
   const fallbackItems = parseItems(String(body?.items ?? ""));
-  const sections = parseSectionsPayload(body?.sections_payload);
-  const items = sections.length > 0 ? sections.flatMap((section) => section.items) : fallbackItems;
+  const sections = parseChecklistSections(body?.sections_payload);
+  const items = sections.length > 0 ? flattenChecklistSectionTexts(sections) : fallbackItems;
   const checklistType = normalizeChecklistType(body?.checklist_type);
   const shift = String(body?.shift ?? "1er Shift").trim() || "1er Shift";
   const repeatEvery = String(body?.repeat_every ?? "daily").trim() || "daily";

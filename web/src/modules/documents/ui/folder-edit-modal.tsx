@@ -3,6 +3,14 @@
 import { useState } from "react";
 
 import { ScopeSelector } from "@/shared/ui/scope-selector";
+import {
+  ScopeModalContent,
+  ScopeModalZones,
+  SCOPE_MODAL_FOOTER,
+  SCOPE_MODAL_FORM,
+  SCOPE_MODAL_HEADER,
+  SCOPE_MODAL_PANEL,
+} from "@/shared/ui/scope-modal-layout";
 import type { ScopedUserOption } from "@/shared/contracts/scope-options";
 
 type FolderRow = {
@@ -36,14 +44,11 @@ type Props = {
   onSave: (payload: { folderId: string; name: string; parentId: string | null; scope?: ScopeState }) => void;
 };
 
-const MODAL_PANEL = "overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]";
-const MODAL_HEADER = "flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5";
 const MODAL_TITLE = "font-serif text-sm font-bold text-[var(--gbp-text)]";
 const MODAL_CLOSE = "grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-bg)]";
 const MODAL_SOFT_BOX = "rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3";
 const MODAL_LABEL = "text-[11px] font-bold tracking-[0.1em] text-[var(--gbp-text2)] uppercase";
 const MODAL_INPUT = "rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]";
-const MODAL_FOOTER = "flex justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4";
 const MODAL_CANCEL = "rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]";
 const MODAL_PRIMARY = "rounded-lg bg-[var(--gbp-text)] px-5 py-2 text-sm font-bold text-white hover:bg-[var(--gbp-accent)] disabled:opacity-60";
 
@@ -54,8 +59,8 @@ export function FolderEditModal({ folder, folders, branches, departments, positi
 
   return (
     <div className="fixed inset-0 z-[1020] flex items-center justify-center bg-black/45 p-5">
-      <div className={`w-[1040px] max-w-[96vw] ${MODAL_PANEL}`}>
-        <div className={MODAL_HEADER}><p className={MODAL_TITLE}>Editar Carpeta</p><button type="button" className={MODAL_CLOSE} onClick={onCancel}>✕</button></div>
+      <div className={SCOPE_MODAL_PANEL}>
+        <div className={SCOPE_MODAL_HEADER}><p className={MODAL_TITLE}>Editar Carpeta</p><button type="button" className={MODAL_CLOSE} onClick={onCancel}>✕</button></div>
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -69,8 +74,10 @@ export function FolderEditModal({ folder, folders, branches, departments, positi
             };
             onSave({ folderId: folder.id, name: name.trim(), parentId: parentId || null, scope });
           }}
+          className={SCOPE_MODAL_FORM}
         >
-          <div className="max-h-[70vh] space-y-4 overflow-y-auto px-6 py-5">
+          <ScopeModalZones>
+            <ScopeModalContent>
             <section className={MODAL_SOFT_BOX}>
               <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Datos de la carpeta</p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -94,13 +101,9 @@ export function FolderEditModal({ folder, folders, branches, departments, positi
               </div>
             </section>
 
-            <section className={MODAL_SOFT_BOX}>
-              <div className="mb-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-text2)]">Permisos de acceso</p>
-                <p className="mt-1 text-xs text-[var(--gbp-text2)]">Este alcance aplica a los archivos dentro de esta carpeta.</p>
-              </div>
-              <div className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 pb-3">
-                <ScopeSelector
+            </ScopeModalContent>
+
+            <ScopeSelector
                   namespace="edit-folder"
                   branches={branches}
                   departments={departments}
@@ -117,11 +120,9 @@ export function FolderEditModal({ folder, folders, branches, departments, positi
                   initialDepartments={initialScope.departments}
                   initialPositions={initialScope.positions}
                   initialUsers={initialScope.users}
-                />
-              </div>
-            </section>
-          </div>
-          <div className={MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="submit" disabled={busy || !name.trim() || !scopeValid} className={MODAL_PRIMARY}>{busy ? "Guardando..." : "Guardar"}</button></div>
+              />
+          </ScopeModalZones>
+          <div className={SCOPE_MODAL_FOOTER}><button type="button" onClick={onCancel} className={MODAL_CANCEL}>Cancelar</button><button type="submit" disabled={busy || !name.trim() || !scopeValid} className={MODAL_PRIMARY}>{busy ? "Guardando..." : "Guardar"}</button></div>
         </form>
       </div>
     </div>

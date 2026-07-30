@@ -7,6 +7,14 @@ import { toast } from "sonner";
 
 import { createAnnouncementAction } from "@/modules/announcements/actions";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
+import {
+  ScopeModalContent,
+  ScopeModalZones,
+  SCOPE_MODAL_FOOTER,
+  SCOPE_MODAL_FORM,
+  SCOPE_MODAL_HEADER,
+  SCOPE_MODAL_PANEL,
+} from "@/shared/ui/scope-modal-layout";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import { RecurrenceSelector } from "@/shared/ui/recurrence-selector";
 import type { BranchOption, DepartmentOption, PositionOption, ScopedUserOption } from "@/shared/contracts/scope-options";
@@ -182,8 +190,8 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-      <div className="max-h-[90vh] w-[1060px] max-w-[96vw] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-        <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
+      <div className={SCOPE_MODAL_PANEL}>
+        <div className={SCOPE_MODAL_HEADER}>
           <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">{mode === "edit" ? "Editar Aviso" : "Nuevo Aviso"}</p>
           <button
             type="button"
@@ -194,9 +202,14 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
           </button>
         </div>
 
-        <form action={submitEndpoint ? undefined : formAction} onSubmit={submitEndpoint ? handleApiSubmit : undefined}>
+        <form
+          action={submitEndpoint ? undefined : formAction}
+          onSubmit={submitEndpoint ? handleApiSubmit : undefined}
+          className={SCOPE_MODAL_FORM}
+        >
           {mode === "edit" && initial ? <input type="hidden" name="announcement_id" value={initial.id} /> : null}
-          <div className="max-h-[68vh] overflow-y-auto px-6 py-5">
+          <ScopeModalZones>
+            <ScopeModalContent>
             <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Tipo de aviso</label>
             <select name="kind" defaultValue={initial?.kind ?? "general"} className="w-full rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-3 py-2 text-sm text-[var(--gbp-text)]">
               <option value="general">General</option>
@@ -235,28 +248,6 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
 
             <div className="my-4 h-px bg-[var(--gbp-border)]" />
 
-            <ScopeSelector
-              namespace="announcement"
-              branches={branches}
-              departments={departments}
-              positions={positions}
-              users={users}
-              locationInputName="location_scope"
-              departmentInputName="department_scope"
-              positionInputName="position_scope"
-              userInputName="user_scope"
-              modeInputName="scope_mode"
-              question="¿Quién tiene que ver este aviso?"
-              audienceLabel="Lo verán"
-              onValidityChange={setScopeValid}
-              initialLocations={initial?.location_scope ?? []}
-              initialDepartments={initial?.department_scope ?? []}
-              initialPositions={initial?.position_scope ?? []}
-              initialUsers={initial?.user_scope ?? []}
-              allowedLocationIds={allowedLocationIds}
-              lockLocationSelection={lockLocationSelection}
-              locationHelperText={locationHelperText}
-            />
 
             {mode === "create" ? (
               <>
@@ -357,9 +348,33 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
                 initialDays={initial?.custom_days} 
               />
             ) : null}
-          </div>
+            </ScopeModalContent>
 
-          <div className="flex justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
+            <ScopeSelector
+              namespace="announcement"
+              branches={branches}
+              departments={departments}
+              positions={positions}
+              users={users}
+              locationInputName="location_scope"
+              departmentInputName="department_scope"
+              positionInputName="position_scope"
+              userInputName="user_scope"
+              modeInputName="scope_mode"
+              question="¿Quién tiene que ver este aviso?"
+              audienceLabel="Lo verán"
+              onValidityChange={setScopeValid}
+              initialLocations={initial?.location_scope ?? []}
+              initialDepartments={initial?.department_scope ?? []}
+              initialPositions={initial?.position_scope ?? []}
+              initialUsers={initial?.user_scope ?? []}
+              allowedLocationIds={allowedLocationIds}
+              lockLocationSelection={lockLocationSelection}
+              locationHelperText={locationHelperText}
+            />
+          </ScopeModalZones>
+
+          <div className={SCOPE_MODAL_FOOTER}>
             <button
               type="button"
               onClick={handleClose}

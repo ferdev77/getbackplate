@@ -5,7 +5,15 @@ import { FormEvent, useEffect, useMemo, useRef, useState, startTransition } from
 import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { ScopeSelectorOrInherited } from "@/shared/ui/scope-selector";
+import { ScopeSelector } from "@/shared/ui/scope-selector";
+import {
+  ScopeModalContent,
+  ScopeModalZones,
+  SCOPE_MODAL_FOOTER,
+  SCOPE_MODAL_FORM,
+  SCOPE_MODAL_HEADER,
+  SCOPE_MODAL_PANEL,
+} from "@/shared/ui/scope-modal-layout";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import type { ScopedUserOption } from "@/shared/contracts/scope-options";
 
@@ -57,6 +65,9 @@ export function UploadDocumentModal({
   const [isClosing, setIsClosing] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [scopeValid, setScopeValid] = useState(true);
+  // Un archivo dentro de una carpeta hereda sus permisos: ahi no hay alcance
+  // propio que editar y el modal vuelve a una sola columna.
+  const showScopeSelector = !hideScopeSelector && !selectedFolderId;
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -147,11 +158,15 @@ export function UploadDocumentModal({
 
   return (
     <div className={`fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5 transition-opacity duration-300 ${isClosing ? "pointer-events-none opacity-0" : "opacity-100"}`}>
-      <div className={`relative max-h-[90vh] w-[980px] max-w-[96vw] overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)] transition duration-300 ${isClosing ? "scale-[0.985] opacity-0" : "scale-100 opacity-100"}`}>
-        <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5"><p className="font-serif text-sm font-bold text-[var(--gbp-text)]">Subir Archivo</p><button type="button" onClick={closeModal} className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</button></div>
-        <form onSubmit={handleSubmit}>
-          <div className="max-h-[68vh] overflow-y-auto px-6 py-5">
-            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+      <div
+        className={`relative ${SCOPE_MODAL_PANEL} transition duration-300 ${
+          isClosing ? "scale-[0.985] opacity-0" : "scale-100 opacity-100"
+        }`}
+      >
+        <div className={SCOPE_MODAL_HEADER}><p className="font-serif text-sm font-bold text-[var(--gbp-text)]">Subir Archivo</p><button type="button" onClick={closeModal} className="grid h-8 w-8 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</button></div>
+        <form onSubmit={handleSubmit} className={SCOPE_MODAL_FORM}>
+          <ScopeModalZones withScope={showScopeSelector}>
+            <ScopeModalContent withScope={showScopeSelector}>
               <div>
                 <label className="mb-4 block cursor-pointer rounded-2xl border-2 border-dashed border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-5 py-8 text-center transition hover:border-[var(--gbp-border)]">
                   <p className="text-3xl">📂</p>
@@ -169,32 +184,13 @@ export function UploadDocumentModal({
                 <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Guardar en carpeta</label>
                 <select name="folder_id" value={selectedFolderId} onChange={(event) => setSelectedFolderId(event.target.value)} className="mb-3 w-full rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]"><option value="">Sin carpeta</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select>
 
-                <div className="mb-3 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-text2)]">Quienes pueden ver este archivo</p>
-                  {!hideScopeSelector && !selectedFolderId ? (
-                    <p className="mt-1 text-xs text-[var(--gbp-text2)]">Define acceso por locación, departamento, puesto o usuario. Esta configuración aplica cuando el archivo está en raíz.</p>
-                  ) : null}
-                  <ScopeSelectorOrInherited
-                    inherited={hideScopeSelector || Boolean(selectedFolderId)}
-                    inheritedMessage={hideScopeSelector ? scopeLockedMessage : "Este archivo heredará automáticamente los permisos de la carpeta seleccionada."}
-                    namespace="upload-modal"
-                    branches={branches}
-                    departments={departments}
-                    positions={positions}
-                    users={employees}
-                    locationInputName="location_scope"
-                    departmentInputName="department_scope"
-                    positionInputName="position_scope"
-                    userInputName="user_scope"
-                    modeInputName="scope_mode"
-                    question="¿Quién tiene que ver este archivo?"
-                    audienceLabel="Tendrán acceso"
-                    onValidityChange={setScopeValid}
-                    allowedLocationIds={allowedLocationIds}
-                    lockLocationSelection={lockLocationSelection}
-                    locationHelperText={lockLocationSelection ? "Tu alcance base queda limitado a tus locaciones asignadas." : undefined}
-                  />
-                </div>
+                {!showScopeSelector ? (
+                  <p className="mb-3 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 py-2 text-xs text-[var(--gbp-text2)]">
+                    {hideScopeSelector
+                      ? scopeLockedMessage
+                      : "Este archivo heredará automáticamente los permisos de la carpeta seleccionada."}
+                  </p>
+                ) : null}
 
                 <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Descripción (opcional)</label>
                 <textarea className="mb-2 h-24 w-full resize-none rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)]" placeholder="Describe brevemente el contenido del documento..." />
@@ -223,9 +219,31 @@ export function UploadDocumentModal({
                   {!recentDocuments.length ? <p className="text-xs text-[var(--gbp-text2)]">Sin cargas recientes.</p> : null}
                 </div>
               </aside>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
+            </ScopeModalContent>
+
+            {showScopeSelector ? (
+              <ScopeSelector
+                namespace="upload-modal"
+                branches={branches}
+                departments={departments}
+                positions={positions}
+                users={employees}
+                locationInputName="location_scope"
+                departmentInputName="department_scope"
+                positionInputName="position_scope"
+                userInputName="user_scope"
+                modeInputName="scope_mode"
+                question="¿Quién tiene que ver este archivo?"
+                audienceLabel="Tendrán acceso"
+                onValidityChange={setScopeValid}
+                allowedLocationIds={allowedLocationIds}
+                lockLocationSelection={lockLocationSelection}
+                locationHelperText={lockLocationSelection ? "Tu alcance base queda limitado a tus locaciones asignadas." : undefined}
+              />
+            ) : null}
+          </ScopeModalZones>
+
+          <div className={SCOPE_MODAL_FOOTER}>
             <button type="button" onClick={closeModal} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">
               Cancelar
             </button>

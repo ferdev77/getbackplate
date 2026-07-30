@@ -208,13 +208,18 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
         .order("sort_order", { ascending: true })
     : { data: [] as Array<{ id: string; section_id: string; label: string; sort_order: number }> };
 
-  const itemsBySectionId = new Map<string, string[]>();
+  // Los items llevan su id para que el armador pueda devolverlo y el servidor
+  // distinga un renombre de un alta (ver isTextOnlyChecklistEdit).
+  const itemsBySectionId = new Map<string, Array<{ id: string; label: string }>>();
   for (const item of myItems ?? []) {
     const current = itemsBySectionId.get(item.section_id) ?? [];
-    itemsBySectionId.set(item.section_id, [...current, item.label]);
+    itemsBySectionId.set(item.section_id, [...current, { id: item.id, label: item.label }]);
   }
 
-  const sectionsByTemplateId = new Map<string, Array<{ name: string; items: string[] }>>();
+  const sectionsByTemplateId = new Map<
+    string,
+    Array<{ name: string; items: Array<{ id: string; label: string }> }>
+  >();
   for (const section of mySections ?? []) {
     const current = sectionsByTemplateId.get(section.template_id) ?? [];
     current.push({
@@ -238,7 +243,7 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
           ? (template.target_scope as Record<string, string[]>)
           : {},
       templateSections,
-      items: templateSections.flatMap((section) => section.items),
+      items: templateSections.flatMap((section) => section.items.map((item) => item.label)),
     };
   });
 

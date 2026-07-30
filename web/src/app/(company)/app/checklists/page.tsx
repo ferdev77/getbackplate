@@ -275,7 +275,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
     const sectionViews = templateSections.map((section) => ({
       id: section.id,
       name: section.name,
-      items: (itemsBySection.get(section.id) ?? []).map((item) => item.label),
+      items: (itemsBySection.get(section.id) ?? []).map((item) => ({ id: item.id, label: item.label })),
     }));
     const itemsCount = templateItems.length;
 
@@ -466,7 +466,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
                   <p className="text-sm font-semibold text-[var(--gbp-text)]">{section.name}</p>
                   <ul className="mt-2 space-y-1.5">
                     {section.items.map((item) => (
-                      <li key={`${section.id}-${item}`} className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-xs text-[var(--gbp-text2)]">{item}</li>
+                      <li key={item.id} className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-xs text-[var(--gbp-text2)]">{item.label}</li>
                     ))}
                   </ul>
                 </div>

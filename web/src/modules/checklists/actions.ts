@@ -11,6 +11,7 @@ import { sendChecklistAudienceEmail, sendChecklistAudiencePush, sendChecklistAud
 import { upsertChecklistTemplate, deleteChecklistTemplate } from "./services/checklist-template.service";
 
 import { z } from "zod";
+import { parseChecklistSections, type ChecklistSection } from "@/modules/checklists/lib/sections";
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -84,23 +85,11 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
 
   // --- Normalize sections ---
   const { sections_payload: sectionsPayloadRaw, items: itemsInput } = parsed.data;
-  let normalizedSections: Array<{ name: string; items: string[] }> = [];
+  let normalizedSections: ChecklistSection[] = [];
 
   if (sectionsPayloadRaw) {
-    try {
-      const sectionsParsed = JSON.parse(sectionsPayloadRaw);
-      if (Array.isArray(sectionsParsed)) {
-        normalizedSections = sectionsParsed
-          .map((section: { name?: unknown; items?: unknown }) => ({
-            name: typeof section?.name === "string" && section.name.trim() ? section.name.trim() : "General",
-            items: Array.isArray(section?.items)
-              ? section.items.map((item: unknown) => String(item).trim()).filter(Boolean)
-              : [],
-          }))
-          .filter((section) => section.items.length > 0)
-          .slice(0, 20);
-      }
-    } catch {
+    normalizedSections = parseChecklistSections(sectionsPayloadRaw);
+    if (normalizedSections.length === 0) {
       return { success: false, message: "Invalid sections (JSON) format" };
     }
   } else if (itemsInput) {
@@ -111,7 +100,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
       .slice(0, 80);
 
     if (fallbackItems.length > 0) {
-      normalizedSections = [{ name: "General", items: fallbackItems }];
+      normalizedSections = [{ name: "General", items: fallbackItems.map((text) => ({ id: null, text })) }];
     }
   }
 

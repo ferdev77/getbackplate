@@ -41,7 +41,7 @@ function typeLabel(type: string) {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type ScopeRole = { name: string; type: "department" | "position" };
-type SectionView = { id: string; name: string; items: string[] };
+type SectionView = { id: string; name: string; items: Array<{ id: string; label: string }> };
 
 export type ChecklistTemplateRow = {
   id: string;

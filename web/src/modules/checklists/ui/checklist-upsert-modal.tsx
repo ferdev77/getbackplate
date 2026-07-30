@@ -5,11 +5,20 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Mail, Smartphone } from "lucide-react";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
+import {
+  ScopeModalContent,
+  ScopeModalZones,
+  SCOPE_MODAL_FOOTER,
+  SCOPE_MODAL_FORM,
+  SCOPE_MODAL_HEADER,
+  SCOPE_MODAL_PANEL,
+} from "@/shared/ui/scope-modal-layout";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import { RecurrenceSelector } from "@/shared/ui/recurrence-selector";
 import { ChecklistItemsBuilder } from "@/modules/checklists/ui/checklist-items-builder";
 import { createChecklistTemplateAction } from "@/modules/checklists/actions";
 import type { BranchOption, DepartmentOption, PositionOption, ScopedUserOption } from "@/shared/contracts/scope-options";
+import { flattenChecklistSectionTexts, parseChecklistSections } from "@/modules/checklists/lib/sections";
 
 // SMS sigue funcionando en el backend; se oculta de la UI por ahora.
 const SHOW_SMS_CHANNEL = false;
@@ -22,7 +31,7 @@ type EditingTemplate = {
   repeat_every?: string;
   is_active?: boolean;
   target_scope?: Record<string, string[]>;
-  templateSections?: Array<{ name: string; items: string[] }>;
+  templateSections?: Array<{ name: string; items: Array<{ id: string; label: string }> }>;
   templateItems?: Array<{ label: string }>;
   scheduledJob?: { recurrence_type: string; custom_days: number[]; cron_expression?: string } | null;
 };
@@ -110,17 +119,12 @@ export function ChecklistUpsertModal({
 
     let items = "";
     if (sectionsPayload) {
-      try {
-        const parsed = JSON.parse(sectionsPayload) as Array<{ items?: unknown[] }>;
-        const flatItems = (parsed ?? [])
-          .flatMap((section) => (Array.isArray(section?.items) ? section.items : []))
-          .map((item) => String(item).trim())
-          .filter(Boolean);
-        items = flatItems.join("\n");
-      } catch {
+      const sections = parseChecklistSections(sectionsPayload);
+      if (sections.length === 0) {
         toast.error("The section format is invalid.");
         return;
       }
+      items = flattenChecklistSectionTexts(sections).join("\n");
     } else {
       items = legacyItems;
     }
@@ -176,14 +180,19 @@ export function ChecklistUpsertModal({
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-      <div className="flex max-h-[90vh] w-[1060px] max-w-[96vw] flex-col overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-xl)]">
-        <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 pb-4 pt-5">
+      <div className={SCOPE_MODAL_PANEL}>
+        <div className={SCOPE_MODAL_HEADER}>
           <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">{action === "edit" ? "Editar Checklist" : "Nuevo Checklist"}</p>
           <button type="button" onClick={handleClose} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</button>
         </div>
-        <form action={submitEndpoint ? undefined : formAction} onSubmit={submitEndpoint ? handleApiSubmit : undefined}>
+        <form
+          action={submitEndpoint ? undefined : formAction}
+          onSubmit={submitEndpoint ? handleApiSubmit : undefined}
+          className={SCOPE_MODAL_FORM}
+        >
           {editingTemplate ? <input type="hidden" name="template_id" value={editingTemplate.id} /> : null}
-          <div className="max-h-[68vh] overflow-y-auto px-6 py-5">
+          <ScopeModalZones>
+            <ScopeModalContent>
             <h3 className="mb-3 border-b-[1.5px] border-[var(--gbp-border)] pb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Informacion general</h3>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="grid gap-1.5 sm:col-span-2">
@@ -221,29 +230,6 @@ export function ChecklistUpsertModal({
                 </select>
               </label>
             </div>
-            <h3 className="mb-3 mt-6 border-b-[1.5px] border-[var(--gbp-border)] pb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Visible para</h3>
-            <ScopeSelector
-              namespace="checklist"
-              branches={branches}
-              departments={departments}
-              positions={positions}
-              users={users}
-              locationInputName="location_scope"
-              departmentInputName="department_scope"
-              positionInputName="position_scope"
-              userInputName="user_scope"
-              modeInputName="scope_mode"
-              question="¿Quién tiene que completar este checklist?"
-              audienceLabel="Lo completarán"
-              onValidityChange={setScopeValid}
-              initialLocations={Array.isArray((editingTemplate?.target_scope as Record<string, string[]> | undefined)?.locations) ? ((editingTemplate?.target_scope as Record<string, string[]>).locations ?? []) : []}
-              initialDepartments={Array.isArray((editingTemplate?.target_scope as Record<string, string[]> | undefined)?.department_ids) ? ((editingTemplate?.target_scope as Record<string, string[]>).department_ids ?? []) : []}
-              initialPositions={Array.isArray((editingTemplate?.target_scope as Record<string, string[]> | undefined)?.position_ids) ? ((editingTemplate?.target_scope as Record<string, string[]>).position_ids ?? []) : []}
-              initialUsers={Array.isArray((editingTemplate?.target_scope as Record<string, string[]> | undefined)?.users) ? ((editingTemplate?.target_scope as Record<string, string[]>).users ?? []) : []}
-              allowedLocationIds={allowedLocationIds}
-              lockLocationSelection={lockLocationSelection}
-              locationHelperText={locationHelperText}
-            />
             <h3 className="mb-3 mt-6 border-b-[1.5px] border-[var(--gbp-border)] pb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--gbp-muted)]">Items del checklist</h3>
             <ChecklistItemsBuilder
               initialSections={
@@ -287,8 +273,33 @@ export function ChecklistUpsertModal({
                 {notifyEmail ? <input type="hidden" name="notify_channel" value="email" /> : null}
               </>
             ) : null}
-          </div>
-          <div className="flex justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
+            </ScopeModalContent>
+
+            <ScopeSelector
+            namespace="checklist"
+            branches={branches}
+            departments={departments}
+            positions={positions}
+            users={users}
+            locationInputName="location_scope"
+            departmentInputName="department_scope"
+            positionInputName="position_scope"
+            userInputName="user_scope"
+            modeInputName="scope_mode"
+            question="¿Quién tiene que completar este checklist?"
+            audienceLabel="Lo completarán"
+            onValidityChange={setScopeValid}
+            initialLocations={Array.isArray((editingTemplate?.target_scope as Record<string, string[]> | undefined)?.locations) ? ((editingTemplate?.target_scope as Record<string, string[]>).locations ?? []) : []}
+            initialDepartments={Array.isArray((editingTemplate?.target_scope as Record<string, string[]> | undefined)?.department_ids) ? ((editingTemplate?.target_scope as Record<string, string[]>).department_ids ?? []) : []}
+            initialPositions={Array.isArray((editingTemplate?.target_scope as Record<string, string[]> | undefined)?.position_ids) ? ((editingTemplate?.target_scope as Record<string, string[]>).position_ids ?? []) : []}
+            initialUsers={Array.isArray((editingTemplate?.target_scope as Record<string, string[]> | undefined)?.users) ? ((editingTemplate?.target_scope as Record<string, string[]>).users ?? []) : []}
+            allowedLocationIds={allowedLocationIds}
+            lockLocationSelection={lockLocationSelection}
+            locationHelperText={locationHelperText}
+            />
+          </ScopeModalZones>
+
+          <div className={SCOPE_MODAL_FOOTER}>
             <button type="button" onClick={handleClose} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">Cancelar</button>
             <SubmitButton 
               label={editingTemplate ? "Actualizar Checklist" : "Guardar Checklist"}

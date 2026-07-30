@@ -6,7 +6,12 @@ import { TooltipLabel } from "@/shared/ui/tooltip";
 
 type SectionInput = {
   name: string;
-  items: string[];
+  /**
+   * Texto suelto para un checklist nuevo; con `{ id, label }` cuando se esta
+   * editando, para que el id real del item viaje de vuelta y el servidor pueda
+   * distinguir un renombre de un alta (ver isTextOnlyChecklistEdit).
+   */
+  items: Array<string | { id: string | null; label: string }>;
 };
 
 type ChecklistItemsBuilderProps = {
@@ -16,7 +21,8 @@ type ChecklistItemsBuilderProps = {
 type LocalSection = {
   id: string;
   name: string;
-  items: Array<{ id: string; text: string }>;
+  /** `key` es solo para React; `id` es el del item en la plantilla, o null. */
+  items: Array<{ key: string; id: string | null; text: string }>;
 };
 
 function makeId(prefix: string) {
@@ -32,9 +38,10 @@ export function ChecklistItemsBuilder({ initialSections }: ChecklistItemsBuilder
     return source.map((section) => ({
       id: makeId("sec"),
       name: section.name || "General",
-      items: (section.items.length ? section.items : [""]).map((text) => ({
-        id: makeId("item"),
-        text,
+      items: (section.items.length ? section.items : [""]).map((item) => ({
+        key: makeId("item"),
+        id: typeof item === "string" ? null : item.id,
+        text: typeof item === "string" ? item : item.label,
       })),
     }));
   });
@@ -53,7 +60,9 @@ export function ChecklistItemsBuilder({ initialSections }: ChecklistItemsBuilder
       sections
         .map((section) => ({
           name: section.name.trim() || "General",
-          items: section.items.map((item) => item.text.trim()).filter(Boolean),
+          items: section.items
+            .map((item) => ({ id: item.id, text: item.text.trim() }))
+            .filter((item) => item.text !== ""),
         }))
         .filter((section) => section.items.length > 0),
     );
@@ -65,7 +74,7 @@ export function ChecklistItemsBuilder({ initialSections }: ChecklistItemsBuilder
       {
         id: makeId("sec"),
         name: `Seccion ${prev.length + 1}`,
-        items: [{ id: makeId("item"), text: "" }],
+        items: [{ key: makeId("item"), id: null, text: "" }],
       },
     ]);
   }
@@ -84,30 +93,30 @@ export function ChecklistItemsBuilder({ initialSections }: ChecklistItemsBuilder
     setSections((prev) =>
       prev.map((section) =>
         section.id === sectionId
-          ? { ...section, items: [...section.items, { id: makeId("item"), text: "" }] }
+          ? { ...section, items: [...section.items, { key: makeId("item"), id: null, text: "" }] }
           : section,
       ),
     );
   }
 
-  function removeItem(sectionId: string, itemId: string) {
+  function removeItem(sectionId: string, itemKey: string) {
     setSections((prev) =>
       prev.map((section) => {
         if (section.id !== sectionId) return section;
         if (section.items.length <= 1) return section;
-        return { ...section, items: section.items.filter((item) => item.id !== itemId) };
+        return { ...section, items: section.items.filter((item) => item.key !== itemKey) };
       }),
     );
   }
 
-  function updateItem(sectionId: string, itemId: string, value: string) {
+  function updateItem(sectionId: string, itemKey: string, value: string) {
     setSections((prev) =>
       prev.map((section) =>
         section.id === sectionId
           ? {
               ...section,
               items: section.items.map((item) =>
-                item.id === itemId ? { ...item, text: value } : item,
+                item.key === itemKey ? { ...item, text: value } : item,
               ),
             }
           : section,
@@ -139,18 +148,18 @@ export function ChecklistItemsBuilder({ initialSections }: ChecklistItemsBuilder
 
           <div className="space-y-1.5">
             {section.items.map((item) => (
-              <div key={item.id} className="flex items-center gap-2 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2.5 py-2">
+              <div key={item.key} className="flex items-center gap-2 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-2.5 py-2">
                 <span className="text-xs text-[var(--gbp-muted)]">⠿</span>
                 <input type="checkbox" disabled className="h-3.5 w-3.5 accent-[var(--gbp-accent)]" />
                 <input
                   value={item.text}
-                  onChange={(event) => updateItem(section.id, item.id, event.target.value)}
+                  onChange={(event) => updateItem(section.id, item.key, event.target.value)}
                   className="h-8 flex-1 rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)]"
                   placeholder="Descripcion del item..."
                 />
                 <button
                   type="button"
-                  onClick={() => removeItem(section.id, item.id)}
+                  onClick={() => removeItem(section.id, item.key)}
                   className="group/tooltip relative inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)]"
                 >
                   <X className="h-4 w-4" />

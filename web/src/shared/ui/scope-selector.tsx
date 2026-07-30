@@ -413,8 +413,8 @@ export function ScopeSelector({
   const noStructure = departments.length === 0 && positions.length === 0;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px]">
-      <div className="min-w-0">
+    <>
+      <section className="flex min-w-0 flex-col bg-[var(--gbp-bg)] px-5 py-4 xl:min-h-0 xl:overflow-y-auto">
         <p className="text-[13px] font-bold text-[var(--gbp-text)]">{question}</p>
         <p className={`mt-0.5 ${HINT}`}>{MODE_HINT[mode]}</p>
 
@@ -602,10 +602,10 @@ export function ScopeSelector({
             </div>
           ) : null}
         </div>
-      </div>
+      </section>
 
       <aside
-        className="flex h-fit flex-col gap-2 rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface2)] p-3"
+        className="flex flex-col gap-2 border-t border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-4 py-4 xl:min-h-0 xl:overflow-y-auto xl:border-t-0 xl:border-l"
         aria-label={audienceLabel}
       >
         <p className={KICKER}>{audienceLabel}</p>
@@ -692,7 +692,7 @@ export function ScopeSelector({
       {emitted.users.map((value) => (
         <input key={`${namespace}-usr-input-${value}`} type="hidden" name={userInputName} value={value} />
       ))}
-    </div>
+    </>
   );
 
   function peopleSearch() {
@@ -786,20 +786,3 @@ export function ScopeSelector({
   }
 }
 
-type ScopeSelectorOrInheritedProps = ScopeSelectorProps & {
-  inherited: boolean;
-  inheritedMessage: string;
-};
-
-// Un solo lugar decide "muestro el selector o el aviso de herencia": evita que
-// cada modal de Documentos repita esta misma rama y se desincronicen entre si.
-export function ScopeSelectorOrInherited({
-  inherited,
-  inheritedMessage,
-  ...scopeSelectorProps
-}: ScopeSelectorOrInheritedProps) {
-  if (inherited) {
-    return <p className="mt-1 text-xs text-[var(--gbp-text2)]">{inheritedMessage}</p>;
-  }
-  return <ScopeSelector {...scopeSelectorProps} />;
-}

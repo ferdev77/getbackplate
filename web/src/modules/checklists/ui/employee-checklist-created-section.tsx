@@ -19,7 +19,7 @@ type CreatedTemplateRow = {
   repeat_every?: string;
   is_active?: boolean;
   target_scope?: Record<string, string[]>;
-  templateSections?: Array<{ name: string; items: string[] }>;
+  templateSections?: Array<{ name: string; items: Array<{ id: string; label: string }> }>;
   sent?: boolean;
   submissionStatus?: string | null;
   submittedAt?: string | null;
@@ -223,7 +223,9 @@ export function EmployeeChecklistCreatedSection({
                           repeat_every: row.repeat_every,
                           is_active: row.is_active,
                           target_scope: row.target_scope,
-                          templateSections: row.templateSections?.length ? row.templateSections : [{ name: "General", items: row.items }],
+                          templateSections: row.templateSections?.length
+                            ? row.templateSections
+                            : [{ name: "General", items: row.items.map((item) => ({ id: "", label: item })) }],
                           templateItems: row.items.map((item) => ({ label: item })),
                         }}
                         branches={branches}
