@@ -27,6 +27,13 @@ export type IntegrationAlertInput =
       receiptId: string;
       status: string;
       errorMessage: string;
+    }
+  | {
+      kind: "connection_disconnected";
+      organizationId: string;
+      provider: string;
+      source: "app_revoke" | "portal_invalid_grant" | "oauth_refresh_invalid_grant";
+      message: string | null;
     };
 
 function buildPayload(orgName: string | null, input: IntegrationAlertInput) {
@@ -51,6 +58,18 @@ function buildPayload(orgName: string | null, input: IntegrationAlertInput) {
         title: "Intuit webhook receipt could not be processed",
         body: `Receipt ${input.receiptId} (${input.status}): ${input.errorMessage}`,
       };
+    case "connection_disconnected": {
+      const reasonBySource: Record<typeof input.source, string> = {
+        app_revoke: "Disconnected by the customer from their integration settings.",
+        portal_invalid_grant: "QuickBooks revoked access (detected while reconnecting).",
+        oauth_refresh_invalid_grant: "QuickBooks revoked access (detected while refreshing the token).",
+      };
+      const reason = input.message?.trim() || reasonBySource[input.source];
+      return {
+        title: `${input.provider} disconnected`,
+        body: `${orgName}: ${reason}`,
+      };
+    }
   }
 }
 

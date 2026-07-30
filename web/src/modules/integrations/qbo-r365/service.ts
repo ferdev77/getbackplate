@@ -1216,6 +1216,13 @@ async function clearConfirmedQboConnection(input: {
     severity: "medium",
     metadata: { source: input.source },
   });
+  await notifyIntegrationEvent({
+    kind: "connection_disconnected",
+    organizationId: input.connection.organization_id,
+    provider: input.connection.provider,
+    source: input.source,
+    message: input.message ?? null,
+  });
   return true;
 }
 
