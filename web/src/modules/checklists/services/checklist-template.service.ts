@@ -712,6 +712,15 @@ export async function deleteChecklistTemplate(params: {
     }
   }
 
+  // El reparto programado se va con la plantilla. Si quedara, el cron seguiria
+  // procesandolo todos los dias contra un checklist que ya no existe.
+  await supabase
+    .from("scheduled_jobs")
+    .delete()
+    .eq("organization_id", organizationId)
+    .eq("job_type", "checklist_generator")
+    .eq("target_id", templateId);
+
   const { error: templateDeleteError } = await supabase
     .from("checklist_templates")
     .delete()

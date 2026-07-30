@@ -408,6 +408,15 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Solo puedes eliminar avisos creados por ti" }, { status: 403 });
   }
 
+  // El reparto periodico se va con el aviso: si quedara, el cron seguiria
+  // encolando entregas de algo que ya no existe.
+  await admin
+    .from("scheduled_jobs")
+    .delete()
+    .eq("organization_id", access.tenant.organizationId)
+    .eq("job_type", "announcement_delivery")
+    .eq("target_id", announcementId);
+
   const { error } = await admin
     .from("announcements")
     .delete()

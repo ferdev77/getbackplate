@@ -213,6 +213,15 @@ export async function deleteAnnouncementAction(arg1: FormData | unknown, arg2?: 
 
   const supabase = await createSupabaseServerClient();
 
+  // El reparto periodico se va con el aviso: si quedara, el cron seguiria
+  // encolando entregas de algo que ya no existe.
+  await supabase
+    .from("scheduled_jobs")
+    .delete()
+    .eq("organization_id", tenant.organizationId)
+    .eq("job_type", "announcement_delivery")
+    .eq("target_id", announcementId);
+
   const { error } = await supabase
     .from("announcements")
     .delete()
