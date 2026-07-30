@@ -607,7 +607,12 @@ export async function upsertChecklistTemplate(
 // ---------------------------------------------------------------------------
 
 export type DeleteChecklistTemplateResult =
-  | { ok: true; message: string; archived: boolean }
+  | {
+      ok: true;
+      message: string;
+      /** Respuestas que quedaron en el historial despues de borrar la plantilla. */
+      keptSubmissions: number;
+    }
   | { ok: false; message: string };
 
 export async function deleteChecklistTemplate(params: {
@@ -628,32 +633,26 @@ export async function deleteChecklistTemplate(params: {
     return { ok: false, message: "Checklist not found" };
   }
 
-  const { count: submissionsCount } = await supabase
+  const { count: submissionsCount, error: countError } = await supabase
     .from("checklist_submissions")
     .select("id", { head: true, count: "exact" })
     .eq("organization_id", organizationId)
     .eq("template_id", templateId);
 
-  // Archive if has submissions
-  if ((submissionsCount ?? 0) > 0) {
-    const { error: archiveError } = await supabase
-      .from("checklist_templates")
-      .update({ is_active: false })
-      .eq("organization_id", organizationId)
-      .eq("id", templateId);
-
-    if (archiveError) {
-      return { ok: false, message: `Unable to archive checklist: ${archiveError.message}` };
-    }
-
-    return {
-      ok: true,
-      message: "Checklist archived (it has submission history)",
-      archived: true,
-    };
+  if (countError) {
+    return { ok: false, message: `Unable to check checklist history: ${countError.message}` };
   }
 
-  // Hard delete sections → items → template
+  /**
+   * Se borra aunque tenga respuestas. El historial no se pierde: cada respuesta
+   * guarda el nombre del checklist y el texto de sus items (migraciones
+   * 20260730000001 y 20260731000001), y su template_id queda en null por la FK
+   * en SET NULL. Antes esto se archivaba porque la FK lo impedia, y una
+   * plantilla con historial quedaba para siempre en la lista como inactiva.
+   */
+  const submissions = submissionsCount ?? 0;
+
+  // Borrado de secciones → items → plantilla
   const { data: sections } = await supabase
     .from("checklist_template_sections")
     .select("id")
@@ -695,7 +694,10 @@ export async function deleteChecklistTemplate(params: {
 
   return {
     ok: true,
-    message: "Checklist deleted",
-    archived: false,
+    message:
+      submissions > 0
+        ? `Checklist eliminado. Se conservan ${submissions} ${submissions === 1 ? "respuesta" : "respuestas"} en el historial.`
+        : "Checklist eliminado.",
+    keptSubmissions: submissions,
   };
 }

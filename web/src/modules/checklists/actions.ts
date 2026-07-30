@@ -325,16 +325,18 @@ export async function deleteChecklistTemplateAction(_prevState: unknown, formDat
 
   // --- Audit ---
   await logAuditEvent({
-    action: result.archived ? "checklist.template.archive" : "checklist.template.delete",
+    action: "checklist.template.delete",
     entityType: "checklist_template",
     entityId: templateId,
     organizationId: tenant.organizationId,
     metadata: {
-      archived: result.archived,
+      // Cuantas respuestas quedaron huerfanas a proposito, para poder rastrear
+      // desde la auditoria que el historial se conservo.
+      kept_submissions: result.keptSubmissions,
     },
     eventDomain: "checklists",
     outcome: "success",
-    severity: result.archived ? "high" : "critical",
+    severity: "critical",
   });
 
   revalidatePath("/app/checklists");

@@ -54,7 +54,8 @@ type ReportView = {
   timeLabel: string;
   submittedAtIso: string | null;
   templateName: string;
-  templateId: string;
+  /** Null cuando la plantilla fue eliminada; el nombre sigue en templateName. */
+  templateId: string | null;
   totalItems: number;
   completedItems: number;
   flaggedItems: number;
@@ -188,7 +189,7 @@ export async function buildChecklistReportsSnapshot({
 
   let submissionsQuery = supabase
     .from("checklist_submissions")
-    .select("id, branch_id, template_id, submitted_by, status, submitted_at, created_at")
+    .select("id, branch_id, template_id, template_name, submitted_by, status, submitted_at, created_at")
     .eq("organization_id", organizationId)
     .gte("created_at", lookbackStart.toISOString())
     .order("created_at", { ascending: false })
@@ -201,7 +202,10 @@ export async function buildChecklistReportsSnapshot({
   let submissions: Array<{
     id: string;
     branch_id: string | null;
-    template_id: string;
+    // Queda en null cuando la plantilla se elimino; el nombre lo aporta
+    // template_name, copiado al responder.
+    template_id: string | null;
+    template_name: string | null;
     submitted_by: string;
     status: string;
     submitted_at: string | null;
@@ -454,7 +458,12 @@ export async function buildChecklistReportsSnapshot({
       dateLabel: formatDateLabel(timestamp, todayStart),
       timeLabel: formatTimeLabel(timestamp),
       submittedAtIso: timestamp,
-      templateName: templateNameById.get(submission.template_id) ?? "Checklist",
+      // El nombre congelado en la respuesta manda: la plantilla pudo haber sido
+      // renombrada o eliminada (migracion 20260731000001).
+      templateName:
+        submission.template_name ??
+        (submission.template_id ? templateNameById.get(submission.template_id) : undefined) ??
+        "Checklist",
       templateId: submission.template_id,
       totalItems: metrics.total,
       completedItems: metrics.done,

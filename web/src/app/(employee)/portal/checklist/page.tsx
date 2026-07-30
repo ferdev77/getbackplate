@@ -138,6 +138,9 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
 
   const latestSubmissionByTemplateId = new Map<string, { status: string; submittedAt: string | null }>();
   for (const row of visibleSubmissions ?? []) {
+    // Una respuesta puede haber quedado sin plantilla (eliminada): no aporta
+    // estado a ninguna plantilla vigente.
+    if (!row.template_id) continue;
     if (!latestSubmissionByTemplateId.has(row.template_id)) {
       latestSubmissionByTemplateId.set(row.template_id, {
         status: row.status,

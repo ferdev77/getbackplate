@@ -24,7 +24,10 @@ export function ChecklistDeleteModal({ template, submitEndpoint, redirectPath = 
     if (submitEndpoint) return;
     if (state.message) {
       if (state.success) {
-        toast.success("Checklist deleted successfully.");
+        // El mensaje viene del servidor: dice cuantas respuestas quedaron en el
+        // historial. Antes estaba fijo en "deleted successfully" y tapaba lo que
+        // habia pasado de verdad.
+        toast.success(state.message);
         onSubmitted?.();
         router.push(redirectPath);
         router.refresh();
@@ -43,10 +46,11 @@ export function ChecklistDeleteModal({ template, submitEndpoint, redirectPath = 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ templateId: template.id }),
       });
+      const data = (await response.json().catch(() => ({}))) as { message?: string };
       if (!response.ok) {
         throw new Error("Unable to delete the checklist.");
       }
-      toast.success("Checklist deleted successfully.");
+      toast.success(typeof data.message === "string" && data.message ? data.message : "Checklist eliminado.");
       startTransition(() => {
         onSubmitted?.();
         router.push(redirectPath);
@@ -66,7 +70,7 @@ export function ChecklistDeleteModal({ template, submitEndpoint, redirectPath = 
       <div className="w-[520px] max-w-[95vw] rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[var(--gbp-shadow-xl)]">
         <div className="border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
           <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">Eliminar checklist</p>
-          <p className="mt-1 text-sm text-[var(--gbp-text2)]">Esta acción elimina la plantilla. Si tiene historial, se archivará automáticamente.</p>
+          <p className="mt-1 text-sm text-[var(--gbp-text2)]">Se elimina la plantilla. Las respuestas ya enviadas se conservan en el historial de reportes.</p>
         </div>
         <div className="px-6 py-4 text-sm text-[var(--gbp-text)]">Checklist: <strong>{template.name}</strong></div>
         <div className="flex justify-end gap-2 border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">

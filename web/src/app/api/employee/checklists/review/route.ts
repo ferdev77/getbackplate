@@ -64,6 +64,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No puedes operar reportes fuera de tus locaciones activas" }, { status: 403 });
   }
 
+  // Sin plantilla no hay autoria que verificar: el permiso de este endpoint es
+  // "soy quien creo el checklist", y la plantilla pudo haber sido eliminada.
+  if (!submission.template_id) {
+    return NextResponse.json(
+      { error: "El checklist de este reporte fue eliminado" },
+      { status: 409 },
+    );
+  }
+
   const { data: template } = await admin
     .from("checklist_templates")
     .select("id")
