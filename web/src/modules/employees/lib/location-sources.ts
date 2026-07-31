@@ -1,5 +1,28 @@
 /**
- * La regla de "que locaciones alcanza una persona", en un solo lugar.
+ * Las locaciones de una persona: donde vive el dato y que significa cada lugar.
+ *
+ *   employees    la ASIGNACION. Existe con cuenta o sin ella. Cuando alguien esta en
+ *                el legajo pero todavia no se le dio de alta -- ficha
+ *                incompleta, o se decidio no darle acceso -- sus locaciones
+ *                viven aca y no hacen nada todavia.
+ *
+ *   memberships  el ACCESO. Solo existe si la persona tiene cuenta. Al activarla
+ *                se le copian las locaciones del legajo, y a partir de ahi es lo
+ *                que decide que ve.
+ *
+ *   organization_user_profiles   una proyeccion para listados. No deberia
+ *                decidir nada.
+ *
+ * Sin cuenta no se ve nada, tenga las locaciones que tenga: no hay con que
+ * entrar. Por eso la asignacion puede esperar en el legajo sin consecuencias.
+ *
+ * Al leer se combinan las fuentes en vez de mirar solo la membresia. Es a
+ * proposito: es un superconjunto que hoy da identico -- verificado, ninguna
+ * membresia activa tiene menos locaciones que su legajo -- y protege del caso en
+ * que una membresia se cree sin locaciones. Cuando las columnas duplicadas se
+ * borren, la combinacion queda leyendo solo la membresia sola.
+ *
+ * La regla de combinacion, en un solo lugar.
  *
  * Las locaciones se guardan por triplicado -- en `employees`, `memberships` y
  * `organization_user_profiles` -- y en cada una hay tres campos: la sucursal

@@ -78,8 +78,15 @@ async function _sendToSubscriptions(
           expired++;
           expiredIds.push(sub.id);
         }
-      } catch {
+      } catch (err) {
         failed++;
+        console.error("[push] sendPushNotification failed:", {
+          subscriptionId: sub.id,
+          userId: sub.user_id,
+          source: options.source,
+          statusCode: (err as { statusCode?: number } | undefined)?.statusCode,
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     })
   );
