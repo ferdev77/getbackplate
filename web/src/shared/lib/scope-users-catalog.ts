@@ -55,7 +55,7 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
       .order("first_name"),
     admin
       .from("memberships")
-      .select("user_id, role_id, status")
+      .select("user_id, role_id, status, branch_id, all_locations, location_scope_ids")
       .eq("organization_id", organizationId)
       .eq("status", "active"),
     admin.from("roles").select("id, code"),
@@ -94,15 +94,44 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
 
   const todasLasLocaciones = (branches ?? []).map((row) => row.id).filter(Boolean);
 
+  /**
+   * Las locaciones de una persona viven en dos tablas: `employees` y
+   * `memberships`. Se combinan igual que en resolveEmployeeAllowedLocationIds,
+   * que es lo que usa el servidor para decidir. Si aca se leyera solo una,
+   * alguien con locaciones asignadas por membresia no apareceria en la vista
+   * previa aunque el servidor si le mandara el aviso.
+   */
+  type MembresiaConAlcance = {
+    branch_id: string | null;
+    all_locations: boolean | null;
+    location_scope_ids: string[] | null;
+  };
+
+  const membresiasPorUsuario = new Map<string, MembresiaConAlcance[]>();
+  for (const membership of memberships ?? []) {
+    if (!membership.user_id) continue;
+    const previas = membresiasPorUsuario.get(membership.user_id) ?? [];
+    previas.push(membership);
+    membresiasPorUsuario.set(membership.user_id, previas);
+  }
+
   function locacionesDe(employee: {
+    user_id: string | null;
     branch_id: string | null;
     all_locations: boolean | null;
     location_scope_ids: string[] | null;
   }) {
-    if (employee.all_locations) return todasLasLocaciones;
+    const suyas = employee.user_id ? membresiasPorUsuario.get(employee.user_id) ?? [] : [];
+
+    if (employee.all_locations || suyas.some((m) => m.all_locations === true)) {
+      return todasLasLocaciones;
+    }
+
     const propias = [
       employee.branch_id,
       ...(Array.isArray(employee.location_scope_ids) ? employee.location_scope_ids : []),
+      ...suyas.map((m) => m.branch_id),
+      ...suyas.flatMap((m) => (Array.isArray(m.location_scope_ids) ? m.location_scope_ids : [])),
     ];
     return [...new Set(propias.filter((id): id is string => Boolean(id)))];
   }
