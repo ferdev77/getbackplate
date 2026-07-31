@@ -14,7 +14,6 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
 
 export async function subscribeToPush(options?: {
   orgId?: string;
-  notifyIntegrationAlerts?: boolean;
 }): Promise<boolean> {
   const permission = await Notification.requestPermission();
   if (permission !== "granted") return false;
@@ -41,9 +40,6 @@ export async function subscribeToPush(options?: {
       keys: json.keys,
       userAgent: navigator.userAgent,
       ...(options?.orgId ? { orgId: options.orgId } : {}),
-      ...(options?.notifyIntegrationAlerts !== undefined
-        ? { notifyIntegrationAlerts: options.notifyIntegrationAlerts }
-        : {}),
     }),
   });
 

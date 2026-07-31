@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-07-31 - Limpieza de codigo muerto: opt-in de alertas push de integracion
+
+Se elimino `push_subscriptions.notify_integration_alerts`, una columna que nunca se conecto de punta a punta (la UI que deberia haberla activado no la escribia, y `notifyIntegrationEvent()` nunca la leia para filtrar destinatarios). El comportamiento real y correcto ya era, y sigue siendo sin cambios: todo superadmin con push activo en su dispositivo recibe automaticamente las alertas de integracion QBO -> R365; la tarjeta correspondiente en `/superadmin/notifications` es solo un indicador de estado + atajo para pedir permiso de notificaciones al navegador.
+
+### Migraciones
+- `20260731000002_drop_push_integration_alerts_opt_in.sql`
+
+### Archivos
+- `web/src/app/api/push/subscribe/route.ts`
+- `web/src/shared/lib/push-subscribe.ts`
+- `DOCS/4_Operaciones_y_Guias/GUIA_PUSH_NOTIFICATIONS.md`
+
 ## 2026-07-26 - Baseline de seguridad, tests aislados y RLS validado en Supabase dev
 
 **Estado por entorno:** aplicado y verificado en DEV (`uubdslmtfxwraszinpao`) y PROD (`mfhyemwypuzsqjqxtbjf`) el 2026-07-26.

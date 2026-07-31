@@ -202,6 +202,7 @@ Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 | 192 | `20260726000009_restore_service_user_lookup.sql` | Restaura lookup Auth faltante fisicamente y lo limita a `service_role` |
 | 193 | `20260726000010_stripe_event_processing_lifecycle.sql` | Agrega lifecycle durable `processing/processed/failed`, metadata y errores de eventos Stripe |
 | 194 | `20260726000011_keep_stripe_status_default_compatible.sql` | Conserva default compatible durante rolling deploy; el codigo nuevo reserva `processing` explicitamente |
+| — | `20260731000002_drop_push_integration_alerts_opt_in.sql` | Elimina `push_subscriptions.notify_integration_alerts` (agregada en fila 140): opt-in granular que nunca se conecto de punta a punta, ni la UI la escribia ni el envio de alertas la leia. Ver `DOCS/4_Operaciones_y_Guias/GUIA_PUSH_NOTIFICATIONS.md` seccion 4. *(Numeracion `—` porque hay migraciones `20260727000001` a `20260731000001` de otras sesiones aun sin indexar aqui; no se renumeraron filas ajenas a este cambio.)* |
 
 ## Convención de naming
 
