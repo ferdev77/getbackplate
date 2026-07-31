@@ -11,6 +11,7 @@ import {
 } from "@/modules/organizations/cached-queries";
 import { getEmployeeDelegatedPermissionsByMembership } from "@/shared/lib/employee-module-permissions";
 import { PushPermissionManager } from "@/shared/ui/push-permission";
+import { resolveUserLocale } from "@/shared/lib/locale";
 
 function normalizeDateInput(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -79,6 +80,7 @@ export default async function EmployeeLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const user = await requireAuthenticatedUser();
   const tenant = await requireEmployeeAccess();
+  const locale = await resolveUserLocale({ organizationId: tenant.organizationId, userId: user.id });
   const supabase = await createSupabaseServerClient();
   const {
     data: { session },
@@ -668,7 +670,7 @@ export default async function EmployeeLayout({
 
   return (
     <>
-    <PushPermissionManager orgId={tenant.organizationId} />
+    <PushPermissionManager orgId={tenant.organizationId} locale={locale} />
     <EmployeeShell
       organizationId={tenant.organizationId}
       membershipId={tenant.membershipId}

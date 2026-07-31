@@ -250,7 +250,7 @@ export default async function CompanyLayout({
         endsAt: subscriptionEndsAt,
       }}
     >
-      <PushPermissionManager orgId={tenant.organizationId} />
+      <PushPermissionManager orgId={tenant.organizationId} locale={resolvedLocale} />
       <FadeIn>
         {children}
       </FadeIn>
