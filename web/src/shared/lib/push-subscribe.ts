@@ -45,3 +45,22 @@ export async function subscribeToPush(options?: {
 
   return res.ok;
 }
+
+export async function unsubscribeFromPush(): Promise<boolean> {
+  if (!("serviceWorker" in navigator)) return false;
+
+  const registration = await navigator.serviceWorker.ready;
+  const subscription = await registration.pushManager.getSubscription();
+  if (!subscription) return true;
+
+  const endpoint = subscription.endpoint;
+  await subscription.unsubscribe().catch(() => undefined);
+
+  const res = await fetch("/api/push/unsubscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ endpoint }),
+  });
+
+  return res.ok;
+}

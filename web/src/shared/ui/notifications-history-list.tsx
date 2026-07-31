@@ -4,11 +4,20 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, Loader2 } from "lucide-react";
 import { NotificationItemRow, type NotificationListItem } from "@/shared/ui/notification-item";
+import { PushStatusChip } from "@/shared/ui/push-status-chip";
 import { createTranslator } from "@/shared/ui/company-shell.i18n";
 
 type ChannelFilter = "all" | "email" | "push" | "in_app";
 
-export function NotificationsHistoryList({ locale = "es" }: { locale?: "es" | "en" }) {
+export function NotificationsHistoryList({
+  locale = "es",
+  pushEnabled,
+  orgId,
+}: {
+  locale?: "es" | "en";
+  pushEnabled: boolean;
+  orgId?: string;
+}) {
   const router = useRouter();
   const t = createTranslator(locale);
   const [items, setItems] = useState<NotificationListItem[]>([]);
@@ -85,6 +94,7 @@ export function NotificationsHistoryList({ locale = "es" }: { locale?: "es" | "e
               {option === "all" ? t("Todas") : option === "email" ? "Email" : option === "push" ? "Push" : t("En la app")}
             </button>
           ))}
+          <PushStatusChip initialEnabled={pushEnabled} orgId={orgId} locale={locale} />
         </div>
         {hasUnread ? (
           <button

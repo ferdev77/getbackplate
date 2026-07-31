@@ -6,12 +6,18 @@ import { NotificationsHistoryList } from "@/shared/ui/notifications-history-list
 import { getCurrentUser } from "@/modules/memberships/queries";
 import { resolveUserLocale } from "@/shared/lib/locale";
 import { createTranslator } from "@/shared/ui/company-shell.i18n";
+import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 
 export default async function CompanyNotificationsPage() {
   const tenant = await requireTenantContext();
   const user = await getCurrentUser();
   const locale = await resolveUserLocale({ organizationId: tenant.organizationId, userId: user?.id ?? null });
   const t = createTranslator(locale);
+
+  const supabase = await createSupabaseServerClient();
+  const { data: activeSub } = user
+    ? await supabase.from("push_subscriptions").select("id").eq("user_id", user.id).eq("is_active", true).limit(1).maybeSingle()
+    : { data: null };
 
   return (
     <PageContent>
@@ -28,7 +34,7 @@ export default async function CompanyNotificationsPage() {
       </SlideUp>
 
       <SlideUp delay={0.1}>
-        <NotificationsHistoryList locale={locale} />
+        <NotificationsHistoryList locale={locale} pushEnabled={Boolean(activeSub)} orgId={tenant.organizationId} />
       </SlideUp>
     </PageContent>
   );
