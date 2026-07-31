@@ -159,3 +159,37 @@ describe("nadie mas resuelve locaciones por su cuenta", () => {
     ).toEqual([]);
   });
 });
+
+/**
+ * Guardia de escritura.
+ *
+ * Los campos de alcance se guardan en tres tablas. No divergen porque se
+ * escriben juntas con los mismos valores, y para que siga siendo asi todos los
+ * que escriben arman el payload con camposDeAlcance.
+ *
+ * Se afirma en positivo -- "estos archivos lo usan" -- en vez de rastrear
+ * payloads a mano: distinguir un payload de una declaracion de tipo mirando el
+ * texto da falsos positivos, y una guardia que molesta se termina ignorando.
+ */
+describe("los que escriben el alcance usan camposDeAlcance", () => {
+  // __tests__ -> lib -> employees -> modules -> src
+  const RAIZ = path.join(__dirname, "..", "..", "..", "..");
+
+  const ESCRITORES = [
+    "app/api/company/employees/_handlers/post.ts",
+    "app/api/company/users/route.ts",
+    "app/api/employee/employees/route.ts",
+    "modules/employees/services/company-employees-route-support.ts",
+  ];
+
+  for (const ruta of ESCRITORES) {
+    it(`${ruta} arma el payload con el helper`, () => {
+      const contenido = readFileSync(path.join(RAIZ, ruta), "utf8");
+      expect(
+        contenido.includes("camposDeAlcance("),
+        `${ruta} dejo de usar camposDeAlcance: si volvio a armar el payload a mano, ` +
+          "los tres lugares donde se guarda el alcance pueden quedar diciendo cosas distintas",
+      ).toBe(true);
+    });
+  }
+});

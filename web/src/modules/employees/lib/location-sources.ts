@@ -61,3 +61,28 @@ export function locacionesDe(
 ) {
   return combinarLocaciones({ fuentes, todasLasLocaciones }).locationIds;
 }
+
+/**
+ * Los campos de alcance tal como se guardan.
+ *
+ * Existe para que todos los que escriben usen exactamente la misma forma. Hoy el
+ * dato se guarda en tres tablas y el riesgo no es que una diga algo distinto
+ * -- se escriben juntas, con los mismos valores -- sino que alguien agregue un
+ * cuarto lugar y se olvide de uno.
+ *
+ * Cuando el modelo se unifique en una sola tabla, este es el unico lugar que
+ * cambia.
+ */
+export function camposDeAlcance(input: {
+  branchId: string | null;
+  allLocations: boolean;
+  locationScopeIds: string[];
+}) {
+  return {
+    branch_id: input.branchId,
+    all_locations: input.allLocations,
+    // Con "todas" las asignadas sobran: guardarlas invita a que las dos cosas
+    // digan cosas distintas mas adelante.
+    location_scope_ids: input.allLocations ? [] : [...new Set(input.locationScopeIds.filter(Boolean))],
+  };
+}

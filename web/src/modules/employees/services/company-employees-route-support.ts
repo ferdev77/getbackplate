@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { assertPlanLimitForStorage } from "@/shared/lib/plan-limits";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
+import { camposDeAlcance } from "@/modules/employees/lib/location-sources";
 
 const BUCKET_NAME = "tenant-documents";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -112,9 +113,7 @@ export async function syncEmployeeProfileProjection(input: {
     organization_id: input.organizationId,
     user_id: input.userId,
     employee_id: input.employeeId,
-    branch_id: input.branchId,
-    all_locations: input.allLocations,
-    location_scope_ids: input.locationScopeIds,
+    ...camposDeAlcance({ branchId: input.branchId, allLocations: input.allLocations, locationScopeIds: input.locationScopeIds }),
     department_id: input.departmentId,
     position_id: input.positionId,
     first_name: input.firstName,

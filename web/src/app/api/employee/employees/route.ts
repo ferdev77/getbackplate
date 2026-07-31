@@ -20,6 +20,7 @@ import {
 } from "@/modules/employees/services/company-employees-route-support";
 import { resolveHrScope, isEmployeeInScope } from "@/modules/employees/lib/api-scope";
 import { EMPLOYEES_MESSAGES } from "@/shared/lib/employees-messages";
+import { camposDeAlcance } from "@/modules/employees/lib/location-sources";
 
 const emailSchema = z.string().email();
 const dateOnlySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -474,9 +475,7 @@ export async function POST(request: Request) {
           position,
           department,
           department_id: departmentId,
-          branch_id: branchId,
-          all_locations: allLocations,
-          location_scope_ids: locationScopeIds,
+          ...camposDeAlcance({ branchId: branchId, allLocations: allLocations, locationScopeIds: locationScopeIds }),
           status: normalizedEmploymentStatus,
           hired_at: hiredAt,
           birth_date: birthDate,
@@ -506,9 +505,7 @@ export async function POST(request: Request) {
           position,
           department,
           department_id: departmentId,
-          branch_id: branchId,
-          all_locations: allLocations,
-          location_scope_ids: locationScopeIds,
+          ...camposDeAlcance({ branchId: branchId, allLocations: allLocations, locationScopeIds: locationScopeIds }),
           status: normalizedEmploymentStatus,
           hired_at: hiredAt,
           birth_date: birthDate,
@@ -610,9 +607,7 @@ export async function POST(request: Request) {
             organization_id: organizationId,
             user_id: linkedUserId,
             role_id: role.id,
-            branch_id: branchId,
-            all_locations: allLocations,
-            location_scope_ids: locationScopeIds,
+            ...camposDeAlcance({ branchId: branchId, allLocations: allLocations, locationScopeIds: locationScopeIds }),
             status: "active",
           },
           { onConflict: "organization_id,user_id" },
@@ -815,9 +810,7 @@ export async function POST(request: Request) {
             organization_id: organizationId,
             user_id: userLinkedUserId,
             role_id: role.id,
-            branch_id: branchId,
-            all_locations: allLocations,
-            location_scope_ids: locationScopeIds,
+            ...camposDeAlcance({ branchId: branchId, allLocations: allLocations, locationScopeIds: locationScopeIds }),
             status: "active",
           },
           { onConflict: "organization_id,user_id" },
@@ -834,9 +827,7 @@ export async function POST(request: Request) {
       organization_id: organizationId,
       user_id: userLinkedUserId,
       employee_id: null,
-      branch_id: branchId,
-      all_locations: allLocations,
-      location_scope_ids: locationScopeIds,
+      ...camposDeAlcance({ branchId: branchId, allLocations: allLocations, locationScopeIds: locationScopeIds }),
       department_id: departmentId,
       position_id: positionId,
       first_name: firstName,

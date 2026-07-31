@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { camposDeAlcance } from "@/modules/employees/lib/location-sources";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
@@ -377,9 +378,7 @@ export async function POST(request: Request) {
             organization_id: tenant.organizationId,
             user_id: linkedUserId,
             role_id: role.id,
-            branch_id: branchId,
-            all_locations: allLocations,
-            location_scope_ids: locationScopeIds,
+            ...camposDeAlcance({ branchId, allLocations, locationScopeIds }),
             status: "active",
           },
           { onConflict: "organization_id,user_id" },
@@ -419,9 +418,7 @@ export async function POST(request: Request) {
       organization_id: tenant.organizationId,
       user_id: linkedUserId,
       employee_id: null,
-      branch_id: branchId,
-      all_locations: allLocations,
-      location_scope_ids: locationScopeIds,
+      ...camposDeAlcance({ branchId, allLocations, locationScopeIds }),
       department_id: departmentId,
       position_id: positionId,
       first_name: firstName,
@@ -662,9 +659,7 @@ export async function POST(request: Request) {
             organization_id: tenant.organizationId,
             user_id: linkedUserId,
             role_id: role.id,
-            branch_id: branchId,
-            all_locations: allLocations,
-            location_scope_ids: locationScopeIds,
+            ...camposDeAlcance({ branchId, allLocations, locationScopeIds }),
             status: "active",
           },
           { onConflict: "organization_id,user_id" },
@@ -705,9 +700,7 @@ export async function POST(request: Request) {
       .from("employees")
       .update({
         user_id: createMode === "with_account" ? linkedUserId : existingEmployee.user_id,
-        branch_id: branchId,
-        all_locations: allLocations,
-        location_scope_ids: locationScopeIds,
+        ...camposDeAlcance({ branchId, allLocations, locationScopeIds }),
         first_name: firstName,
         last_name: lastName,
         status: employmentStatus,
@@ -1100,9 +1093,7 @@ export async function POST(request: Request) {
           organization_id: tenant.organizationId,
           user_id: linkedUserId,
           role_id: role.id,
-          branch_id: branchId,
-          all_locations: allLocations,
-          location_scope_ids: locationScopeIds,
+          ...camposDeAlcance({ branchId: branchId, allLocations: allLocations, locationScopeIds: locationScopeIds }),
           status: "active",
         },
         { onConflict: "organization_id,user_id" },
@@ -1129,9 +1120,7 @@ export async function POST(request: Request) {
     .from("employees")
     .insert({
       organization_id: tenant.organizationId,
-      branch_id: branchId,
-      all_locations: allLocations,
-      location_scope_ids: locationScopeIds,
+      ...camposDeAlcance({ branchId, allLocations, locationScopeIds }),
       user_id: linkedUserId,
       first_name: firstName,
       last_name: lastName,

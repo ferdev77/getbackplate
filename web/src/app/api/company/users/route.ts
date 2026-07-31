@@ -15,6 +15,7 @@ import { sendEmail } from "@/shared/lib/brevo";
 import { initialInviteTemplate } from "@/shared/lib/email-templates/invitation";
 import { resendReminderTemplate } from "@/shared/lib/email-templates/invitation";
 import { isUserMemberOfOrganization } from "@/shared/lib/tenant-membership";
+import { camposDeAlcance } from "@/modules/employees/lib/location-sources";
 const ALLOWED_ROLE_CODES = new Set(["employee", "company_admin"]);
 const ALLOWED_STATUSES = new Set(["active", "inactive"]);
 
@@ -333,7 +334,7 @@ export async function PATCH(request: Request) {
 
   const { error: updateError } = await supabase
     .from("memberships")
-    .update({ role_id: role.id, status, branch_id: branchId, all_locations: allLocations, location_scope_ids: locationScopeIds })
+    .update({ role_id: role.id, status, ...camposDeAlcance({ branchId, allLocations, locationScopeIds }) })
     .eq("organization_id", tenant.organizationId)
     .eq("id", membershipId);
 
@@ -350,9 +351,7 @@ export async function PATCH(request: Request) {
       metadata: {
         role_code: roleCode,
         status,
-        branch_id: branchId,
-        all_locations: allLocations,
-        location_scope_ids: locationScopeIds,
+        ...camposDeAlcance({ branchId: branchId, allLocations: allLocations, locationScopeIds: locationScopeIds }),
         error: updateError.message,
       },
     });
@@ -374,9 +373,7 @@ export async function PATCH(request: Request) {
     metadata: {
       role_code: roleCode,
       status,
-      branch_id: branchId,
-      all_locations: allLocations,
-      location_scope_ids: locationScopeIds,
+      ...camposDeAlcance({ branchId: branchId, allLocations: allLocations, locationScopeIds: locationScopeIds }),
       previous_status: previousMembership?.status ?? null,
       status_changed: previousMembership?.status !== status,
     },
@@ -498,9 +495,7 @@ export async function POST(request: Request) {
         organization_id: tenant.organizationId,
         user_id: targetUserId,
         role_id: role.id,
-        branch_id: branchId,
-        all_locations: allLocations,
-        location_scope_ids: locationScopeIds,
+        ...camposDeAlcance({ branchId: branchId, allLocations: allLocations, locationScopeIds: locationScopeIds }),
         status: accessStatus,
       },
       { onConflict: "organization_id,user_id" },
@@ -530,9 +525,7 @@ export async function POST(request: Request) {
       email,
       role_code: roleCode,
       status: accessStatus,
-      branch_id: branchId,
-      all_locations: allLocations,
-      location_scope_ids: locationScopeIds,
+      ...camposDeAlcance({ branchId: branchId, allLocations: allLocations, locationScopeIds: locationScopeIds }),
       was_existing_membership: Boolean(existingMembership),
     },
   });
