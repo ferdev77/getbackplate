@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
-import { requireTenantContext, requireTenantModule } from "@/shared/lib/access";
+import { requireTenantModule } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 
 import {
@@ -42,106 +42,9 @@ function revalidateStructurePaths() {
 // Organization Settings
 // ---------------------------------------------------------------------------
 
-export async function upsertOrganizationSettingsAction(formData: FormData) {
-  const tenant = await requireTenantModule("settings");
-  const supabase = await createSupabaseServerClient();
-  const { data: authData } = await supabase.auth.getUser();
-
-  const supportEmail = String(formData.get("support_email") ?? "").trim() || null;
-  const supportPhone = String(formData.get("support_phone") ?? "").trim() || null;
-  const feedbackWhatsapp = String(formData.get("feedback_whatsapp") ?? "").trim() || null;
-  const websiteUrl = String(formData.get("website_url") ?? "").trim() || null;
-
-  const { error } = await supabase.from("organization_settings").upsert(
-    {
-      organization_id: tenant.organizationId,
-      support_email: supportEmail,
-      support_phone: supportPhone,
-      feedback_whatsapp: feedbackWhatsapp,
-      website_url: websiteUrl,
-      updated_by: authData.user?.id ?? null,
-    },
-    { onConflict: "organization_id" },
-  );
-
-  if (error) {
-    redirect("/app/settings?status=error&message=" + qs(`Could not save settings: ${error.message}`));
-  }
-
-  await logAuditEvent({
-    action: "settings.update",
-    entityType: "organization_settings",
-    entityId: tenant.organizationId,
-    organizationId: tenant.organizationId,
-    metadata: { supportEmail, supportPhone, feedbackWhatsapp, websiteUrl },
-    eventDomain: "settings",
-    outcome: "success",
-    severity: "high",
-  });
-
-  revalidatePath("/app/settings");
-  revalidatePath("/app/dashboard");
-  redirect("/app/settings?status=success&message=" + qs("Settings saved"));
-}
-
 // ---------------------------------------------------------------------------
 // Feedback
 // ---------------------------------------------------------------------------
-
-export async function createFeedbackAction(formData: FormData) {
-  const tenant = await requireTenantContext();
-  const supabase = await createSupabaseServerClient();
-  const { data: authData } = await supabase.auth.getUser();
-
-  const userId = authData.user?.id;
-  if (!userId) {
-    redirect("/auth/login");
-  }
-
-  const feedbackType = String(formData.get("feedback_type") ?? "idea").trim();
-  const title = String(formData.get("title") ?? "").trim();
-  const message = String(formData.get("message") ?? "").trim();
-  const pagePath = String(formData.get("page_path") ?? "").trim() || null;
-
-  if (!title || !message) {
-    redirect("/app/settings?status=error&message=" + qs("Complete the feedback title and details") + "#feedback");
-  }
-
-  const normalizedType = ["bug", "idea", "other"].includes(feedbackType)
-    ? feedbackType
-    : "idea";
-
-  const { data: created, error } = await supabase
-    .from("feedback_messages")
-    .insert({
-      organization_id: tenant.organizationId,
-      user_id: userId,
-      feedback_type: normalizedType,
-      title,
-      message,
-      page_path: pagePath,
-    })
-    .select("id")
-    .single();
-
-  if (error) {
-    redirect("/app/settings?status=error&message=" + qs(`Could not send feedback: ${error.message}`) + "#feedback");
-  }
-
-  await logAuditEvent({
-    action: "feedback.create",
-    entityType: "feedback_message",
-    entityId: created?.id,
-    organizationId: tenant.organizationId,
-    metadata: { feedbackType: normalizedType, title, pagePath },
-    eventDomain: "settings",
-    outcome: "success",
-    severity: "medium",
-  });
-
-  revalidatePath("/app/settings");
-  redirect("/app/settings?status=success&message=" + qs("Feedback sent successfully") + "#feedback");
-}
 
 // ---------------------------------------------------------------------------
 // Branches

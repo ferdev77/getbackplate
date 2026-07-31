@@ -16,7 +16,6 @@ import {
 } from "./services/invitation.service";
 import {
   slugify,
-  toNullableInt,
   provisionOrganizationFromPlan,
   provisionManualIntegrationEntitlement,
   syncOrganizationPlan,
@@ -508,129 +507,9 @@ export async function startOrganizationImpersonationAction(formData: FormData) {
 // ---------------------------------------------------------------------------
 // Upsert Organization Limits
 // ---------------------------------------------------------------------------
-
-export async function upsertOrganizationLimitsAction(formData: FormData) {
-  await requireSuperadmin();
-
-  const organizationId = String(formData.get("organization_id") ?? "");
-
-  if (!organizationId) {
-    return;
-  }
-
-  const maxBranches = toNullableInt(String(formData.get("max_branches") ?? ""));
-  const maxUsers = toNullableInt(String(formData.get("max_users") ?? ""));
-  const maxStorageMb = toNullableInt(String(formData.get("max_storage_mb") ?? ""));
-  const maxEmployees = toNullableInt(String(formData.get("max_employees") ?? ""));
-
-  const supabase = createSupabaseAdminClient();
-  await supabase.from("organization_limits").upsert(
-    {
-      organization_id: organizationId,
-      max_branches: maxBranches,
-      max_users: maxUsers,
-      max_storage_mb: maxStorageMb,
-      max_employees: maxEmployees,
-    },
-    { onConflict: "organization_id" },
-  );
-
-  await logAuditEvent({
-    action: "organization.limits.upsert",
-    entityType: "organization_limits",
-    entityId: organizationId,
-    organizationId,
-    eventDomain: "superadmin",
-    outcome: "success",
-    severity: "high",
-    metadata: { maxBranches, maxUsers, maxStorageMb, maxEmployees },
-  });
-
-  revalidatePath("/superadmin/organizations");
-}
-
 // ---------------------------------------------------------------------------
 // Assign Company Admin
 // ---------------------------------------------------------------------------
-
-export async function assignCompanyAdminAction(formData: FormData) {
-  try {
-    await requireSuperadmin();
-
-    const organizationId = String(formData.get("organization_id") ?? "").trim();
-    const email = String(formData.get("admin_email") ?? "").trim().toLowerCase();
-    const fullName = String(formData.get("admin_full_name") ?? "").trim();
-    const password = String(formData.get("admin_password") ?? "");
-
-    if (!organizationId || !email || !fullName || !password) {
-      redirect(
-        "/superadmin/organizations?status=error&message=" +
-          qs("Completa organización, email, nombre y contraseña"),
-      );
-    }
-
-    if (password.length < 8) {
-      redirect(
-        "/superadmin/organizations?status=error&message=" +
-          qs("La contraseña debe tener al menos 8 caracteres"),
-      );
-    }
-
-    const supabaseUser = await createSupabaseServerClient();
-    const { data: authData } = await supabaseUser.auth.getUser();
-
-    const invitation = await sendOrganizationAdminInvitation({
-      organizationId,
-      email,
-      fullName,
-      password,
-      activateMembership: true,
-      sentBy: authData.user?.id ?? null,
-    });
-
-    if (!invitation.ok) {
-      redirect(
-        "/superadmin/organizations?status=error&message=" +
-          qs(`No se pudo asignar admin: ${invitation.message}`),
-      );
-    }
-
-    await logAuditEvent({
-      action: "organization.admin.assign",
-      entityType: "membership",
-      entityId: null,
-      organizationId,
-      eventDomain: "superadmin",
-      outcome: "success",
-      severity: "high",
-      metadata: {
-        email,
-        role: "company_admin",
-        delivery_mode: invitation.mode,
-      },
-    });
-
-    revalidatePath("/superadmin/organizations");
-    const successMessage =
-      invitation.mode === "recovery"
-        ? `Admin asignado. Usuario existente actualizado y correo de acceso enviado a ${email}`
-        : `Admin asignado e invitacion enviada a ${email}`;
-    redirect(
-      "/superadmin/organizations?status=success&message=" +
-        qs(successMessage),
-    );
-  } catch (error) {
-    redirect(
-      "/superadmin/organizations?status=error&message=" +
-        qs(
-          `Error inesperado al crear/asignar admin: ${
-            error instanceof Error ? error.message : "desconocido"
-          }`,
-        ),
-    );
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Reorder Branches
 // ---------------------------------------------------------------------------

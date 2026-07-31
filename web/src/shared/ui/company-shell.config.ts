@@ -185,18 +185,3 @@ export const THEME_PALETTES: Record<string, { accent: string; sidebarGradient: s
   navy: { accent: "var(--gbp-violet)", sidebarGradient: "linear-gradient(170deg, var(--gbp-violet-soft) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-violet-soft) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
   gray: { accent: "var(--gbp-text2)", sidebarGradient: "linear-gradient(170deg, var(--gbp-bg2) 0%, var(--gbp-bg) 100%)", pageGradient: "linear-gradient(180deg, var(--gbp-bg) 0%, var(--gbp-bg2) 55%, var(--gbp-bg) 100%)", pageBg: "var(--gbp-bg)", headerBg: "var(--gbp-surface)" },
 };
-
-export const THEME_SWATCH_STYLE: Record<string, string> = {
-  "dark-pro": "linear-gradient(145deg, #1f2533, #0d0f14)",
-  default: "linear-gradient(145deg, #f2f3f9, #e5e7f0)",
-  sky: "linear-gradient(145deg, #6c47ff, #9b82ff)",
-  turquoise: "linear-gradient(145deg, #22c55e, #0f9a47)",
-  teal: "linear-gradient(145deg, #1fbf6b, #0e8748)",
-  matcha: "linear-gradient(145deg, #2bb85f, #157b3f)",
-  sunshine: "linear-gradient(145deg, #e06030, #d4531a)",
-  peach: "linear-gradient(145deg, #d86131, #a84316)",
-  lilac: "linear-gradient(145deg, #7b5cff, #5a3ce6)",
-  ebony: "linear-gradient(145deg, #4b5563, #111827)",
-  navy: "linear-gradient(145deg, #4f46e5, #1e3a8a)",
-  gray: "linear-gradient(145deg, #b4bcc9, #7f8897)",
-};

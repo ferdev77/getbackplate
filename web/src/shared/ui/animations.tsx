@@ -37,20 +37,6 @@ export function SlideUp({ children, delay = 0, className, ...props }: AnimationP
     </motion.div>
   );
 }
-
-export function GlassCard({ children, className, ...props }: AnimationProps) {
-  return (
-    <motion.div
-      whileHover={{ y: -4, boxShadow: "0 20px 40px rgba(0,0,0,0.08)" }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-      className={`rounded-2xl bg-white/80 backdrop-blur-md border border-white/20 shadow-sm ${className}`}
-      {...props}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
 export function AnimatedList({ children, className, stagger = 0.05 }: { children: ReactNode; className?: string; stagger?: number }) {
   return (
     <motion.div

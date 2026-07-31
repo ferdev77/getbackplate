@@ -43,17 +43,6 @@ export function isSafeTenantStoragePath(
 
   return false;
 }
-
-export function assertSafeTenantStoragePath(
-  path: string,
-  organizationId: string,
-  options: StoragePathValidationOptions = {},
-) {
-  if (!isSafeTenantStoragePath(path, organizationId, options)) {
-    throw new Error("Ruta de almacenamiento inválida para esta organización");
-  }
-}
-
 export function isAllowedDocumentMime(mimeType: string | null | undefined) {
   return ALLOWED_MIME_TYPES.has(String(mimeType ?? "").toLowerCase());
 }

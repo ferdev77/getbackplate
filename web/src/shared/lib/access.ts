@@ -32,8 +32,6 @@ import {
   type EmployeePermissionModuleCode,
 } from "@/shared/lib/employee-module-permissions";
 
-export const MODULE_DISABLED_COPY = "This module is not included in your current plan.";
-
 const MODULE_DISPLAY_NAMES: Record<string, string> = {
   dashboard: "Dashboard",
   settings: "Company Settings",

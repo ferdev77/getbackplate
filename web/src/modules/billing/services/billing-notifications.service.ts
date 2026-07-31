@@ -5,7 +5,6 @@ import {
   BILLING_SENDER_NAME,
   buildBillingSubject,
   paymentFailedTemplate,
-  planChangedTemplate,
   planRenewalReminderTemplate,
   successfulPaymentTemplate,
   subscriptionActivatedTemplate,
@@ -130,28 +129,6 @@ export async function sendRenewalReminderEmail(
     { source: "billing", sourceId: "renewal_reminder", organizationId },
   ).catch(() => {});
 }
-
-export async function sendPlanChangedEmail(organizationId: string, planName: string) {
-  const orgName = await getOrganizationName(organizationId);
-  const html = planChangedTemplate({ orgName, planName });
-  await sendBillingEmail({
-    organizationId,
-    subject: "Your plan has been updated",
-    html,
-    type: "plan_changed",
-    actionUrl: "/app/billing/portal-launch",
-  });
-  void sendPushToOrg(
-    organizationId,
-    {
-      title: "Your plan has been updated",
-      body: `Your new active plan is ${planName}.`,
-      url: "/app/billing/portal-launch",
-    },
-    { source: "billing", sourceId: "plan_changed", organizationId },
-  ).catch(() => {});
-}
-
 export async function sendPaymentFailedEmail(organizationId: string, retryLink: string) {
   const orgName = await getOrganizationName(organizationId);
   const html = paymentFailedTemplate({ orgName, retryLink });

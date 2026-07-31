@@ -108,12 +108,6 @@ export const getCurrentUserMemberships = cache(async function getCurrentUserMemb
     createdAt: row.created_at,
   }));
 });
-
-export async function getTenantContext(preferredOrganizationId?: string | null) {
-  const memberships = await getCurrentUserMemberships();
-  return resolvePreferredMembership(memberships, preferredOrganizationId).selected;
-}
-
 export async function isCurrentUserSuperadmin() {
   if (!hasPublicSupabaseEnv()) {
     return false;

@@ -46,12 +46,6 @@ export function normalizeTheme(value: string) {
   return THEME_DEFAULT;
 }
 
-export const THEME_PICKER_ORDER = [
-  THEME_DEFAULT,
-  THEME_DARK_PRO,
-  ...THEMES.filter((theme) => theme !== THEME_DEFAULT && theme !== THEME_DARK_PRO),
-];
-
 // ── Module labels ─────────────────────────────────────────────────────────────
 
 export const MODULE_LABELS: Record<string, string> = {

@@ -69,25 +69,6 @@ export function resolveDocumentEffectiveScope(
   const resolved = resolveFolderEffectiveScope(doc.folder_id, folderById);
   return resolved.scope ?? doc.access_scope;
 }
-
-/**
- * Same as resolveDocumentEffectiveScope, but also reports whether the scope
- * is the document's own or inherited, and from which folder — used to show
- * the "Hereda de: X" / "Alcance propio" indicator in the UI.
- */
-export function resolveDocumentEffectiveScopeWithSource(
-  doc: { folder_id: string | null; access_scope: unknown },
-  folderById: Map<string, FolderScopeOwner>,
-): EffectiveScopeResult {
-  if (hasExplicitScopeValue(doc.access_scope)) {
-    return { scope: doc.access_scope, isOwn: true, sourceFolderId: null, sourceFolderName: null };
-  }
-  if (!doc.folder_id) {
-    return { scope: doc.access_scope, isOwn: true, sourceFolderId: null, sourceFolderName: null };
-  }
-  return resolveFolderEffectiveScope(doc.folder_id, folderById);
-}
-
 type EmployeeDocumentAccessInput = {
   roleCode: string;
   userId: string;
