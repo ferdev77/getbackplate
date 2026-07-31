@@ -131,6 +131,30 @@ describe("paridad entre el panel de admin y el portal de empleado", () => {
 });
 
 describe("reglas propias del rol empleado", () => {
+  const RUTAS_VENDORS = [
+    "app/api/employee/vendors/route.ts",
+    "app/api/employee/vendors/[id]/route.ts",
+    "app/api/employee/vendors/[id]/history/route.ts",
+  ];
+
+  it("proveedores: el portal acota a las locaciones del empleado", () => {
+    // Un empleado solo ve y toca proveedores de sus locaciones; el panel de
+    // admin alcanza toda la organizacion.
+    for (const ruta of RUTAS_VENDORS) {
+      expect(fuente(ruta), `${ruta} dejo de acotar los proveedores por locacion`).toContain(
+        "resolveEmployeeVendorScope",
+      );
+    }
+  });
+
+  it("proveedores: el panel de admin no se acota", () => {
+    for (const ruta of ["app/api/company/vendors/route.ts", "app/api/company/vendors/[id]/route.ts"]) {
+      expect(fuente(ruta), `${ruta} empezo a acotar: un company admin alcanza todo`).not.toContain(
+        "resolveEmployeeVendorScope",
+      );
+    }
+  });
+
   const RUTAS_EMPLEADO = [
     "app/api/employee/checklists/templates/route.ts",
     "app/api/employee/announcements/manage/route.ts",

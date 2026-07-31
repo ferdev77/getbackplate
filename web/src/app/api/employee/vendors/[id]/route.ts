@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
+import {
+  locacionesFueraDeAlcance,
+  resolveEmployeeVendorScope,
+} from "@/modules/vendors/lib/employee-scope";
 import { logAuditEvent } from "@/shared/lib/audit";
 
 const nullableStr = (max: number) =>
@@ -53,6 +57,13 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
   const admin = createSupabaseAdminClient();
 
+  // Un empleado solo toca proveedores de sus locaciones.
+  const alcance = await resolveEmployeeVendorScope(admin, organizationId, access.userId);
+  if (!alcance.visibleVendorIds.has(id)) {
+    return NextResponse.json({ error: "Este proveedor no pertenece a tus locaciones" }, { status: 403 });
+  }
+
+
   if (parsed.data.category) {
     const { data: category } = await admin
       .from("vendor_categories")
@@ -86,6 +97,16 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
   const existingBranchIds = (existingLocations ?? []).map((l) => l.branch_id).filter(Boolean).sort();
   const { branch_ids, ...updateFields } = parsed.data;
+
+  if (branch_ids !== undefined) {
+    const fuera = locacionesFueraDeAlcance(branch_ids, alcance.allowedLocationIds);
+    if (fuera.length > 0) {
+      return NextResponse.json(
+        { error: "No puedes asignar el proveedor a locaciones fuera de tu alcance" },
+        { status: 403 },
+      );
+    }
+  }
 
   const updatePayload: Record<string, unknown> = {};
   if (updateFields.name !== undefined) updatePayload.name = updateFields.name;
@@ -186,6 +207,13 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
   const { id } = await params;
   const { organizationId } = access.tenant;
   const admin = createSupabaseAdminClient();
+
+  // Un empleado solo toca proveedores de sus locaciones.
+  const alcance = await resolveEmployeeVendorScope(admin, organizationId, access.userId);
+  if (!alcance.visibleVendorIds.has(id)) {
+    return NextResponse.json({ error: "Este proveedor no pertenece a tus locaciones" }, { status: 403 });
+  }
+
 
   const { data: existing } = await admin
     .from("vendors")

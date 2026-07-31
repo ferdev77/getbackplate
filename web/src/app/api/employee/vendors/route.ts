@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
+import {
+  locacionesFueraDeAlcance,
+  resolveEmployeeVendorScope,
+} from "@/modules/vendors/lib/employee-scope";
 import { logAuditEvent } from "@/shared/lib/audit";
 
 const nullableStr = (max: number) =>
@@ -69,6 +73,10 @@ export async function GET(request: Request) {
       .order("name", { ascending: true }),
   ]);
 
+  // Un empleado solo ve los proveedores de sus locaciones.
+  const alcance = await resolveEmployeeVendorScope(admin, organizationId, access.userId);
+  const vendorsVisibles = (vendors ?? []).filter((v) => alcance.visibleVendorIds.has(v.id));
+
   // Build vendor → branch_ids map
   const locationsByVendor = new Map<string, Array<string | null>>();
   for (const loc of vendorLocations ?? []) {
@@ -80,7 +88,7 @@ export async function GET(request: Request) {
 
   const branchById = new Map((branches ?? []).map((b) => [b.id, customBrandingEnabled && b.city ? b.city : b.name]));
 
-  let result = (vendors ?? [])
+  let result = vendorsVisibles
     .map((v) => {
       const locs = locationsByVendor.get(v.id) ?? [];
       const branchIds = locs.filter(Boolean) as string[];
@@ -147,7 +155,21 @@ export async function POST(request: Request) {
   }
 
   const { branch_ids, ...vendorData } = parsed.data;
+
   const admin = createSupabaseAdminClient();
+
+  const alcanceAlta = await resolveEmployeeVendorScope(admin, organizationId, access.userId);
+  const fuera = locacionesFueraDeAlcance(branch_ids, alcanceAlta.allowedLocationIds);
+  if (fuera.length > 0) {
+    return NextResponse.json(
+      { error: "No puedes asignar el proveedor a locaciones fuera de tu alcance" },
+      { status: 403 },
+    );
+  }
+
+  // Sin locaciones elegidas queda en las suyas: un empleado no crea proveedores
+  // de toda la empresa.
+  const locacionesDelProveedor = branch_ids.length > 0 ? branch_ids : alcanceAlta.allowedLocationIds;
 
   const { data: category } = await admin
     .from("vendor_categories")
@@ -183,9 +205,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Error al crear proveedor", detail: insertError?.message }, { status: 500 });
   }
 
-  if (branch_ids.length > 0) {
+  if (locacionesDelProveedor.length > 0) {
     const { error: locError } = await admin.from("vendor_locations").insert(
-      branch_ids.map((bid) => ({
+      locacionesDelProveedor.map((bid) => ({
         vendor_id: newVendor.id,
         organization_id: organizationId,
         branch_id: bid,

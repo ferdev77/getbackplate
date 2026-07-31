@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
+import { resolveEmployeeVendorScope } from "@/modules/vendors/lib/employee-scope";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { extractDisplayName } from "@/shared/lib/user";
 
@@ -20,6 +21,13 @@ export async function GET(_req: Request, { params }: RouteParams) {
   const { id } = await params;
   const { organizationId, branchId } = access.tenant;
   const admin = createSupabaseAdminClient();
+
+  // Un empleado solo toca proveedores de sus locaciones.
+  const alcance = await resolveEmployeeVendorScope(admin, organizationId, access.userId);
+  if (!alcance.visibleVendorIds.has(id)) {
+    return NextResponse.json({ error: "Este proveedor no pertenece a tus locaciones" }, { status: 403 });
+  }
+
 
   const [{ data: vendor }, { data: locations }] = await Promise.all([
     admin
