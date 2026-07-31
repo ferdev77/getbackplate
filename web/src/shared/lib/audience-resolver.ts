@@ -1,5 +1,6 @@
 import { getAuthEmailByUserId } from "@/shared/lib/auth-users";
 import { canSubjectAccessScopeInAnyLocation } from "@/shared/lib/scope-policy";
+import { combinarLocaciones } from "@/modules/employees/lib/location-sources";
 
 export type AudienceScope = {
   locations: string[];
@@ -107,18 +108,25 @@ function computeEffectiveBranchIds(params: {
   membershipScope: MembershipScope | undefined;
   allOrgBranchIds: string[];
 }): Set<string> {
-  const hasAllLocations = Boolean(params.ownAllLocations) || Boolean(params.membershipScope?.allLocations);
-  if (hasAllLocations) {
-    return new Set(params.allOrgBranchIds);
-  }
+  // Resuelve a granel, pero con la misma regla que el resto: combinarLocaciones.
+  const { locationIds } = combinarLocaciones({
+    fuentes: [
+      {
+        branch_id: params.ownBranchId,
+        all_locations: params.ownAllLocations,
+        location_scope_ids: params.ownLocationScopeIds,
+      },
+      params.membershipScope
+        ? {
+            all_locations: params.membershipScope.allLocations,
+            location_scope_ids: [...params.membershipScope.branchIds],
+          }
+        : null,
+    ],
+    todasLasLocaciones: params.allOrgBranchIds,
+  });
 
-  const branchIds = new Set<string>();
-  if (params.ownBranchId) branchIds.add(params.ownBranchId);
-  for (const id of params.ownLocationScopeIds ?? []) branchIds.add(id);
-  if (params.membershipScope) {
-    for (const id of params.membershipScope.branchIds) branchIds.add(id);
-  }
-  return branchIds;
+  return new Set(locationIds);
 }
 
 /**

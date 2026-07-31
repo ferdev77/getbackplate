@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { combinarLocaciones } from "@/modules/employees/lib/location-sources";
+
 type EmployeeScopeInput = {
   tenantBranchId: string | null;
   employeeBranchId: string | null;
@@ -13,27 +15,6 @@ export async function resolveEmployeeLocationScope(
   organizationId: string,
   input: EmployeeScopeInput,
 ) {
-  const explicitIds = [
-    input.tenantBranchId,
-    input.employeeBranchId,
-    ...((input.employeeLocationIds ?? [])),
-    ...((input.membershipRows ?? []).map((row) => row.branch_id)),
-    ...((input.membershipRows ?? []).flatMap((row) => row.location_scope_ids ?? [])),
-  ].filter((value): value is string => Boolean(value));
-
-  const hasAllLocations =
-    input.employeeAllLocations === true ||
-    (input.membershipRows ?? []).some((row) => row.all_locations === true);
-
-  if (!hasAllLocations) {
-    const locationIds = [...new Set(explicitIds)];
-    return {
-      hasAllLocations: false,
-      locationIds,
-      primaryLocationId: locationIds[0] ?? null,
-    };
-  }
-
   const { data: branches } = await supabase
     .from("branches")
     .select("id")
@@ -41,9 +22,22 @@ export async function resolveEmployeeLocationScope(
     .eq("is_active", true)
     .order("name", { ascending: true });
 
-  const locationIds = [...new Set((branches ?? []).map((row) => row.id).filter(Boolean))];
+  // La regla vive en combinarLocaciones, compartida con el resto.
+  const { locationIds, alcanzaTodas } = combinarLocaciones({
+    fuentes: [
+      {
+        branch_id: input.employeeBranchId,
+        all_locations: input.employeeAllLocations,
+        location_scope_ids: input.employeeLocationIds ?? null,
+      },
+      ...(input.membershipRows ?? []),
+    ],
+    todasLasLocaciones: (branches ?? []).map((row) => row.id).filter(Boolean),
+    locacionDelContexto: input.tenantBranchId,
+  });
+
   return {
-    hasAllLocations: true,
+    hasAllLocations: alcanzaTodas,
     locationIds,
     primaryLocationId: locationIds[0] ?? null,
   };
