@@ -222,3 +222,51 @@ describe("makeScopeMatcher", () => {
     expect(matcher({ departments: ["dep-1"] })({})).toBe(false);
   });
 });
+
+describe("makeScopeMatcher con varias locaciones por persona", () => {
+  const branchNameById = new Map([
+    ["loc-a", "Centro"],
+    ["loc-b", "Norte"],
+  ]);
+
+  function matcher(locations: string[]) {
+    return makeScopeMatcher({
+      locations,
+      departments: [],
+      positions: [],
+      branchNameById,
+      departmentNameById: new Map(),
+      positionNameById: new Map(),
+    });
+  }
+
+  it("alcanza a quien tiene esa locación entre las suyas, aunque no sea su sucursal", () => {
+    // La pregunta de fondo: al filtrar por una locación tienen que aparecer
+    // todos los que la tengan, sea la única o una de varias.
+    const match = matcher(["loc-b"]);
+    expect(match({ branch_id: "loc-a", location_ids: ["loc-a", "loc-b"] })).toBe(true);
+  });
+
+  it("no alcanza a quien no la tiene en ninguna", () => {
+    const match = matcher(["loc-b"]);
+    expect(match({ branch_id: "loc-a", location_ids: ["loc-a"] })).toBe(false);
+  });
+
+  it("alcanza a quien tiene todas las locaciones aunque no tenga sucursal propia", () => {
+    // El caso real: un empleado sin sucursal asignada pero con permiso de todas.
+    // Antes quedaba afuera de cualquier filtro por locación.
+    const match = matcher(["loc-a"]);
+    expect(match({ branch_id: null, location_ids: ["loc-a", "loc-b"] })).toBe(true);
+  });
+
+  it("sin lista de locaciones cae a la sucursal propia", () => {
+    // Los origenes de datos que todavia no traen location_ids siguen andando.
+    const match = matcher(["loc-a"]);
+    expect(match({ branch_id: "loc-a" })).toBe(true);
+    expect(match({ branch_id: "loc-b" })).toBe(false);
+  });
+
+  it("sin filtro de locación alcanza a cualquiera", () => {
+    expect(matcher([])({ branch_id: null, location_ids: [] })).toBe(true);
+  });
+});

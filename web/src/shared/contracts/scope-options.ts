@@ -8,6 +8,8 @@ export type ScopedUserOption = {
   id: string;
   user_id: string | null;
   branch_id?: string | null;
+  /** Todas las locaciones que alcanza la persona (ver ScopeCatalogUser). */
+  location_ids?: string[];
   /**
    * Ids ademas de etiquetas: la vista previa del alcance compara por id para
    * decidir igual que el servidor (ver ScopeCatalogUser en scope-users-catalog).

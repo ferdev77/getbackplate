@@ -147,6 +147,8 @@ export function validateScopeMode(input: {
 
 export type ScopeMatchSubject = {
   branch_id?: string | null;
+  /** Todas las locaciones que alcanza la persona, no solo su sucursal. */
+  location_ids?: string[];
   department_id?: string | null;
   position_id?: string | null;
   location_label?: string;
@@ -192,8 +194,21 @@ export function makeScopeMatcher(input: {
     return Boolean(label && dim.names.has(label));
   }
 
+  /**
+   * La locacion se cumple si *alguna* de las que alcanza la persona esta entre
+   * las elegidas. Antes se comparaba solo su sucursal, asi que alguien asignado
+   * a varias locaciones -- o a todas -- no aparecia al filtrar por una que no
+   * fuera la suya, aunque el servidor si lo incluia.
+   */
+  function ubicacionOk(subject: ScopeMatchSubject) {
+    if (loc.idSet.size === 0) return true;
+    const suyas = subject.location_ids ?? [];
+    if (suyas.length > 0) return suyas.some((id) => loc.idSet.has(id));
+    return ok(loc, subject.branch_id, subject.location_label);
+  }
+
   return (subject: ScopeMatchSubject) =>
-    ok(loc, subject.branch_id, subject.location_label) &&
+    ubicacionOk(subject) &&
     ok(dep, subject.department_id, subject.department_label) &&
     ok(pos, subject.position_id, subject.position_label);
 }

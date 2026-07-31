@@ -130,7 +130,7 @@ export async function POST(request: Request) {
   const [{ data: employeeRow }, allowedLocationIds] = await Promise.all([
     supabase
       .from("employees")
-      .select("department_id, position, branch_id")
+      .select("department_id, position, position_id, branch_id")
       .eq("organization_id", tenant.organizationId)
       .eq("user_id", userId)
       .maybeSingle(),
@@ -138,7 +138,10 @@ export async function POST(request: Request) {
   ]);
 
   let employeePositionIds: string[] = [];
-  if (employeeRow?.position) {
+  // El puesto real manda sobre el texto libre (migracion 20260729000005).
+  if (employeeRow?.position_id) {
+    employeePositionIds = [employeeRow.position_id];
+  } else if (employeeRow?.position) {
     const { data: positionRows } = await supabase
       .from("department_positions")
       .select("id")

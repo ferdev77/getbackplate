@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
+import { resolveEmployeeAllowedLocationIds } from "@/shared/lib/employee-api-scope";
 import { assertTenantModuleApi } from "@/shared/lib/access";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
@@ -28,17 +29,27 @@ export async function GET(request: Request) {
   const supabase = await createSupabaseServerClient();
   const admin = createSupabaseAdminClient();
 
-  const { data: employeeRow } = await supabase
-    .from("employees")
-    .select("department_id, branch_id, position")
-    .eq("organization_id", tenant.organizationId)
-    .eq("user_id", userId)
-    .maybeSingle();
+  const [{ data: employeeRow }, allowedLocationIds] = await Promise.all([
+    supabase
+      .from("employees")
+      .select("department_id, branch_id, position, position_id")
+      .eq("organization_id", tenant.organizationId)
+      .eq("user_id", userId)
+      .maybeSingle(),
+    // Las locaciones habilitadas, no solo la sucursal propia: un empleado con
+    // varias locaciones -- o con todas -- tiene que poder abrir los checklists
+    // que le llegan. Sin esto, quien no tiene sucursal propia los veia en la
+    // lista y al abrirlos recibia "no disponible para tu perfil".
+    resolveEmployeeAllowedLocationIds(tenant.organizationId, userId),
+  ]);
 
   const employeeBranchId = tenant.branchId ?? employeeRow?.branch_id ?? null;
   let employeePositionIds: string[] = [];
 
-  if (employeeRow?.position) {
+  // El puesto real manda sobre el texto libre (migracion 20260729000005).
+  if (employeeRow?.position_id) {
+    employeePositionIds = [employeeRow.position_id];
+  } else if (employeeRow?.position) {
     const { data: positionRows } = await supabase
       .from("department_positions")
       .select("id")
@@ -66,6 +77,7 @@ export async function GET(request: Request) {
     roleCode: tenant.roleCode,
     userId,
     branchId: employeeBranchId,
+    branchIds: allowedLocationIds,
     departmentId: employeeRow?.department_id ?? null,
     positionIds: employeePositionIds,
     templateBranchId: template.branch_id,

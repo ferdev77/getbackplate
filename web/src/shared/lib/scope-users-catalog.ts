@@ -5,6 +5,14 @@ export type ScopeCatalogUser = {
   user_id: string | null;
   branch_id?: string | null;
   /**
+   * Todas las locaciones que alcanza la persona: su sucursal, las asignadas, o
+   * todas si tiene ese permiso. El servidor decide con este conjunto
+   * (can_read_checklist_template y audience-resolver), asi que la vista previa
+   * tiene que mirar lo mismo. Con solo branch_id, alguien asignado a varias
+   * locaciones no aparecia al filtrar por una que no fuera la suya.
+   */
+  location_ids?: string[];
+  /**
    * Los ids van ademas de las etiquetas porque la vista previa del selector de
    * alcance tiene que decidir igual que el servidor. El servidor compara por
    * position_id desde la migracion 20260729000005; si la previa comparara solo
@@ -37,7 +45,7 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
     admin.rpc("is_module_enabled", { org_id: organizationId, module_code: "custom_branding" }),
     admin
       .from("employees")
-      .select("id, user_id, first_name, last_name, branch_id, department_id, position, position_id")
+      .select("id, user_id, first_name, last_name, branch_id, department_id, position, position_id, all_locations, location_scope_ids")
       .eq("organization_id", organizationId)
       .order("first_name"),
     admin
@@ -84,6 +92,21 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
   const departmentNameById = new Map((departments ?? []).map((row) => [row.id, row.name]));
   const positionNameById = new Map((positions ?? []).map((row) => [row.id, row.name]));
 
+  const todasLasLocaciones = (branches ?? []).map((row) => row.id).filter(Boolean);
+
+  function locacionesDe(employee: {
+    branch_id: string | null;
+    all_locations: boolean | null;
+    location_scope_ids: string[] | null;
+  }) {
+    if (employee.all_locations) return todasLasLocaciones;
+    const propias = [
+      employee.branch_id,
+      ...(Array.isArray(employee.location_scope_ids) ? employee.location_scope_ids : []),
+    ];
+    return [...new Set(propias.filter((id): id is string => Boolean(id)))];
+  }
+
   const catalog: ScopeCatalogUser[] = [];
   const userIdsInCatalog = new Set<string>();
 
@@ -96,6 +119,7 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
       id: employee.id,
       user_id: employee.user_id,
       branch_id: employee.branch_id,
+      location_ids: locacionesDe(employee),
       department_id: employee.department_id,
       position_id: employee.position_id,
       first_name: employee.first_name ?? "Usuario",
