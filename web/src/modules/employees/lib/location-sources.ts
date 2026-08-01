@@ -10,30 +10,26 @@
  *                se le copian las locaciones del legajo, y a partir de ahi es lo
  *                que decide que ve.
  *
- *   organization_user_profiles   una proyeccion para listados. No deberia
- *                decidir nada.
+ *   organization_user_profiles   NO es una copia de mas: es el unico registro
+ *                de gente que recibe comunicaciones sin membresia activa.
+ *                Verificado en produccion: 4 personas, todas con email, una con
+ *                correo corporativo. Si el perfil dejara de aportar alcance,
+ *                esas cuatro dejarian de recibir avisos por email.
  *
  * Sin cuenta no se ve nada, tenga las locaciones que tenga: no hay con que
  * entrar. Por eso la asignacion puede esperar en el legajo sin consecuencias.
  *
- * Al leer se combinan las fuentes en vez de mirar solo la membresia. Es a
- * proposito: es un superconjunto que hoy da identico -- verificado, ninguna
- * membresia activa tiene menos locaciones que su legajo -- y protege del caso en
- * que una membresia se cree sin locaciones. Cuando las columnas duplicadas se
- * borren, la combinacion queda leyendo solo la membresia sola.
+ * Al leer se combinan las tres. No es redundancia: cada tabla cubre gente que
+ * las otras no tienen. Quedarse con una sola dejaria a alguien afuera --
+ * probado, y por eso no se hizo.
  *
- * La regla de combinacion, en un solo lugar.
+ * Lo que si esta garantizado es que no puedan divergir: se leen con la misma
+ * regla (combinarLocaciones) y se escriben con la misma forma
+ * (camposDeAlcance), y hay dos tests que cortan si alguien se sale de ahi.
  *
- * Las locaciones se guardan por triplicado -- en `employees`, `memberships` y
- * `organization_user_profiles` -- y en cada una hay tres campos: la sucursal
- * base, las asignadas y el permiso de todas. Cada lugar que combinaba eso a mano
- * lo hacia un poco distinto, y de ahi salieron los desfases: alguien veia un
- * checklist y no podia abrirlo, o no aparecia al filtrar por una locacion que si
- * tenia.
- *
- * Quien necesite saber el alcance de una persona usa esto. Las pantallas que
- * editan esos campos siguen leyendolos directo: ahi no se esta decidiendo un
- * acceso, se esta mostrando un formulario.
+ * Quien necesite el alcance de una persona usa combinarLocaciones. Las pantallas
+ * que editan esos campos siguen leyendolos directo: ahi no se decide un acceso,
+ * se muestra un formulario.
  */
 
 /** Una fila con campos de alcance, venga de la tabla que venga. */
