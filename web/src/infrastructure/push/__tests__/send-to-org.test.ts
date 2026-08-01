@@ -134,6 +134,28 @@ describe("sendPushToUsers / sendPushToOrg", () => {
         error: "Provider unavailable",
       }),
     );
+    // igual que el email, el fallo real queda registrado (no solo en el log tecnico)
+    expect(logNotificationsBulk).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ channel: "push", status: "failed", userId: "user-1" }),
+      ]),
+    );
+  });
+
+  it("sendPushToOrg: un fallo real tambien queda registrado, aunque ahi no exista el respaldo de campanita por targetUserIds", async () => {
+    const { sendPushToOrg } = await import("../send-to-org");
+
+    queueResult("push_subscriptions", ok([
+      { id: "sub-boom", user_id: "user-1", endpoint: "e1", p256dh: "p1", auth: "a1" },
+    ]));
+    sendPushNotification.mockRejectedValueOnce(Object.assign(new Error("Provider unavailable"), { statusCode: 500 }));
+
+    const result = await sendPushToOrg("org-1", payload, { source: "test_source" });
+
+    expect(result).toEqual({ sent: 0, expired: 0, failed: 1 });
+    expect(logNotificationsBulk).toHaveBeenCalledWith([
+      expect.objectContaining({ channel: "push", status: "failed", userId: "user-1" }),
+    ]);
   });
 
   it("con varios dispositivos del mismo usuario, un solo push exitoso alcanza para no duplicar en_app", async () => {

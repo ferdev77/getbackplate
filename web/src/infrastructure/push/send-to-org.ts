@@ -66,6 +66,7 @@ async function _sendToSubscriptions(
   let failed = 0;
   const expiredIds: string[] = [];
   const sentUserIds: string[] = [];
+  const failedUserIds: string[] = [];
 
   await Promise.allSettled(
     subscriptions.map(async (sub) => {
@@ -80,6 +81,7 @@ async function _sendToSubscriptions(
         }
       } catch (err) {
         failed++;
+        failedUserIds.push(sub.user_id);
         console.error("[push] sendPushNotification failed:", {
           subscriptionId: sub.id,
           userId: sub.user_id,
@@ -119,6 +121,16 @@ async function _sendToSubscriptions(
   for (const userId of new Set(targetUserIds ?? [])) {
     if (sentUserIdSet.has(userId)) continue;
     rows.push({ ...baseRow, channel: "in_app" as const, userId });
+  }
+
+  // Igual que el email (que ya guarda status:'failed' con su propio motivo real),
+  // el push deja registro de sus fallos reales — antes solo quedaban en los logs
+  // de Vercel, invisibles en el historial. Es la unica constancia para los
+  // destinatarios de un broadcast por organizacion (sendPushToOrg), que no tienen
+  // el respaldo de campanita de arriba porque ahi no hay una lista de "a quien
+  // le tenia que llegar" mas alla de quien ya tenia suscripcion.
+  for (const userId of new Set(failedUserIds)) {
+    rows.push({ ...baseRow, channel: "push" as const, userId, status: "failed" as const });
   }
 
   logNotificationsBulk(rows).catch((err) =>
