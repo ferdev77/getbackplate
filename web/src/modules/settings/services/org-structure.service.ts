@@ -24,6 +24,65 @@ export function toCode(value: string) {
     .slice(0, 60);
 }
 
+/**
+ * Cuanta gente esta usando una locacion, un departamento o un puesto.
+ *
+ * Se pregunta antes de borrar cualquiera de los tres. Antes esto miraba
+ * `memberships`, y ahi estaba el problema: esa tabla no tiene department_id ni
+ * position_id. La consulta fallaba, se caia en el `if (error)` y borrar un
+ * puesto o un departamento devolvia siempre "no se pudo verificar el uso", sin
+ * importar si estaba libre. Para locaciones si existe branch_id, pero mirar
+ * solo esa columna dejaba afuera a quien la tiene entre sus locaciones
+ * asignadas, y se podia borrar una locacion que alguien seguia usando.
+ *
+ * El dato de a quien le toca que vive en organization_user_profiles y en
+ * employees (el legajo existe con cuenta o sin ella). Para locaciones se suma
+ * memberships, que si las guarda.
+ */
+type RecursoDeLaEstructura = "branch" | "department" | "position";
+
+const COLUMNA_DEL_RECURSO: Record<RecursoDeLaEstructura, string> = {
+  branch: "branch_id",
+  department: "department_id",
+  position: "position_id",
+};
+
+/** Donde buscar cada recurso. Solo tablas que tengan esa columna. */
+const TABLAS_DEL_RECURSO: Record<RecursoDeLaEstructura, string[]> = {
+  branch: ["organization_user_profiles", "employees", "memberships"],
+  department: ["organization_user_profiles", "employees"],
+  position: ["organization_user_profiles", "employees"],
+};
+
+async function contarPersonasQueUsan(params: {
+  supabase: SupabaseClient;
+  organizationId: string;
+  recurso: RecursoDeLaEstructura;
+  id: string;
+}): Promise<{ ok: true; enUso: boolean } | { ok: false; message: string }> {
+  const { supabase, organizationId, recurso, id } = params;
+
+  for (const tabla of TABLAS_DEL_RECURSO[recurso]) {
+    const base = supabase
+      .from(tabla)
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organizationId);
+
+    // Una locacion cuenta como en uso tanto si es la sucursal propia como si
+    // esta entre las asignadas.
+    const consulta =
+      recurso === "branch"
+        ? base.or(`branch_id.eq.${id},location_scope_ids.cs.{${id}}`)
+        : base.eq(COLUMNA_DEL_RECURSO[recurso], id);
+
+    const { count, error } = await consulta;
+    if (error) return { ok: false, message: error.message };
+    if (count && count > 0) return { ok: true, enUso: true };
+  }
+
+  return { ok: true, enUso: false };
+}
+
 // ---------------------------------------------------------------------------
 // Branches
 // ---------------------------------------------------------------------------
@@ -179,18 +238,13 @@ export async function deleteBranch(params: {
     return { ok: false, message: "Invalid location" };
   }
 
-  // Check if in use by memberships
-  const { count, error: countError } = await supabase
-    .from("memberships")
-    .select("*", { count: "exact", head: true })
-    .eq("organization_id", organizationId)
-    .eq("branch_id", branchId);
+  const uso = await contarPersonasQueUsan({ supabase, organizationId, recurso: "branch", id: branchId });
 
-  if (countError) {
-    return { ok: false, message: `Could not verify location usage: ${countError.message}` };
+  if (!uso.ok) {
+    return { ok: false, message: `Could not verify location usage: ${uso.message}` };
   }
 
-  if (count && count > 0) {
+  if (uso.enUso) {
     return { ok: false, message: "This location cannot be deleted because employees are assigned to it. Deactivate it instead." };
   }
 
@@ -368,18 +422,13 @@ export async function deleteDepartment(params: {
     return { ok: false, message: "This department cannot be deleted because it has associated positions. Delete the positions first." };
   }
 
-  // Check if in use by memberships (just in case some memberships are linked to department but no position)
-  const { count: memCount, error: memError } = await supabase
-    .from("memberships")
-    .select("*", { count: "exact", head: true })
-    .eq("organization_id", organizationId)
-    .eq("department_id", departmentId);
+  const uso = await contarPersonasQueUsan({ supabase, organizationId, recurso: "department", id: departmentId });
 
-  if (memError) {
-    return { ok: false, message: `Could not verify department usage: ${memError.message}` };
+  if (!uso.ok) {
+    return { ok: false, message: `Could not verify department usage: ${uso.message}` };
   }
 
-  if (memCount && memCount > 0) {
+  if (uso.enUso) {
     return { ok: false, message: "This department cannot be deleted because employees are assigned to it. Deactivate it instead." };
   }
 
@@ -575,18 +624,13 @@ export async function deleteDepartmentPosition(params: {
     return { ok: false, message: "Invalid position" };
   }
 
-  // Check if in use
-  const { count, error: countError } = await supabase
-    .from("memberships")
-    .select("*", { count: "exact", head: true })
-    .eq("organization_id", organizationId)
-    .eq("position_id", positionId);
+  const uso = await contarPersonasQueUsan({ supabase, organizationId, recurso: "position", id: positionId });
 
-  if (countError) {
-    return { ok: false, message: `Could not verify position usage: ${countError.message}` };
+  if (!uso.ok) {
+    return { ok: false, message: `Could not verify position usage: ${uso.message}` };
   }
 
-  if (count && count > 0) {
+  if (uso.enUso) {
     return { ok: false, message: "This position cannot be deleted because employees are assigned to it. Deactivate it instead." };
   }
 

@@ -106,6 +106,9 @@ describe("nadie mas resuelve locaciones por su cuenta", () => {
     "modules/employees/services/company-employees-route-support.ts",
     "modules/employees/services/employee-edit-detail.ts",
     "modules/employees/ui/new-employee-modal.tsx",
+    // Pregunta si una locacion esta en uso antes de borrarla. No resuelve el
+    // alcance de nadie: cuenta gente que la tiene, propia o asignada.
+    "modules/settings/services/org-structure.service.ts",
     // Traen las filas y se las pasan al resolvedor.
     "app/(employee)/portal/announcements/page.tsx",
     "app/(employee)/portal/checklist/page.tsx",
