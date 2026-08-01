@@ -18,6 +18,8 @@ export type ChecklistPreviewPayload = {
     checklist_type: string | null;
     shift: string | null;
     repeat_every: string | null;
+    /** El reparto real: es lo que decide la frecuencia (repeat_every no reparte nada). */
+    scheduled_job: { recurrence_type: string } | null;
     is_active: boolean;
     target_scope: unknown;
     created_by: string | null;

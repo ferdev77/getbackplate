@@ -171,7 +171,7 @@ export function EmployeeChecklistWorkspace({
               sections={payload.sections}
               checklistType={payload.template.checklist_type}
               shift={payload.template.shift}
-              repeatEvery={payload.template.repeat_every}
+              scheduledJob={payload.template.scheduled_job}
               isActive={payload.template.is_active}
               createdByName={payload.template.created_by_name}
               scopeLabels={payload.template.scope_labels}

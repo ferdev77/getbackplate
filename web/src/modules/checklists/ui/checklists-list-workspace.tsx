@@ -8,6 +8,7 @@ import { EmptyState } from "@/shared/ui/empty-state";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 import { ScopePillsOverflow } from "@/shared/ui/scope-pills-overflow";
 import { ChecklistEditTrigger } from "@/modules/checklists/ui/checklist-edit-trigger";
+import { etiquetaDeFrecuencia } from "@/modules/checklists/lib/recurrence";
 import { SlideUp } from "@/shared/ui/animations";
 import type { ScopeCatalogUser } from "@/shared/lib/scope-users-catalog";
 
@@ -201,7 +202,7 @@ export function ChecklistsListWorkspace({
                         {template.shift || "-"}
                       </p>
                       <p className={`hidden text-[11px] lg:block ${TEXT_MUTED}`}>
-                        {template.repeat_every || "-"}
+                        {etiquetaDeFrecuencia(template.scheduledJob)}
                       </p>
                       <div className="hidden lg:flex flex-wrap items-center gap-1">
                         <ScopePillsOverflow

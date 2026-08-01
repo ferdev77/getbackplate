@@ -1,5 +1,7 @@
 "use client";
 
+import { etiquetaDeFrecuencia } from "@/modules/checklists/lib/recurrence";
+
 type PreviewSection = {
   id: string;
   name: string;
@@ -11,7 +13,8 @@ type Props = {
   sections: PreviewSection[];
   checklistType?: string | null;
   shift?: string | null;
-  repeatEvery?: string | null;
+  /** El reparto real. Sin reparto no se repite, diga lo que diga repeat_every. */
+  scheduledJob?: { recurrence_type?: string | null } | null;
   isActive?: boolean;
   createdByName?: string;
   scopeLabels?: {
@@ -35,7 +38,7 @@ export function ChecklistTemplatePreviewModal({
   sections,
   checklistType,
   shift,
-  repeatEvery,
+  scheduledJob,
   isActive,
   createdByName,
   scopeLabels,
@@ -67,7 +70,7 @@ export function ChecklistTemplatePreviewModal({
             <div className="grid gap-2 text-xs text-[var(--gbp-text2)] sm:grid-cols-2">
               <p><span className="font-semibold text-[var(--gbp-text)]">Tipo:</span> {typeLabel(checklistType)}</p>
               <p><span className="font-semibold text-[var(--gbp-text)]">Shift:</span> {shift || "-"}</p>
-              <p><span className="font-semibold text-[var(--gbp-text)]">Frecuencia:</span> {repeatEvery || "-"}</p>
+              <p><span className="font-semibold text-[var(--gbp-text)]">Frecuencia:</span> {etiquetaDeFrecuencia(scheduledJob)}</p>
               <p><span className="font-semibold text-[var(--gbp-text)]">Estado:</span> {isActive ? "Activo" : "Inactivo"}</p>
               <p className="sm:col-span-2"><span className="font-semibold text-[var(--gbp-text)]">Creado por:</span> {createdByName ?? "Dirección"}</p>
             </div>

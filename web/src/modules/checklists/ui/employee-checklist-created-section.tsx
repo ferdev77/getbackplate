@@ -5,6 +5,7 @@ import { ClipboardCheck, Eye, Pencil, Trash2 } from "lucide-react";
 
 import { ChecklistDeleteModal } from "@/modules/checklists/ui/checklist-delete-modal";
 import { ChecklistEditTrigger } from "@/modules/checklists/ui/checklist-edit-trigger";
+import { etiquetaDeFrecuencia } from "@/modules/checklists/lib/recurrence";
 import type { BranchOption, DepartmentOption, PositionOption, ScopedUserOption } from "@/shared/contracts/scope-options";
 import { TooltipLabel } from "@/shared/ui/tooltip";
 import { ScopePillsOverflow } from "@/shared/ui/scope-pills-overflow";
@@ -17,6 +18,8 @@ type CreatedTemplateRow = {
   checklist_type?: string;
   shift?: string;
   repeat_every?: string;
+  /** El reparto real. Es lo que decide la frecuencia; repeat_every no reparte nada. */
+  scheduledJob?: { recurrence_type: string; custom_days: number[] } | null;
   is_active?: boolean;
   target_scope?: Record<string, string[]>;
   templateSections?: Array<{ name: string; items: Array<{ id: string; label: string }> }>;
@@ -179,7 +182,7 @@ export function EmployeeChecklistCreatedSection({
 
                   <p className="hidden text-xs md:block text-[var(--gbp-text2)]">{typeLabel(row.checklist_type)}</p>
                   <p className="hidden text-xs lg:block text-[var(--gbp-text2)]">{row.shift || "-"}</p>
-                  <p className="hidden text-[11px] lg:block text-[var(--gbp-text2)]">{row.repeat_every || "-"}</p>
+                  <p className="hidden text-[11px] lg:block text-[var(--gbp-text2)]">{etiquetaDeFrecuencia(row.scheduledJob)}</p>
 
                   <div className="hidden lg:flex flex-wrap items-center gap-1">
                     <ScopePillsOverflow
@@ -221,6 +224,7 @@ export function EmployeeChecklistCreatedSection({
                           checklist_type: row.checklist_type,
                           shift: row.shift,
                           repeat_every: row.repeat_every,
+                          scheduledJob: row.scheduledJob,
                           is_active: row.is_active,
                           target_scope: row.target_scope,
                           templateSections: row.templateSections?.length

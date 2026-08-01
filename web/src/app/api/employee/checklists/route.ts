@@ -280,6 +280,17 @@ export async function GET(request: Request) {
     });
   }
 
+  // La frecuencia que se muestra sale del reparto real, no de repeat_every:
+  // ese campo viene en 'daily' por defecto y no reparte nada
+  // (ver modules/checklists/lib/recurrence.ts).
+  const { data: previewJob } = await supabase
+    .from("scheduled_jobs")
+    .select("recurrence_type")
+    .eq("organization_id", tenant.organizationId)
+    .eq("job_type", "checklist_generator")
+    .eq("target_id", template.id)
+    .maybeSingle();
+
   return NextResponse.json({
     template: {
       id: template.id,
@@ -287,6 +298,7 @@ export async function GET(request: Request) {
       checklist_type: template.checklist_type,
       shift: template.shift,
       repeat_every: template.repeat_every,
+      scheduled_job: previewJob ? { recurrence_type: previewJob.recurrence_type } : null,
       is_active: template.is_active,
       target_scope: template.target_scope,
       scope_labels: scopeLabels,

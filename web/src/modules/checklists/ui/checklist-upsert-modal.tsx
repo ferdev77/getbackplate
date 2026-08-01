@@ -24,6 +24,7 @@ import { ChecklistItemsBuilder } from "@/modules/checklists/ui/checklist-items-b
 import { createChecklistTemplateAction } from "@/modules/checklists/actions";
 import type { BranchOption, DepartmentOption, PositionOption, ScopedUserOption } from "@/shared/contracts/scope-options";
 import { flattenChecklistSectionTexts, parseChecklistSections } from "@/modules/checklists/lib/sections";
+import { frecuenciaDelChecklist } from "@/modules/checklists/lib/recurrence";
 
 // SMS sigue funcionando en el backend; se oculta de la UI por ahora.
 const SHOW_SMS_CHANNEL = false;
@@ -255,7 +256,13 @@ export function ChecklistUpsertModal({
               <ScopeModalDivider />
               <ScopeModalSection label="Frecuencia" />
               <RecurrenceSelector
-                initialType={editingTemplate?.scheduledJob?.recurrence_type || editingTemplate?.repeat_every || "daily"}
+                // Al editar, la frecuencia sale del reparto real. Antes caia en
+                // repeat_every (DEFAULT 'daily'), asi que un checklist sin
+                // reparto abria marcado "Diaria" y al guardar se lo creaba sin
+                // que nadie lo pidiera. Uno nuevo si arranca en "Diaria".
+                initialType={
+                  editingTemplate ? frecuenciaDelChecklist(editingTemplate.scheduledJob) : "daily"
+                }
                 initialDays={editingTemplate?.scheduledJob?.custom_days || []}
               />
 

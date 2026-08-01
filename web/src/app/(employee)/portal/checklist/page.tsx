@@ -196,6 +196,26 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
     : { data: [] };
 
   const myCreatedTemplateIds = (myCreatedTemplates ?? []).map((row) => row.id);
+
+  // El reparto real de los checklists propios. La frecuencia que se muestra
+  // sale de aca y no de repeat_every: ese campo viene en 'daily' por defecto y
+  // no reparte nada (ver modules/checklists/lib/recurrence.ts).
+  const { data: myScheduledJobs } = myCreatedTemplateIds.length
+    ? await admin
+        .from("scheduled_jobs")
+        .select("target_id, recurrence_type, custom_days")
+        .eq("organization_id", tenant.organizationId)
+        .eq("job_type", "checklist_generator")
+        .in("target_id", myCreatedTemplateIds)
+    : { data: [] as Array<{ target_id: string; recurrence_type: string; custom_days: number[] | null }> };
+
+  const myJobByTemplateId = new Map(
+    (myScheduledJobs ?? []).map((job) => [
+      job.target_id,
+      { recurrence_type: job.recurrence_type, custom_days: job.custom_days ?? [] },
+    ]),
+  );
+
   const { data: mySections } = myCreatedTemplateIds.length
     ? await admin
         .from("checklist_template_sections")
@@ -244,6 +264,7 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
       checklist_type: template.checklist_type,
       shift: template.shift,
       repeat_every: template.repeat_every,
+      scheduledJob: myJobByTemplateId.get(template.id) ?? null,
       is_active: template.is_active,
       target_scope:
         typeof template.target_scope === "object" && template.target_scope !== null

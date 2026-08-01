@@ -1,5 +1,7 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { assertScopeIntent, normalizeScopeSelection, validateTenantScopeReferences } from "@/shared/lib/scope-validation";
+import { resolveUserLocale } from "@/shared/lib/locale";
+import { createChecklistsTranslator } from "@/modules/checklists/checklists.i18n";
 import { calculateNextRunAt, RecurrenceType } from "@/shared/lib/cron-utils";
 import {
   isTextOnlyChecklistEdit,
@@ -245,12 +247,18 @@ export async function upsertChecklistTemplate(
 
   const totalItems = normalizedSections.reduce((acc, section) => acc + section.items.length, 0);
 
+  // Los mensajes se escriben en español y el diccionario del modulo los pasa a
+  // ingles cuando corresponde (planes de integracion). Ver checklists.i18n.ts.
+  const t = createChecklistsTranslator(
+    await resolveUserLocale({ organizationId, userId: createdBy }),
+  );
+
   if (!name) {
-    return { ok: false, message: "Poné un nombre para el checklist" };
+    return { ok: false, message: t("Poné un nombre para el checklist") };
   }
 
   if (!totalItems) {
-    return { ok: false, message: "Agregá al menos un ítem" };
+    return { ok: false, message: t("Agregá al menos un ítem") };
   }
 
   // Validate branch
@@ -263,7 +271,7 @@ export async function upsertChecklistTemplate(
       .maybeSingle();
 
     if (branchError || !branch) {
-      return { ok: false, message: "La locación base no pertenece a esta organización" };
+      return { ok: false, message: t("La locación base no pertenece a esta organización") };
     }
   }
 
@@ -278,7 +286,7 @@ export async function upsertChecklistTemplate(
       .maybeSingle();
 
     if (departmentError || !departmentRow) {
-      return { ok: false, message: "El departamento base no pertenece a esta organización" };
+      return { ok: false, message: t("El departamento base no pertenece a esta organización") };
     }
 
     department = departmentRow.name;
@@ -355,7 +363,7 @@ export async function upsertChecklistTemplate(
       .maybeSingle();
 
     if (!existingTemplate) {
-      return { ok: false, message: "No se encontró el checklist que se quiere editar" };
+      return { ok: false, message: t("No se encontró el checklist que se quiere editar") };
     }
 
     const { data: hasSubmissions } = await supabase
@@ -414,7 +422,10 @@ export async function upsertChecklistTemplate(
   }
 
   if (templateError || !template) {
-    return { ok: false, message: `Unable to create template: ${templateError?.message ?? "error"}` };
+    return {
+      ok: false,
+      message: `${t("No se pudo crear el checklist")}: ${templateError?.message ?? "error"}`,
+    };
   }
 
   // ── Los items no se cambian al medio de una vuelta que ya tiene respuestas ──
@@ -478,7 +489,10 @@ export async function upsertChecklistTemplate(
     );
 
     if (cycleError) {
-      return { ok: false, message: `No se pudo verificar el estado del checklist: ${cycleError.message}` };
+      return {
+        ok: false,
+        message: `${t("No se pudo verificar el estado del checklist")}: ${cycleError.message}`,
+      };
     }
 
     const responsesInCycle = typeof cycleSubmissions === "number" ? cycleSubmissions : 0;
@@ -495,11 +509,11 @@ export async function upsertChecklistTemplate(
       if (!job?.next_run_at) {
         return {
           ok: false,
-          message:
-            `No se pueden cambiar los items: este checklist ya tiene ${responsesInCycle} ` +
-            `${responsesInCycle === 1 ? "respuesta" : "respuestas"} y no tiene una frecuencia definida, ` +
-            "asi que no hay un proximo reparto donde aplicarlos sin mezclar los resultados. " +
-            "Podes duplicarlo como checklist nuevo, o asignarle una frecuencia y editarlo despues.",
+          message: t(
+            "No se pueden cambiar los ítems: este checklist ya tiene {n} {respuestas} y no tiene una frecuencia definida, así que no hay un próximo reparto donde aplicarlos sin mezclar los resultados. Podés duplicarlo como checklist nuevo, o asignarle una frecuencia y editarlo después.",
+          )
+            .replace("{n}", String(responsesInCycle))
+            .replace("{respuestas}", t(responsesInCycle === 1 ? "respuesta" : "respuestas")),
         };
       }
 
@@ -513,7 +527,10 @@ export async function upsertChecklistTemplate(
         .eq("id", template.id);
 
       if (pendingError) {
-        return { ok: false, message: `No se pudieron guardar los cambios pendientes: ${pendingError.message}` };
+        return {
+          ok: false,
+          message: `${t("No se pudieron guardar los cambios pendientes")}: ${pendingError.message}`,
+        };
       }
 
       return {
@@ -562,7 +579,7 @@ export async function upsertChecklistTemplate(
     if (itemsDeleteError) {
       return {
         ok: false,
-        message: `No se pudieron reemplazar los items del checklist: ${itemsDeleteError.message}`,
+        message: `${t("No se pudieron reemplazar los ítems del checklist")}: ${itemsDeleteError.message}`,
       };
     }
 
@@ -575,7 +592,7 @@ export async function upsertChecklistTemplate(
     if (sectionsDeleteError) {
       return {
         ok: false,
-        message: `No se pudieron reemplazar las secciones del checklist: ${sectionsDeleteError.message}`,
+        message: `${t("No se pudieron reemplazar las secciones del checklist")}: ${sectionsDeleteError.message}`,
       };
     }
   }
@@ -596,7 +613,7 @@ export async function upsertChecklistTemplate(
     if (sectionError || !sectionRow) {
       return {
         ok: false,
-        message: `Template ${templateId ? "updated" : "created"}, but the section failed: ${sectionError?.message ?? "error"}`
+        message: `${t("El checklist se guardó, pero falló una sección")}: ${sectionError?.message ?? "error"}`,
       };
     }
 
@@ -615,7 +632,7 @@ export async function upsertChecklistTemplate(
     if (itemsError) {
       return {
         ok: false,
-        message: `Template ${templateId ? "updated" : "created"}, but the items failed: ${itemsError.message}`
+        message: `${t("El checklist se guardó, pero fallaron los ítems")}: ${itemsError.message}`,
       };
     }
   }
@@ -652,6 +669,12 @@ export async function deleteChecklistTemplate(params: {
 }): Promise<DeleteChecklistTemplateResult> {
   const { supabase, organizationId, templateId } = params;
 
+  // Ver checklists.i18n.ts: el español es la clave y el diccionario lo pasa a
+  // inglés cuando la organización corresponde.
+  const t = createChecklistsTranslator(
+    await resolveUserLocale({ organizationId, userId: null }),
+  );
+
   const { data: template } = await supabase
     .from("checklist_templates")
     .select("id, name, branch_id")
@@ -660,7 +683,7 @@ export async function deleteChecklistTemplate(params: {
     .maybeSingle();
 
   if (!template) {
-    return { ok: false, message: "No se encontró el checklist" };
+    return { ok: false, message: t("No se encontró el checklist") };
   }
 
   const { count: submissionsCount, error: countError } = await supabase
@@ -670,7 +693,10 @@ export async function deleteChecklistTemplate(params: {
     .eq("template_id", templateId);
 
   if (countError) {
-    return { ok: false, message: `Unable to check checklist history: ${countError.message}` };
+    return {
+      ok: false,
+      message: `${t("No se pudo verificar el historial del checklist")}: ${countError.message}`,
+    };
   }
 
   /**
@@ -698,7 +724,7 @@ export async function deleteChecklistTemplate(params: {
       .in("section_id", sectionIds);
 
     if (itemsDeleteError) {
-      return { ok: false, message: `Unable to delete items: ${itemsDeleteError.message}` };
+      return { ok: false, message: `${t("No se pudieron borrar los ítems")}: ${itemsDeleteError.message}` };
     }
 
     const { error: sectionsDeleteError } = await supabase
@@ -708,7 +734,10 @@ export async function deleteChecklistTemplate(params: {
       .eq("template_id", templateId);
 
     if (sectionsDeleteError) {
-      return { ok: false, message: `Unable to delete sections: ${sectionsDeleteError.message}` };
+      return {
+        ok: false,
+        message: `${t("No se pudieron borrar las secciones")}: ${sectionsDeleteError.message}`,
+      };
     }
   }
 
@@ -728,15 +757,17 @@ export async function deleteChecklistTemplate(params: {
     .eq("id", templateId);
 
   if (templateDeleteError) {
-    return { ok: false, message: `Unable to delete checklist: ${templateDeleteError.message}` };
+    return { ok: false, message: `${t("No se pudo borrar el checklist")}: ${templateDeleteError.message}` };
   }
 
   return {
     ok: true,
     message:
       submissions > 0
-        ? `Checklist eliminado. Se conservan ${submissions} ${submissions === 1 ? "respuesta" : "respuestas"} en el historial.`
-        : "Checklist eliminado.",
+        ? `${t("Checklist eliminado.")} ${t("Se conservan {n} {respuestas} en el historial.")
+            .replace("{n}", String(submissions))
+            .replace("{respuestas}", t(submissions === 1 ? "respuesta" : "respuestas"))}`
+        : t("Checklist eliminado."),
     keptSubmissions: submissions,
   };
 }
