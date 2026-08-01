@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Bell, BellOff, BellRing } from "lucide-react";
 import { toast } from "sonner";
-import { subscribeToPush, unsubscribeFromPush } from "@/shared/lib/push-subscribe";
+import { subscribeToPush } from "@/shared/lib/push-subscribe";
 import { createTranslator } from "./company-shell.i18n";
 
 type Locale = "es" | "en";
@@ -30,33 +30,36 @@ export function PushStatusChip({
 
   const isBlocked = !enabled && browserPermission === "denied";
 
-  async function handleClick() {
-    if (isPending || isBlocked) return;
+  async function handleEnable() {
+    if (isPending) return;
     setIsPending(true);
     try {
-      if (enabled) {
-        const ok = await unsubscribeFromPush();
-        if (ok) {
-          setEnabled(false);
-          toast.success(t("Notificaciones push desactivadas"));
-        } else {
-          toast.error(t("No se pudo desactivar"));
-        }
+      const ok = await subscribeToPush({ orgId });
+      if (typeof window !== "undefined" && "Notification" in window) {
+        setBrowserPermission(Notification.permission);
+      }
+      if (ok) {
+        setEnabled(true);
+        toast.success(t("Notificaciones activadas"));
       } else {
-        const ok = await subscribeToPush({ orgId });
-        if (typeof window !== "undefined" && "Notification" in window) {
-          setBrowserPermission(Notification.permission);
-        }
-        if (ok) {
-          setEnabled(true);
-          toast.success(t("Notificaciones push activadas"));
-        } else {
-          toast.error(t("No se pudo activar. Revisá el permiso de notificaciones del navegador."));
-        }
+        toast.error(t("No se pudo activar. Revisá el permiso de notificaciones del navegador."));
       }
     } finally {
       setIsPending(false);
     }
+  }
+
+  if (enabled) {
+    // A proposito no se puede desactivar desde aca: si alguien quiere dejar de
+    // recibir push, lo hace desde el permiso de notificaciones del navegador.
+    return (
+      <span
+        title={t("Para desactivarlas, hacelo desde la configuración de notificaciones de tu navegador (ícono de candado junto a la URL).")}
+        className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-600"
+      >
+        <BellRing className="h-3.5 w-3.5" /> {t("Push activado")}
+      </span>
+    );
   }
 
   if (isBlocked) {
@@ -73,16 +76,11 @@ export function PushStatusChip({
   return (
     <button
       type="button"
-      onClick={handleClick}
+      onClick={handleEnable}
       disabled={isPending}
-      className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60 ${
-        enabled
-          ? "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-          : "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)] hover:opacity-90"
-      }`}
+      className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] px-3 py-1.5 text-xs font-semibold text-[var(--gbp-accent)] transition-colors hover:opacity-90 disabled:opacity-60"
     >
-      {enabled ? <BellRing className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
-      {enabled ? t("Push activado") : t("Push desactivado — Activar")}
+      <Bell className="h-3.5 w-3.5" /> {t("Push desactivado — Activar")}
     </button>
   );
 }

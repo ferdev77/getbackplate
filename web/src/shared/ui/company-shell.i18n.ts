@@ -59,10 +59,7 @@ export const COMPANY_SHELL_EN: Record<string, string> = {
   "Push bloqueado": "Push blocked",
   "Bloqueaste las notificaciones para este sitio. Habilitalas desde la configuración del navegador (ícono de candado junto a la URL) y recargá la página.":
     "You blocked notifications for this site. Enable them from your browser settings (padlock icon next to the URL) and reload the page.",
-  "Notificaciones push activadas": "Push notifications enabled",
-  "Notificaciones push desactivadas": "Push notifications disabled",
   "No se pudo activar. Revisá el permiso de notificaciones del navegador.": "Could not enable. Check your browser's notification permission.",
-  "No se pudo desactivar": "Could not disable",
   "Notificaciones activadas": "Notifications enabled",
   "Activá las notificaciones para no perderte novedades importantes": "Enable notifications so you don't miss important updates",
   "Activar": "Enable",
