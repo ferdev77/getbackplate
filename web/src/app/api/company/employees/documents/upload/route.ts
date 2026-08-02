@@ -12,6 +12,7 @@ import {
 import { analyzeUploadedFile } from "@/shared/lib/file-security";
 import { assertPlanLimitForStorage, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
+import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
 
 const BUCKET_NAME = "tenant-documents";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -261,6 +262,14 @@ export async function POST(request: Request) {
       file_name: analysis.originalName,
     },
   });
+
+  if (employee.user_id) {
+    void sendPushToUsers(
+      [employee.user_id],
+      { title: "New document added to your file", body: `"${slotLabel}" was added to your employee file.`, url: "/portal/documents" },
+      { source: "employee_document_added", sourceId: `${employee.id}:${createdDoc.id}`, organizationId: tenant.organizationId },
+    );
+  }
 
   return NextResponse.json({
     ok: true,

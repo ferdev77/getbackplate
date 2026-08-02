@@ -13,6 +13,8 @@ import {
 import { analyzeUploadedFile } from "@/shared/lib/file-security";
 import { assertPlanLimitForStorage, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
+import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
+import { companyAdminUserIds } from "@/shared/lib/notification-recipients";
 
 const BUCKET_NAME = "tenant-documents";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -272,6 +274,15 @@ export async function POST(request: Request) {
       file_name: analysis.originalName,
     },
   });
+
+  const adminUserIds = await companyAdminUserIds(admin, tenant.organizationId);
+  if (adminUserIds.length) {
+    void sendPushToUsers(
+      adminUserIds,
+      { title: "Document submitted for review", body: `${fullName} uploaded "${slotLabel}".`, url: "/app/employees" },
+      { source: "employee_document_submitted", sourceId: `${employee.id}:${createdDoc.id}`, organizationId: tenant.organizationId },
+    );
+  }
 
   return NextResponse.json({
     ok: true,

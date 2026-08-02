@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
+import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
 
 const BUCKET_NAME = "tenant-documents";
 const MAX_PLACEHOLDER_SIZE_BYTES = 1024 * 1024;
@@ -151,6 +152,14 @@ export async function POST(request: Request) {
       title: customTitle,
     },
   });
+
+  if (employee.user_id) {
+    void sendPushToUsers(
+      [employee.user_id],
+      { title: "New document requested", body: `"${customTitle}" was requested from you.`, url: "/portal/documents" },
+      { source: "employee_document_requested", sourceId: `${employee.id}:${createdDoc.id}`, organizationId: tenant.organizationId },
+    );
+  }
 
   return NextResponse.json({
     ok: true,

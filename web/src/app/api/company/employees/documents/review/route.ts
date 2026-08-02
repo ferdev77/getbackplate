@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
 
 const ALLOWED_DECISIONS = new Set(["approved", "rejected"]);
 
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
       .maybeSingle(),
     supabase
       .from("documents")
-      .select("id, owner_user_id")
+      .select("id, title, owner_user_id")
       .eq("organization_id", tenant.organizationId)
       .eq("id", documentId)
       .maybeSingle(),
@@ -145,6 +146,24 @@ export async function POST(request: Request) {
       source: "company.employees.modal",
     },
   });
+
+  if (employee.user_id) {
+    const documentTitle = document.title ?? "Document";
+    const approved = decision === "approved";
+    void sendPushToUsers(
+      [employee.user_id],
+      {
+        title: approved ? "Document approved" : "Document rejected",
+        body: reviewComment
+          ? `"${documentTitle}": ${reviewComment}`
+          : approved
+            ? `"${documentTitle}" was approved.`
+            : `"${documentTitle}" was rejected.`,
+        url: "/portal/documents",
+      },
+      { source: "employee_document_reviewed", sourceId: `${employeeId}:${documentId}`, organizationId: tenant.organizationId },
+    );
+  }
 
   return NextResponse.json({
     ok: true,
