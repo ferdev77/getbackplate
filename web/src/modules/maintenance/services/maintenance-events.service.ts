@@ -5,7 +5,24 @@ import {
   companyAdminUserIds,
   destinatarios,
   employeesWhoCanOperate,
+  isActiveMember,
 } from "@/shared/lib/notification-recipients";
+
+/**
+ * "Quien reporto esto" puede ya no ser miembro real (ej: un superadmin que la
+ * creo impersonando para probar el modulo) -- sin este chequeo, esa persona
+ * recibe avisos de un tenant ajeno para siempre, cada vez que alguien mas
+ * toque esa solicitud vieja.
+ */
+async function requesterSiSigueSiendoMiembro(
+  supabase: SupabaseClient,
+  organizationId: string,
+  requestedByUserId: string | null,
+) {
+  if (!requestedByUserId) return null;
+  const esMiembro = await isActiveMember(supabase, organizationId, requestedByUserId);
+  return esMiembro ? requestedByUserId : null;
+}
 
 /**
  * Avisos del ciclo de una solicitud de mantenimiento.
@@ -96,8 +113,9 @@ export async function notifyMaintenanceStatusChanged(params: {
   requestedByUserId: string | null;
   actorUserId: string;
 }) {
+  const requestedBy = await requesterSiSigueSiendoMiembro(params.supabase, params.organizationId, params.requestedByUserId);
   const userIds = destinatarios(
-    [params.requestedByUserId, ...(await quienesAtienden(params.supabase, params.organizationId))],
+    [requestedBy, ...(await quienesAtienden(params.supabase, params.organizationId))],
     params.actorUserId,
   );
 
@@ -125,8 +143,9 @@ export async function notifyMaintenanceUpdate(params: {
   requestedByUserId: string | null;
   actorUserId: string;
 }) {
+  const requestedBy = await requesterSiSigueSiendoMiembro(params.supabase, params.organizationId, params.requestedByUserId);
   const userIds = destinatarios(
-    [params.requestedByUserId, ...(await quienesAtienden(params.supabase, params.organizationId))],
+    [requestedBy, ...(await quienesAtienden(params.supabase, params.organizationId))],
     params.actorUserId,
   );
 

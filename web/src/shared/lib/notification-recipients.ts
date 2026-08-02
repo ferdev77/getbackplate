@@ -71,3 +71,21 @@ export async function employeesWhoCanOperate(
 export function destinatarios(candidatos: Array<string | null | undefined>, excluir: string | null) {
   return [...new Set(candidatos.filter((id): id is string => Boolean(id) && id !== excluir))];
 }
+
+/**
+ * Si sigue siendo miembro activo de la organizacion. Hace falta para no confiar
+ * ciegamente en un user_id guardado hace tiempo (ej: "quien reporto esto") --
+ * puede ya no tener membresia real ahi, como un superadmin que lo creo
+ * impersonando para probar el modulo.
+ */
+export async function isActiveMember(supabase: SupabaseClient, organizationId: string, userId: string) {
+  const { data } = await supabase
+    .from("memberships")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+  return Boolean(data);
+}

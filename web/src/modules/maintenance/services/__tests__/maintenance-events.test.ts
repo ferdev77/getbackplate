@@ -32,7 +32,7 @@ type Fila = Record<string, unknown>;
  * Mock de supabase con lo que usa el resolvedor de destinatarios: el rol
  * company_admin, las membresias y los permisos por modulo.
  */
-function supabaseFalso(opciones: { admins?: string[]; operativos?: string[] } = {}) {
+function supabaseFalso(opciones: { admins?: string[]; operativos?: string[]; noMiembro?: string } = {}) {
   const admins = opciones.admins ?? [];
   const operativos = opciones.operativos ?? [];
   const membresiaDe = new Map(operativos.map((id, i) => [`mem-${i}`, id]));
@@ -58,10 +58,17 @@ function supabaseFalso(opciones: { admins?: string[]; operativos?: string[] } = 
             .map((id) => ({ user_id: id }));
           return cadena;
         },
-        maybeSingle: async () => ({
-          data: tabla === "roles" ? { id: "rol-admin" } : null,
-          error: null,
-        }),
+        limit: () => cadena,
+        maybeSingle: async () => {
+          if (tabla === "roles") return { data: { id: "rol-admin" }, error: null };
+          // isActiveMember: consulta puntual por user_id -- "quien-reporto" es
+          // miembro salvo que el test diga explicitamente lo contrario.
+          if (tabla === "memberships" && filtros.user_id) {
+            const esMiembro = filtros.user_id !== opciones.noMiembro;
+            return { data: esMiembro ? { id: "mem-requester" } : null, error: null };
+          }
+          return { data: null, error: null };
+        },
         get data() {
           if (tabla === "employee_module_permissions") {
             // El mock honra el filtro: si se pide otra capacidad que no sea
@@ -144,6 +151,19 @@ describe("notifyMaintenanceStatusChanged", () => {
     });
 
     expect(avisados()).toEqual(["admin-1", "quien-reporto"]);
+  });
+
+  it("no le avisa a quien reportó si ya no es miembro real de la organización (ej: superadmin que probó el módulo impersonando)", async () => {
+    await notifyMaintenanceStatusChanged({
+      supabase: supabaseFalso({ admins: ["admin-1"], noMiembro: "ex-superadmin" }),
+      organizationId: "org-1",
+      title: "Heladera",
+      toStatus: "resuelto",
+      requestedByUserId: "ex-superadmin",
+      actorUserId: "encargado",
+    });
+
+    expect(avisados()).toEqual(["admin-1"]);
   });
 
   it("dice en qué estado quedó", async () => {

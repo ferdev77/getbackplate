@@ -1,4 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
+import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { notifyMaintenanceRequested } from "@/modules/maintenance/services/maintenance-events.service";
 
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
 import {
@@ -58,6 +60,19 @@ export async function PUT(request: Request, context: RouteContext) {
 
     await updateMaintenanceDraft(actorContext, id, parsed.data);
     await attachMaintenanceFiles(actorContext, id, filesFromFormData(formData));
+
+    if (parsed.data.action === "submit") {
+      after(async () => {
+        await notifyMaintenanceRequested({
+          supabase: createSupabaseAdminClient(),
+          organizationId: actorContext.organizationId,
+          title: parsed.data.title,
+          priority: parsed.data.priority ?? null,
+          locationName: null,
+          createdByUserId: actorContext.userId,
+        });
+      });
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {

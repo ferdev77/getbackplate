@@ -6,7 +6,6 @@ import { analyzeUploadedFile } from "@/shared/lib/file-security";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
 import { assertPlanLimitForStorage, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
 import { resolveEmployeeAllowedLocationIds } from "@/shared/lib/employee-api-scope";
-import { notifyMaintenanceRequestCreated, notifyMaintenanceRequestUpdated } from "@/modules/maintenance/notifications";
 import {
   MAINTENANCE_PRIORITIES,
   MAINTENANCE_STATUSES,
@@ -534,17 +533,6 @@ export async function createMaintenanceRequest(context: ActorContext, input: z.i
     message: status === "draft" ? "Request guardada como borrador." : "Request creada y enviada.",
   });
 
-  if (status === "submitted") {
-    await notifyMaintenanceRequestCreated({
-      organizationId: context.organizationId,
-      requestId: data.id as string,
-      createdByUserId: context.userId,
-      branchId: input.branch_id,
-      title: input.title,
-      priority: input.priority,
-    });
-  }
-
   return data.id as string;
 }
 
@@ -610,17 +598,6 @@ export async function updateMaintenanceDraft(
       ? "Borrador actualizado y enviado."
       : "Borrador actualizado.",
   });
-
-  if (nextStatus === "submitted") {
-    await notifyMaintenanceRequestCreated({
-      organizationId: context.organizationId,
-      requestId,
-      createdByUserId: context.userId,
-      branchId: input.branch_id,
-      title: input.title,
-      priority: input.priority,
-    });
-  }
 }
 
 async function ensureMaintenanceCategory(
@@ -961,16 +938,6 @@ export async function addMaintenanceUpdate(
     to_status: nextStatus,
     message: input.message || null,
     scheduled_visit_at: scheduledVisitAt,
-  });
-
-  await notifyMaintenanceRequestUpdated({
-    organizationId: context.organizationId,
-    requestId,
-    actorUserId: context.userId,
-    createdByUserId: requestRow.created_by,
-    branchId: requestRow.branch_id,
-    title: requestRow.title,
-    toStatus: nextStatus,
   });
 }
 
