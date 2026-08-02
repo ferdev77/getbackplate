@@ -7,8 +7,6 @@ import { NotificationItemRow, type NotificationListItem } from "@/shared/ui/noti
 import { PushStatusChip } from "@/shared/ui/push-status-chip";
 import { createTranslator } from "@/shared/ui/company-shell.i18n";
 
-type ChannelFilter = "all" | "email" | "push" | "in_app";
-
 export function NotificationsHistoryList({
   locale = "es",
   pushEnabled,
@@ -21,7 +19,6 @@ export function NotificationsHistoryList({
   const router = useRouter();
   const t = createTranslator(locale);
   const [items, setItems] = useState<NotificationListItem[]>([]);
-  const [filter, setFilter] = useState<ChannelFilter>("all");
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -73,29 +70,12 @@ export function NotificationsHistoryList({
     });
   }
 
-  const filteredItems = items.filter((item) => filter === "all" || item.channel === filter);
   const hasUnread = items.some((item) => !item.read_at);
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-1.5">
-          {(["all", "email", "push", "in_app"] as const).map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setFilter(option)}
-              className={`rounded-lg border-[1.5px] px-3 py-1.5 text-xs font-semibold capitalize ${
-                filter === option
-                  ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)] text-[var(--gbp-accent)]"
-                  : "border-[var(--gbp-border2)] bg-[var(--gbp-surface)] text-[var(--gbp-text2)]"
-              }`}
-            >
-              {option === "all" ? t("Todas") : option === "email" ? "Email" : option === "push" ? "Push" : t("En la app")}
-            </button>
-          ))}
-          <PushStatusChip initialEnabled={pushEnabled} orgId={orgId} locale={locale} />
-        </div>
+        <PushStatusChip initialEnabled={pushEnabled} orgId={orgId} locale={locale} />
         {hasUnread ? (
           <button
             type="button"
@@ -111,14 +91,14 @@ export function NotificationsHistoryList({
         <div className="grid place-items-center py-16 text-[var(--gbp-text2)]">
           <Loader2 className="h-5 w-5 animate-spin" />
         </div>
-      ) : filteredItems.length === 0 ? (
+      ) : items.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-16 text-center text-[var(--gbp-text2)]">
           <Bell className="h-6 w-6" />
           <p className="text-sm">{t("No hay notificaciones para mostrar.")}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-1.5">
-          {filteredItems.map((item) => (
+          {items.map((item) => (
             <NotificationItemRow key={item.id} item={item} onClick={handleItemClick} locale={locale} />
           ))}
         </div>

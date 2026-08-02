@@ -15,7 +15,7 @@ export type LogNotificationInput = {
   metadata?: Record<string, unknown>;
 };
 
-async function resolveUserIdByEmail(email: string): Promise<string | null> {
+export async function resolveUserIdByEmail(email: string): Promise<string | null> {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase.rpc("get_user_id_by_email", { lookup_email: email });
   if (error) return null;
@@ -37,29 +37,6 @@ function toRow(input: LogNotificationInput, resolvedUserId: string | null) {
     created_by: input.createdBy ?? null,
     metadata: input.metadata ?? {},
   };
-}
-
-/**
- * Registra una notificacion en el centro de notificaciones. Nunca lanza: si falla,
- * solo se pierde el registro de historial, no debe romper el envio real de email/push.
- */
-export async function logNotification(input: LogNotificationInput): Promise<void> {
-  try {
-    // userId === undefined: el call-site no lo sabe, intentamos resolverlo por email.
-    // userId === null: el call-site decidio explicitamente no resolverlo (ej: destinatario externo sin cuenta).
-    let resolvedUserId: string | null = input.userId ?? null;
-    if (input.userId === undefined && input.recipientEmail) {
-      resolvedUserId = await resolveUserIdByEmail(input.recipientEmail);
-    }
-
-    const supabase = createSupabaseAdminClient();
-    const { error } = await supabase.from("notifications").insert(toRow(input, resolvedUserId));
-    if (error) {
-      console.error("[notifications] Error guardando notificacion:", error.message);
-    }
-  } catch (err) {
-    console.error("[notifications] Error inesperado guardando notificacion:", err);
-  }
 }
 
 /**

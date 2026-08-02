@@ -15,10 +15,15 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(Math.max(Number(searchParams.get("limit") ?? "10") || 10, 1), 50);
   const cursor = searchParams.get("cursor");
 
+  // channel='in_app' es el registro garantizado (ver send-to-org.ts / email
+  // client.ts): push y email quedan grabados aparte solo como diagnostico
+  // interno de entrega, nunca se muestran en la campanita -- mostrarlos ahi
+  // duplicaba el mismo evento en varias filas con textos distintos.
   let query = supabase
     .from("notifications")
     .select("id, channel, title, body, action_url, source, created_at, read_at")
     .eq("user_id", user.id)
+    .eq("channel", "in_app")
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -37,6 +42,7 @@ export async function GET(req: NextRequest) {
     .from("notifications")
     .select("id", { count: "exact", head: true })
     .eq("user_id", user.id)
+    .eq("channel", "in_app")
     .is("read_at", null);
 
   return NextResponse.json({ items: items ?? [], unreadCount: unreadCount ?? 0 });

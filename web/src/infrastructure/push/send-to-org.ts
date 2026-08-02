@@ -16,19 +16,38 @@ export async function sendPushToOrg(
 ): Promise<{ sent: number; expired: number; failed: number }> {
   const supabase = createSupabaseAdminClient();
 
+  // Se resuelven los miembros reales de la organizacion (no solo quien ya
+  // tiene una suscripcion push activa) por dos motivos: para poder garantizar
+  // la campanita a todos igual que sendPushToUsers, y para no depender del
+  // org_id guardado en la suscripcion -- ese dato puede quedar desactualizado
+  // (ej: un superadmin que impersono una org una vez y su dispositivo quedo
+  // etiquetado con ese org_id para siempre, sin ser miembro real).
+  const { data: memberships, error: membershipsError } = await supabase
+    .from("memberships")
+    .select("user_id")
+    .eq("organization_id", orgId)
+    .eq("status", "active");
+
+  if (membershipsError) throw new Error(`Unable to read organization members: ${membershipsError.message}`);
+
+  const memberUserIds = [...new Set((memberships ?? []).map((m) => m.user_id).filter((id): id is string => Boolean(id)))];
+  if (!memberUserIds.length) return { sent: 0, expired: 0, failed: 0 };
+
   const { data: subscriptions, error } = await supabase
     .from("push_subscriptions")
     .select("id, user_id, endpoint, p256dh, auth")
-    .eq("org_id", orgId)
+    .in("user_id", memberUserIds)
     .eq("is_active", true);
 
   if (error) throw new Error(`Unable to read push subscriptions: ${error.message}`);
-  if (!subscriptions?.length) return { sent: 0, expired: 0, failed: 0 };
 
-  return _sendToSubscriptions(supabase, subscriptions, payload, {
-    ...options,
-    organizationId: options.organizationId ?? orgId,
-  });
+  return _sendToSubscriptions(
+    supabase,
+    subscriptions ?? [],
+    payload,
+    { ...options, organizationId: options.organizationId ?? orgId },
+    memberUserIds,
+  );
 }
 
 export async function sendPushToUsers(
@@ -48,9 +67,6 @@ export async function sendPushToUsers(
 
   if (error) throw new Error(`Unable to read push subscriptions: ${error.message}`);
 
-  // Se pasa la lista completa de destinatarios (targetUserIds) para que, aunque
-  // no tengan una suscripcion push activa, igual quede un registro garantizado
-  // en su campanita — el push es un extra, no un requisito para enterarse.
   return _sendToSubscriptions(supabase, subscriptions ?? [], payload, options, userIds);
 }
 
@@ -59,7 +75,7 @@ async function _sendToSubscriptions(
   subscriptions: Array<{ id: string; user_id: string; endpoint: string; p256dh: string; auth: string }>,
   payload: PushPayload,
   options: PushNotificationOptions,
-  targetUserIds?: string[],
+  targetUserIds: string[],
 ): Promise<{ sent: number; expired: number; failed: number }> {
   let sent = 0;
   let expired = 0;
@@ -112,29 +128,26 @@ async function _sendToSubscriptions(
     createdBy: options.createdBy ?? null,
   };
 
+  // channel:'push' queda como diagnostico interno (no se muestra en la
+  // campanita, ver /api/notifications/list) -- registra que efectivamente se
+  // le mando la notificacion al dispositivo, exitosa o fallida.
   const rows: LogNotificationInput[] = [...sentUserIdSet].map((userId) => ({
     ...baseRow,
     channel: "push" as const,
     userId,
   }));
 
-  for (const userId of new Set(targetUserIds ?? [])) {
-    if (sentUserIdSet.has(userId)) continue;
-    rows.push({ ...baseRow, channel: "in_app" as const, userId });
-  }
-
-  // Igual que el email (que ya guarda status:'failed' con su propio motivo real),
-  // el push deja registro de sus fallos reales — antes solo quedaban en los logs
-  // de Vercel, invisibles en el historial. Es la unica constancia para los
-  // destinatarios de un broadcast por organizacion (sendPushToOrg), que no tienen
-  // el respaldo de campanita de arriba porque ahi no hay una lista de "a quien
-  // le tenia que llegar" mas alla de quien ya tenia suscripcion.
-  // Si el usuario ya recibio el push por otro dispositivo, no se duplica: el
-  // fallo de un dispositivo puntual ya quedo en los logs para diagnostico, pero
-  // esta persona si se entero, no hace falta una segunda fila para el mismo evento.
   for (const userId of new Set(failedUserIds)) {
     if (sentUserIdSet.has(userId)) continue;
     rows.push({ ...baseRow, channel: "push" as const, userId, status: "failed" as const });
+  }
+
+  // channel:'in_app' es el registro garantizado: se escribe siempre, para
+  // todo destinatario, haya o no recibido el push -- es la fuente de verdad
+  // de "esto te tenia que llegar", el push es solo un aviso en tiempo real
+  // ademas de esto, no un requisito para que quede constancia.
+  for (const userId of new Set(targetUserIds)) {
+    rows.push({ ...baseRow, channel: "in_app" as const, userId });
   }
 
   logNotificationsBulk(rows).catch((err) =>

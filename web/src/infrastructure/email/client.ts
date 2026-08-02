@@ -1,4 +1,4 @@
-import { logNotification } from "@/infrastructure/notifications/log-notification";
+import { logNotificationsBulk, resolveUserIdByEmail, type LogNotificationInput } from "@/infrastructure/notifications/log-notification";
 
 type SendEmailNotificationMeta = {
   source: string;
@@ -106,19 +106,42 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<Sen
     }
   }
 
-  void logNotification({
-    channel: "email",
-    userId: input.notification.userId,
+  // userId === undefined: el call-site no lo sabe, se intenta resolver por email.
+  // userId === null: el call-site decidio explicitamente no resolverlo (ej:
+  // destinatario externo sin cuenta, como landing_seat_request).
+  const resolvedUserId = input.notification.userId !== undefined
+    ? input.notification.userId
+    : await resolveUserIdByEmail(input.to);
+
+  const baseRow = {
     organizationId: input.notification.organizationId ?? null,
     title: input.notification.title ?? input.subject,
     body: (input.text ?? stripHtml(input.html)).slice(0, 280),
     actionUrl: input.notification.actionUrl ?? null,
     source: input.notification.source,
     sourceId: input.notification.sourceId ?? null,
-    recipientEmail: input.to,
-    status: result.ok ? "sent" : "failed",
     createdBy: input.notification.createdBy ?? null,
-  });
+  };
+
+  const rows: LogNotificationInput[] = [
+    {
+      ...baseRow,
+      channel: "email",
+      userId: resolvedUserId,
+      recipientEmail: input.to,
+      status: result.ok ? "sent" : "failed",
+    },
+  ];
+
+  // channel:'in_app' es el registro garantizado en la campanita -- se escribe
+  // siempre que el destinatario tenga cuenta real, sin importar si el envio
+  // del email en si funciono o no (el email es el mecanismo de entrega, no la
+  // fuente de verdad de "esto te tenia que llegar").
+  if (resolvedUserId) {
+    rows.push({ ...baseRow, channel: "in_app", userId: resolvedUserId, status: "sent" });
+  }
+
+  void logNotificationsBulk(rows);
 
   return result;
 }
