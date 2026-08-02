@@ -114,7 +114,9 @@ type InvitationFirstLoginRow = {
   created_at: string;
 };
 
-function computeScore(
+// Puro y exportado para poder probarlo: de aca sale el puntaje con el que se
+// mira la salud de cada tenant y se ordena el riesgo.
+export function computeScore(
   row: HealthSnapshotRow,
   invitationState?: {
     email: string;
@@ -239,12 +241,12 @@ type AuditLogRow = {
   metadata: Record<string, unknown> | null;
 };
 
-function toPercent(numerator: number, denominator: number) {
+export function toPercent(numerator: number, denominator: number) {
   if (denominator <= 0) return 0;
   return Number(((numerator / denominator) * 100).toFixed(2));
 }
 
-function parseMetadataNumber(metadata: Record<string, unknown>, keys: string[]) {
+export function parseMetadataNumber(metadata: Record<string, unknown>, keys: string[]) {
   for (const key of keys) {
     const value = metadata[key];
     const parsed = Number(value);
@@ -255,7 +257,7 @@ function parseMetadataNumber(metadata: Record<string, unknown>, keys: string[]) 
   return null;
 }
 
-function percentile(values: number[], percentileValue: number) {
+export function percentile(values: number[], percentileValue: number) {
   if (values.length === 0) return null;
   const safePercentile = Math.max(0, Math.min(100, percentileValue));
   const sorted = [...values].sort((a, b) => a - b);

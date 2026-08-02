@@ -85,13 +85,16 @@ type ReportView = {
   }>;
 };
 
-function initials(name: string) {
+// Los de abajo son puros y se exportan para poder probarlos: son los que
+// deciden como se lee un reporte (iniciales, "Hoy"/"Ayer", "hace 2h") y donde
+// se esconden los errores de borde de fechas.
+export function initials(name: string) {
   const tokens = name.trim().split(/\s+/).filter(Boolean).slice(0, 2);
   if (!tokens.length) return "EM";
   return tokens.map((token) => token[0]?.toUpperCase() ?? "").join("");
 }
 
-function shortName(name: string) {
+export function shortName(name: string) {
   const tokens = name.trim().split(/\s+/).filter(Boolean);
   if (!tokens.length) return "Empleado";
   if (tokens.length === 1) return tokens[0] ?? "Empleado";
@@ -105,7 +108,7 @@ function formatTimeLabel(value: string | null) {
   return date.toLocaleTimeString("es-US", { hour: "2-digit", minute: "2-digit" });
 }
 
-function formatDateLabel(value: string | null, todayStart: Date) {
+export function formatDateLabel(value: string | null, todayStart: Date) {
   if (!value) return "Sin fecha";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Sin fecha";
@@ -116,7 +119,7 @@ function formatDateLabel(value: string | null, todayStart: Date) {
   return date.toLocaleDateString("es-US", { day: "2-digit", month: "2-digit" });
 }
 
-function relativeFromNow(value: string | null) {
+export function relativeFromNow(value: string | null) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
@@ -126,7 +129,7 @@ function relativeFromNow(value: string | null) {
   return `hace ${hours}h`;
 }
 
-function colorForUser(userId: string) {
+export function colorForUser(userId: string) {
   const palette = [
     "var(--gbp-accent)",
     "color-mix(in_oklab,var(--gbp-accent)_65%,black)",
