@@ -1,5 +1,6 @@
 import { NextResponse, after } from "next/server";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { nombreDeLaLocacion } from "@/modules/maintenance/lib/location-label";
 import { notifyMaintenanceRequested } from "@/modules/maintenance/services/maintenance-events.service";
 
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
@@ -82,12 +83,14 @@ export async function POST(request: Request) {
     await attachMaintenanceFiles(context, requestId, filesFromFormData(formData));
 
     after(async () => {
+      const admin = createSupabaseAdminClient();
       await notifyMaintenanceRequested({
-        supabase: createSupabaseAdminClient(),
+        supabase: admin,
         organizationId: context.organizationId,
         title: parsed.data.title,
         priority: parsed.data.priority ?? null,
-        locationName: null,
+        branchId: parsed.data.branch_id ?? null,
+        locationName: await nombreDeLaLocacion(admin, context.organizationId, parsed.data.branch_id),
         createdByUserId: context.userId,
       });
     });

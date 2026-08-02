@@ -1,5 +1,6 @@
 import { NextResponse, after } from "next/server";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { nombreDeLaLocacion } from "@/modules/maintenance/lib/location-label";
 import {
   notifyMaintenanceStatusChanged,
   notifyMaintenanceUpdate,
@@ -40,17 +41,20 @@ export async function POST(request: Request, context: RouteContext) {
 
     const solicitud = await createSupabaseAdminClient()
       .from("maintenance_requests")
-      .select("title, created_by")
+      .select("title, created_by, branch_id")
       .eq("organization_id", access.tenant.organizationId)
       .eq("id", id)
       .maybeSingle();
 
     after(async () => {
       const admin = createSupabaseAdminClient();
+      const branchId = solicitud.data?.branch_id ?? null;
       const comun = {
         supabase: admin,
         organizationId: access.tenant.organizationId,
         title: solicitud.data?.title ?? "Solicitud",
+        branchId,
+        locationName: await nombreDeLaLocacion(admin, access.tenant.organizationId, branchId),
         requestedByUserId: solicitud.data?.created_by ?? null,
         actorUserId: access.userId,
       };

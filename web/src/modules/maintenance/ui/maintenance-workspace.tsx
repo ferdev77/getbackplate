@@ -13,6 +13,10 @@ import {
   type MaintenanceStatus,
   type MaintenanceUpdate,
 } from "@/modules/maintenance/types";
+import {
+  MAINTENANCE_PRIORITY_LABELS,
+  MAINTENANCE_STATUS_LABELS,
+} from "@/modules/maintenance/lib/labels";
 
 type BranchOption = {
   id: string;
@@ -454,23 +458,10 @@ const STATUS_TABS: Array<{ value: string; label: string }> = [
   { value: "all", label: "Todas" },
 ];
 
-const STATUS_LABELS: Record<MaintenanceStatus, string> = {
-  draft: "Borrador",
-  submitted: "Enviada",
-  visit_scheduled: "Visita programada",
-  in_progress: "En progreso",
-  needs_parts: "Requiere repuesto",
-  needs_followup: "Requiere otra visita",
-  resolved: "Resuelta",
-  cancelled: "Cancelada",
-};
-
-const PRIORITY_LABELS: Record<string, string> = {
-  low: "Baja",
-  medium: "Media",
-  high: "Alta",
-  urgent: "Urgente",
-};
+// Las etiquetas viven en lib/labels.ts: las comparte con los avisos, que antes
+// mostraban el valor crudo ("Paso a resolved") por tener su propia copia.
+const STATUS_LABELS = MAINTENANCE_STATUS_LABELS;
+const PRIORITY_LABELS = MAINTENANCE_PRIORITY_LABELS;
 
 const RESPOND_STATUSES: Array<{ value: "schedule_visit" | MaintenanceStatus; label: string }> = [
   { value: "schedule_visit", label: "Programar visita" },

@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { combinarLocaciones } from "@/modules/employees/lib/location-sources";
+
 /**
  * A quien se le avisa de algo, resuelto en un solo lugar.
  *
@@ -70,6 +72,73 @@ export async function employeesWhoCanOperate(
  */
 export function destinatarios(candidatos: Array<string | null | undefined>, excluir: string | null) {
   return [...new Set(candidatos.filter((id): id is string => Boolean(id) && id !== excluir))];
+}
+
+/**
+ * Igual que employeesWhoCanOperate, pero ademas dice que locaciones alcanza
+ * cada uno.
+ *
+ * Hace falta para no avisarle a alguien de un local donde no trabaja. Paso de
+ * verdad: una encargada de un solo local recibia los avisos de los siete, y
+ * ninguna de las solicitudes que le llegaron era de su local.
+ *
+ * Devuelve el alcance sin resolver a proposito -- quien llama decide si filtra
+ * por una locacion puntual y si el aviso necesita aclarar de cual se trata.
+ */
+export async function employeesWhoCanOperateWithScope(
+  supabase: SupabaseClient,
+  organizationId: string,
+  moduleCode: string,
+): Promise<Array<{ userId: string; locationIds: string[]; alcanzaTodas: boolean }>> {
+  const { data: permisos } = await supabase
+    .from("employee_module_permissions")
+    .select("membership_id")
+    .eq("organization_id", organizationId)
+    .eq("module_code", moduleCode)
+    .eq("can_edit", true);
+
+  const membresias = (permisos ?? [])
+    .map((fila) => fila.membership_id)
+    .filter((id): id is string => Boolean(id));
+
+  if (membresias.length === 0) return [];
+
+  const [{ data: filas }, { data: sucursales }] = await Promise.all([
+    supabase
+      .from("memberships")
+      .select("user_id, branch_id, all_locations, location_scope_ids")
+      .eq("organization_id", organizationId)
+      .eq("status", "active")
+      .in("id", membresias),
+    supabase
+      .from("branches")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .eq("is_active", true),
+  ]);
+
+  const userIds = (filas ?? []).map((f) => f.user_id).filter((id): id is string => Boolean(id));
+  if (userIds.length === 0) return [];
+
+  // El legajo tambien guarda alcance: se suma, igual que en el resto del sistema.
+  const { data: legajos } = await supabase
+    .from("employees")
+    .select("user_id, branch_id, all_locations, location_scope_ids")
+    .eq("organization_id", organizationId)
+    .in("user_id", userIds);
+
+  const todasLasLocaciones = (sucursales ?? []).map((f) => f.id).filter(Boolean);
+  const legajoPorUsuario = new Map((legajos ?? []).map((f) => [f.user_id, f]));
+
+  return (filas ?? [])
+    .filter((f): f is typeof f & { user_id: string } => Boolean(f.user_id))
+    .map((f) => {
+      const { locationIds, alcanzaTodas } = combinarLocaciones({
+        fuentes: [f, legajoPorUsuario.get(f.user_id) ?? null],
+        todasLasLocaciones,
+      });
+      return { userId: f.user_id, locationIds, alcanzaTodas };
+    });
 }
 
 /**

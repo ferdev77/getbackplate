@@ -3,10 +3,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
 import {
   companyAdminUserIds,
-  destinatarios,
-  employeesWhoCanOperate,
+  employeesWhoCanOperateWithScope,
   isActiveMember,
 } from "@/shared/lib/notification-recipients";
+import { estadoEnPalabras, prioridadEnPalabras } from "@/modules/maintenance/lib/labels";
 
 /**
  * "Quien reporto esto" puede ya no ser miembro real (ej: un superadmin que la
@@ -25,6 +25,36 @@ async function requesterSiSigueSiendoMiembro(
 }
 
 /**
+ * Suma a quien reporto, que es quien espera la respuesta.
+ *
+ * Entra aunque la locacion no este entre las suyas: es su solicitud, la hizo el
+ * mismo. Y se le aclara la sucursal, porque puede haber reportado algo de un
+ * local que no es el suyo de todos los dias.
+ */
+async function conQuienReporto(
+  params: { supabase: SupabaseClient; organizationId: string; requestedByUserId: string | null },
+  atienden: DestinatarioDeMantenimiento[],
+): Promise<DestinatarioDeMantenimiento[]> {
+  const requestedBy = await requesterSiSigueSiendoMiembro(
+    params.supabase,
+    params.organizationId,
+    params.requestedByUserId,
+  );
+  if (!requestedBy || atienden.some((p) => p.userId === requestedBy)) return atienden;
+  return [{ userId: requestedBy, necesitaSaberLaLocacion: true }, ...atienden];
+}
+
+/** Saca a quien acaba de hacer la accion: no necesita que le avisen de lo suyo. */
+function sinElActor(gente: DestinatarioDeMantenimiento[], actorUserId: string | null) {
+  const vistos = new Set<string>();
+  return gente.filter((p) => {
+    if (!p.userId || p.userId === actorUserId || vistos.has(p.userId)) return false;
+    vistos.add(p.userId);
+    return true;
+  });
+}
+
+/**
  * Avisos del ciclo de una solicitud de mantenimiento.
  *
  * El modulo no emitia una sola notificacion: alguien reportaba que se rompio
@@ -38,32 +68,96 @@ async function requesterSiSigueSiendoMiembro(
 const MODULO = "maintenance";
 const URL_DESTINO = "/app/maintenance";
 
-/** Quienes atienden mantenimiento: los admins y los empleados con permiso de operar. */
-async function quienesAtienden(supabase: SupabaseClient, organizationId: string) {
+/**
+ * Quien atiende una solicitud de ESTA locacion.
+ *
+ * Los admins manejan la empresa entera, asi que entran siempre. Los empleados
+ * solo si la locacion de la solicitud esta entre las suyas: antes no se miraba
+ * la locacion en ningun momento y una encargada de un solo local recibia los
+ * avisos de los siete, ninguno de ellos del suyo.
+ *
+ * Ademas se dice si cada uno maneja mas de una locacion. Eso decide si al aviso
+ * le hace falta aclarar de que sucursal es: a quien tiene una sola, decirselo
+ * no le aporta nada.
+ */
+export type DestinatarioDeMantenimiento = { userId: string; necesitaSaberLaLocacion: boolean };
+
+async function quienesAtienden(
+  supabase: SupabaseClient,
+  organizationId: string,
+  branchId: string | null,
+): Promise<DestinatarioDeMantenimiento[]> {
   const [admins, operativos] = await Promise.all([
     companyAdminUserIds(supabase, organizationId),
-    employeesWhoCanOperate(supabase, organizationId, MODULO),
+    employeesWhoCanOperateWithScope(supabase, organizationId, MODULO),
   ]);
-  return [...admins, ...operativos];
+
+  const lista = new Map<string, DestinatarioDeMantenimiento>();
+
+  // Un admin alcanza toda la organizacion: siempre le sirve saber de cual es.
+  for (const userId of admins) {
+    lista.set(userId, { userId, necesitaSaberLaLocacion: true });
+  }
+
+  for (const persona of operativos) {
+    if (lista.has(persona.userId)) continue;
+
+    // Sin locacion en la solicitud no hay con que filtrar: se avisa igual, que
+    // es preferible a que no se entere nadie.
+    const alcanza =
+      !branchId || persona.alcanzaTodas || persona.locationIds.includes(branchId);
+    if (!alcanza) continue;
+
+    lista.set(persona.userId, {
+      userId: persona.userId,
+      necesitaSaberLaLocacion: persona.alcanzaTodas || persona.locationIds.length > 1,
+    });
+  }
+
+  return [...lista.values()];
 }
 
+/**
+ * Manda el aviso, aclarando de que sucursal es solo a quien maneja mas de una.
+ *
+ * Van dos tandas porque el cuerpo del mensaje es uno solo por envio: a quien
+ * tiene un solo local, nombrarselo no le agrega nada.
+ */
 async function avisar(params: {
   supabase: SupabaseClient;
   organizationId: string;
-  userIds: string[];
+  gente: DestinatarioDeMantenimiento[];
   title: string;
+  /** Sin la locacion; se antepone a quien la necesita. */
   body: string;
+  locationName: string | null;
   source: string;
 }) {
-  if (params.userIds.length === 0) return 0;
+  if (params.gente.length === 0) return 0;
 
-  const { sent } = await sendPushToUsers(
-    params.userIds,
-    { title: params.title, body: params.body, url: URL_DESTINO },
-    { source: params.source, organizationId: params.organizationId },
-  );
+  const conLocacion = params.locationName
+    ? params.gente.filter((p) => p.necesitaSaberLaLocacion).map((p) => p.userId)
+    : [];
+  const sinLocacion = params.gente
+    .filter((p) => !params.locationName || !p.necesitaSaberLaLocacion)
+    .map((p) => p.userId);
 
-  return sent;
+  const enviar = async (userIds: string[], body: string) => {
+    if (userIds.length === 0) return 0;
+    const { sent } = await sendPushToUsers(
+      userIds,
+      { title: params.title, body, url: URL_DESTINO },
+      { source: params.source, organizationId: params.organizationId },
+    );
+    return sent;
+  };
+
+  const [a, b] = await Promise.all([
+    enviar(conLocacion, [params.locationName, params.body].filter(Boolean).join(" · ")),
+    enviar(sinLocacion, params.body),
+  ]);
+
+  return a + b;
 }
 
 /**
@@ -77,24 +171,25 @@ export async function notifyMaintenanceRequested(params: {
   organizationId: string;
   title: string;
   priority: string | null;
+  /** La locacion de la solicitud: acota a quien se le avisa. */
+  branchId: string | null;
   locationName: string | null;
   createdByUserId: string;
 }) {
-  const userIds = destinatarios(
-    await quienesAtienden(params.supabase, params.organizationId),
+  const gente = sinElActor(
+    await quienesAtienden(params.supabase, params.organizationId, params.branchId),
     params.createdByUserId,
   );
 
-  const detalle = [params.locationName, params.priority ? `Prioridad ${params.priority}` : null]
-    .filter(Boolean)
-    .join(" · ");
+  const prioridad = prioridadEnPalabras(params.priority);
 
   return avisar({
     supabase: params.supabase,
     organizationId: params.organizationId,
-    userIds,
+    gente,
     title: `Nueva solicitud de mantenimiento: ${params.title}`,
-    body: detalle || "Sin detalles adicionales",
+    body: prioridad ? `Prioridad ${prioridad}` : "Sin detalles adicionales",
+    locationName: params.locationName,
     source: "maintenance_requested",
   });
 }
@@ -110,21 +205,23 @@ export async function notifyMaintenanceStatusChanged(params: {
   organizationId: string;
   title: string;
   toStatus: string;
+  branchId: string | null;
+  locationName: string | null;
   requestedByUserId: string | null;
   actorUserId: string;
 }) {
-  const requestedBy = await requesterSiSigueSiendoMiembro(params.supabase, params.organizationId, params.requestedByUserId);
-  const userIds = destinatarios(
-    [requestedBy, ...(await quienesAtienden(params.supabase, params.organizationId))],
+  const gente = sinElActor(
+    await conQuienReporto(params, await quienesAtienden(params.supabase, params.organizationId, params.branchId)),
     params.actorUserId,
   );
 
   return avisar({
     supabase: params.supabase,
     organizationId: params.organizationId,
-    userIds,
+    gente,
     title: `Mantenimiento: ${params.title}`,
-    body: `Pasó a ${params.toStatus}`,
+    body: `Pasó a ${estadoEnPalabras(params.toStatus)}`,
+    locationName: params.locationName,
     source: "maintenance_status_changed",
   });
 }
@@ -140,12 +237,13 @@ export async function notifyMaintenanceUpdate(params: {
   title: string;
   message: string | null;
   scheduledVisitAt: string | null;
+  branchId: string | null;
+  locationName: string | null;
   requestedByUserId: string | null;
   actorUserId: string;
 }) {
-  const requestedBy = await requesterSiSigueSiendoMiembro(params.supabase, params.organizationId, params.requestedByUserId);
-  const userIds = destinatarios(
-    [requestedBy, ...(await quienesAtienden(params.supabase, params.organizationId))],
+  const gente = sinElActor(
+    await conQuienReporto(params, await quienesAtienden(params.supabase, params.organizationId, params.branchId)),
     params.actorUserId,
   );
 
@@ -159,9 +257,10 @@ export async function notifyMaintenanceUpdate(params: {
   return avisar({
     supabase: params.supabase,
     organizationId: params.organizationId,
-    userIds,
+    gente,
     title: `Mantenimiento: ${params.title}`,
     body: cuerpo,
+    locationName: params.locationName,
     source: params.scheduledVisitAt ? "maintenance_visit_scheduled" : "maintenance_update",
   });
 }

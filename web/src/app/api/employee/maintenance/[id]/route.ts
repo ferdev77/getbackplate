@@ -1,5 +1,6 @@
 import { NextResponse, after } from "next/server";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { nombreDeLaLocacion } from "@/modules/maintenance/lib/location-label";
 import { notifyMaintenanceRequested } from "@/modules/maintenance/services/maintenance-events.service";
 
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
@@ -63,12 +64,14 @@ export async function PUT(request: Request, context: RouteContext) {
 
     if (parsed.data.action === "submit") {
       after(async () => {
+        const admin = createSupabaseAdminClient();
         await notifyMaintenanceRequested({
-          supabase: createSupabaseAdminClient(),
+          supabase: admin,
           organizationId: actorContext.organizationId,
           title: parsed.data.title,
           priority: parsed.data.priority ?? null,
-          locationName: null,
+          branchId: parsed.data.branch_id ?? null,
+          locationName: await nombreDeLaLocacion(admin, actorContext.organizationId, parsed.data.branch_id),
           createdByUserId: actorContext.userId,
         });
       });

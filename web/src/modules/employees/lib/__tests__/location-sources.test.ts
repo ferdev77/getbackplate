@@ -95,6 +95,9 @@ describe("nadie mas resuelve locaciones por su cuenta", () => {
     // Resolucion a granel, ya usa la regla.
     "shared/lib/audience-resolver.ts",
     "shared/lib/scope-users-catalog.ts",
+    // Trae el alcance de quienes pueden operar un modulo, para no avisarle a
+    // alguien de una locacion donde no trabaja. Usa combinarLocaciones.
+    "shared/lib/notification-recipients.ts",
     // Alta, edicion y listado de personas: muestran y guardan los campos.
     "app/(company)/app/employees/page.tsx",
     "app/(employee)/portal/layout.tsx",
