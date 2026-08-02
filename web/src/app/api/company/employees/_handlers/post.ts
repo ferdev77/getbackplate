@@ -26,6 +26,8 @@ import {
   upsertEmployeeContractDocument,
 } from "@/modules/employees/services/company-employees-route-support";
 import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
+import { createNotificationsTranslator } from "@/shared/lib/notifications.i18n";
+import { resolveUserLocale } from "@/shared/lib/locale";
 
 import {
   ALLOWED_CREATE_MODES,
@@ -997,14 +999,21 @@ export async function POST(request: Request) {
     const positionChanged = positionId !== existingEmployee.position_id;
     const departmentChanged = departmentId !== existingEmployee.department_id;
     if (reassignedUserId && (positionChanged || departmentChanged)) {
+      // El aviso se escribe en español y el diccionario lo pasa a inglés cuando
+      // la empresa lo lee así. Ver shared/lib/notifications.i18n.ts.
+      const t = createNotificationsTranslator(
+        await resolveUserLocale({ organizationId: tenant.organizationId, userId: null }),
+      );
       const changeParts = [
-        positionChanged && position ? `Position: ${position}` : null,
-        departmentChanged && department ? `Department: ${department}` : null,
+        positionChanged && position ? t("Puesto: {puesto}", { puesto: position }) : null,
+        departmentChanged && department
+          ? t("Departamento: {departamento}", { departamento: department })
+          : null,
       ].filter((part): part is string => Boolean(part));
       if (changeParts.length) {
         void sendPushToUsers(
           [reassignedUserId],
-          { title: "Your role was updated", body: changeParts.join(" · "), url: "/portal/home" },
+          { title: t("Cambió tu puesto"), body: changeParts.join(" · "), url: "/portal/home" },
           { source: "employee_role_reassigned", sourceId: employeeIdValue, organizationId: tenant.organizationId },
         );
       }

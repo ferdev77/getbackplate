@@ -5,6 +5,8 @@ import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
 import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
+import { createNotificationsTranslator } from "@/shared/lib/notifications.i18n";
+import { resolveUserLocale } from "@/shared/lib/locale";
 
 const BUCKET_NAME = "tenant-documents";
 const MAX_PLACEHOLDER_SIZE_BYTES = 1024 * 1024;
@@ -154,9 +156,18 @@ export async function POST(request: Request) {
   });
 
   if (employee.user_id) {
+    // El aviso se escribe en español y el diccionario lo pasa a inglés cuando
+    // la empresa lo lee así. Ver shared/lib/notifications.i18n.ts.
+    const t = createNotificationsTranslator(
+      await resolveUserLocale({ organizationId: tenant.organizationId, userId: null }),
+    );
     void sendPushToUsers(
       [employee.user_id],
-      { title: "New document requested", body: `"${customTitle}" was requested from you.`, url: "/portal/documents" },
+      {
+        title: t("Te pidieron un documento"),
+        body: t('Te pidieron "{documento}".', { documento: customTitle }),
+        url: "/portal/documents",
+      },
       { source: "employee_document_requested", sourceId: `${employee.id}:${createdDoc.id}`, organizationId: tenant.organizationId },
     );
   }

@@ -13,6 +13,8 @@ import { analyzeUploadedFile } from "@/shared/lib/file-security";
 import { assertPlanLimitForStorage, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
 import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
+import { createNotificationsTranslator } from "@/shared/lib/notifications.i18n";
+import { resolveUserLocale } from "@/shared/lib/locale";
 
 const BUCKET_NAME = "tenant-documents";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -264,9 +266,18 @@ export async function POST(request: Request) {
   });
 
   if (employee.user_id) {
+    // El aviso se escribe en español y el diccionario lo pasa a inglés cuando
+    // la empresa lo lee así. Ver shared/lib/notifications.i18n.ts.
+    const t = createNotificationsTranslator(
+      await resolveUserLocale({ organizationId: tenant.organizationId, userId: null }),
+    );
     void sendPushToUsers(
       [employee.user_id],
-      { title: "New document added to your file", body: `"${slotLabel}" was added to your employee file.`, url: "/portal/documents" },
+      {
+        title: t("Nuevo documento en tu legajo"),
+        body: t('Se agregó "{documento}" a tu legajo.', { documento: slotLabel }),
+        url: "/portal/documents",
+      },
       { source: "employee_document_added", sourceId: `${employee.id}:${createdDoc.id}`, organizationId: tenant.organizationId },
     );
   }

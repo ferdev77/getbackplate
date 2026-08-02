@@ -11,6 +11,11 @@ const sendPushToUsers = vi.hoisted(() =>
 
 vi.mock("@/infrastructure/push/send-to-org", () => ({ sendPushToUsers }));
 
+// resolveUserLocale pasa por unstable_cache de Next, que no existe fuera del
+// servidor. El idioma en si se prueba en shared/lib/__tests__/notifications.i18n.
+const resolveUserLocale = vi.hoisted(() => vi.fn<() => Promise<"es" | "en">>(async () => "es"));
+vi.mock("@/shared/lib/locale", () => ({ resolveUserLocale }));
+
 const { notifyVendorEvent, sucursalesDelProveedor } = await import("../notifications");
 
 /**
@@ -100,6 +105,41 @@ function avisados() {
 
 beforeEach(() => {
   sendPushToUsers.mockClear();
+  resolveUserLocale.mockResolvedValue("es");
+});
+
+describe("el idioma del aviso", () => {
+  it("sale en español para una empresa que lee español", async () => {
+    await notifyVendorEvent({
+      supabase: supabaseFalso({ admins: ["admin-1"] }),
+      organizationId: "org-1",
+      actorId: null,
+      title: "Nuevo proveedor",
+      body: "Acme Supplies",
+      source: "vendor_created",
+      branchIds: [],
+    });
+
+    expect(sendPushToUsers.mock.calls[0]![1].title).toBe("Nuevo proveedor");
+  });
+
+  it("sale traducido para una empresa que lee inglés (plan de integración)", async () => {
+    resolveUserLocale.mockResolvedValue("en");
+
+    await notifyVendorEvent({
+      supabase: supabaseFalso({ admins: ["admin-1"] }),
+      organizationId: "org-1",
+      actorId: null,
+      title: "Nuevo proveedor",
+      body: "Acme Supplies",
+      source: "vendor_created",
+      branchIds: [],
+    });
+
+    expect(sendPushToUsers.mock.calls[0]![1].title).toBe("New vendor added");
+    // El nombre del proveedor es un dato: no se traduce.
+    expect(sendPushToUsers.mock.calls[0]![1].body).toBe("Acme Supplies");
+  });
 });
 
 describe("notifyVendorEvent", () => {

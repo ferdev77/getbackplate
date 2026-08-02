@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
+import { createNotificationsTranslator } from "@/shared/lib/notifications.i18n";
+import { resolveUserLocale } from "@/shared/lib/locale";
 import {
   companyAdminUserIds,
   destinatarios,
@@ -47,7 +49,9 @@ export async function notifyVendorEvent(params: {
   supabase: SupabaseClient;
   organizationId: string;
   actorId: string | null;
+  /** En español: el diccionario lo pasa a inglés si la empresa lo lee así. */
   title: string;
+  /** El nombre del proveedor: es un dato, no se traduce. */
   body: string;
   source: string;
   /**
@@ -56,10 +60,12 @@ export async function notifyVendorEvent(params: {
    */
   branchIds: string[];
 }): Promise<void> {
-  const [admins, operativos] = await Promise.all([
+  const [admins, operativos, locale] = await Promise.all([
     companyAdminUserIds(params.supabase, params.organizationId),
     employeesWhoCanOperateWithScope(params.supabase, params.organizationId, MODULO),
+    resolveUserLocale({ organizationId: params.organizationId, userId: null }),
   ]);
+  const t = createNotificationsTranslator(locale);
 
   const esGlobal = params.branchIds.length === 0;
   const delProveedor = new Set(params.branchIds);
@@ -79,7 +85,7 @@ export async function notifyVendorEvent(params: {
     params.actorId,
   );
 
-  const payload = { title: params.title, body: params.body };
+  const payload = { title: t(params.title), body: params.body };
   const options = { source: params.source, organizationId: params.organizationId };
 
   await Promise.all([

@@ -15,6 +15,8 @@ import { assertPlanLimitForStorage, getPlanLimitErrorMessage } from "@/shared/li
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
 import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
 import { companyAdminUserIds } from "@/shared/lib/notification-recipients";
+import { createNotificationsTranslator } from "@/shared/lib/notifications.i18n";
+import { resolveUserLocale } from "@/shared/lib/locale";
 
 const BUCKET_NAME = "tenant-documents";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -277,9 +279,18 @@ export async function POST(request: Request) {
 
   const adminUserIds = await companyAdminUserIds(admin, tenant.organizationId);
   if (adminUserIds.length) {
+    // El aviso se escribe en español y el diccionario lo pasa a inglés cuando
+    // la empresa lo lee así. Ver shared/lib/notifications.i18n.ts.
+    const t = createNotificationsTranslator(
+      await resolveUserLocale({ organizationId: tenant.organizationId, userId: null }),
+    );
     void sendPushToUsers(
       adminUserIds,
-      { title: "Document submitted for review", body: `${fullName} uploaded "${slotLabel}".`, url: "/app/employees" },
+      {
+        title: t("Hay un documento para revisar"),
+        body: t('{persona} subió "{documento}".', { persona: fullName, documento: slotLabel }),
+        url: "/app/employees",
+      },
       { source: "employee_document_submitted", sourceId: `${employee.id}:${createdDoc.id}`, organizationId: tenant.organizationId },
     );
   }

@@ -4,6 +4,8 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
+import { createNotificationsTranslator } from "@/shared/lib/notifications.i18n";
+import { resolveUserLocale } from "@/shared/lib/locale";
 
 const ALLOWED_DECISIONS = new Set(["approved", "rejected"]);
 
@@ -148,17 +150,22 @@ export async function POST(request: Request) {
   });
 
   if (employee.user_id) {
-    const documentTitle = document.title ?? "Document";
+    // El aviso se escribe en español y el diccionario lo pasa a inglés cuando
+    // la empresa lo lee así. Ver shared/lib/notifications.i18n.ts.
+    const t = createNotificationsTranslator(
+      await resolveUserLocale({ organizationId: tenant.organizationId, userId: null }),
+    );
+    const documento = document.title ?? "Documento";
     const approved = decision === "approved";
     void sendPushToUsers(
       [employee.user_id],
       {
-        title: approved ? "Document approved" : "Document rejected",
+        title: approved ? t("Documento aprobado") : t("Documento rechazado"),
         body: reviewComment
-          ? `"${documentTitle}": ${reviewComment}`
+          ? t('"{documento}": {comentario}', { documento, comentario: reviewComment })
           : approved
-            ? `"${documentTitle}" was approved.`
-            : `"${documentTitle}" was rejected.`,
+            ? t('Se aprobó "{documento}".', { documento })
+            : t('Se rechazó "{documento}".', { documento }),
         url: "/portal/documents",
       },
       { source: "employee_document_reviewed", sourceId: `${employeeId}:${documentId}`, organizationId: tenant.organizationId },

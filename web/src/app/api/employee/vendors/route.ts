@@ -244,7 +244,7 @@ export async function POST(request: Request) {
     supabase: admin,
     organizationId,
     actorId,
-    title: "New vendor added",
+    title: "Nuevo proveedor",
     body: vendorData.name,
     source: "vendor_created",
     branchIds: locacionesDelProveedor,

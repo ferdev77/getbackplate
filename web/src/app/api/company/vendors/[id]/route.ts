@@ -220,7 +220,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     supabase: admin,
     organizationId,
     actorId: access.userId,
-    title: isDeactivation ? "Vendor deactivated" : "Vendor updated",
+    title: isDeactivation ? "Proveedor desactivado" : "Proveedor actualizado",
     body: existing.name,
     source: isDeactivation ? "vendor_deactivated" : "vendor_updated",
     // Las locaciones que quedan despues de este cambio: si se reasigno el
@@ -284,7 +284,7 @@ export async function DELETE(_req: Request, { params }: RouteParams) {
     supabase: admin,
     organizationId,
     actorId: access.userId,
-    title: "Vendor deleted",
+    title: "Proveedor eliminado",
     body: existing.name,
     source: "vendor_deleted",
     branchIds,
