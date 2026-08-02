@@ -261,6 +261,9 @@ export async function POST(request: Request) {
 
     const requesterEmail = requesterEmailById.get(row.signature_requested_by);
     if (requesterEmail) {
+      // El push de arriba ya le garantizo su fila en la campanita a esta misma
+      // persona (siempre es el mismo destinatario en los dos canales): el
+      // email va con userId:null para no duplicarla.
       void sendTransactionalEmail({
         to: requesterEmail,
         subject: notificationTitle,
@@ -270,7 +273,7 @@ export async function POST(request: Request) {
           source: "document_signature_completed",
           sourceId: notificationSourceId,
           organizationId: row.organization_id,
-          userId: row.signature_requested_by,
+          userId: null,
           actionUrl: "/app/employees",
           title: notificationTitle,
         },

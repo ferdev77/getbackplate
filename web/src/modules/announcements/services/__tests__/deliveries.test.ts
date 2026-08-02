@@ -17,7 +17,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // falta esperarlos para comprobar la logica.
 process.env.ANNOUNCEMENT_DELIVERIES_SEND_RETRIES = "0";
 
-type PayloadEmail = { to: string; subject: string; html: string; text: string };
+type PayloadEmail = {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  notification: { userId?: string | null };
+};
 type PayloadPush = { title: string; body: string; url: string };
 type EntradaAudiencia = { organizationId: string; scope: Record<string, string[]> };
 
@@ -89,6 +95,7 @@ function supabaseFalso(opciones: {
       let idsDelUpdate: string[] = [];
       let estadoDelUpdate = "";
       let filtroDeEstado: string | null = null;
+      let filtroDeCanal: string | null = null;
 
       const cadena: Record<string, unknown> = {
         select: () => cadena,
@@ -105,10 +112,22 @@ function supabaseFalso(opciones: {
         },
         eq: (columna: string, valor: string) => {
           if (columna === "status") filtroDeEstado = valor;
+          if (columna === "channel") filtroDeCanal = valor;
           return cadena;
         },
         then(resolver: (r: unknown) => void) {
           if (tabla !== "announcement_deliveries") return resolver({ data: [], error: null });
+
+          // Que avisos tambien salen por push: se consulta por canal, sin
+          // importar el estado de la entrega.
+          if (filtroDeCanal) {
+            return resolver({
+              data: encoladas
+                .filter((e) => e.channel === filtroDeCanal)
+                .map((e) => ({ announcement_id: e.announcement_id })),
+              error: null,
+            });
+          }
 
           if (opciones.errorAlBuscar && !estadoDelUpdate) {
             return resolver({ data: null, error: { message: opciones.errorAlBuscar } });
@@ -283,6 +302,50 @@ describe("push", () => {
     await processAnnouncementDeliveries();
 
     expect(sendTransactionalEmail).not.toHaveBeenCalled();
+  });
+});
+
+describe("cuando el mismo aviso sale por push y por email", () => {
+  /**
+   * El push ya deja la fila en la campanita de cada destinatario. Si el email
+   * del mismo aviso tambien la dejara, la persona veria el aviso repetido.
+   */
+  it("no duplica la campanita de quien ya esta en el push, pero si se la arma a quien no", async () => {
+    prepararAudiencia({
+      userIds: ["u1"],
+      emails: ["ana@x.com", "sin-push@x.com", "sin-cuenta@x.com"],
+      userIdByEmail: { "ana@x.com": "u1", "sin-push@x.com": "u9" },
+    });
+    usar(
+      supabaseFalso({
+        encoladas: [
+          entrega({ id: "ent-1", channel: "email" }),
+          entrega({ id: "ent-2", channel: "push" }),
+        ],
+      }),
+    );
+
+    await processAnnouncementDeliveries();
+
+    const porDestinatario = new Map(
+      sendTransactionalEmail.mock.calls.map((c) => [c[0].to, c[0].notification.userId]),
+    );
+
+    // Ana esta en el push: su fila ya existe, el email no la repite.
+    expect(porDestinatario.get("ana@x.com")).toBeNull();
+    // u9 recibe el mail pero no el push: el email le arma su unica fila.
+    expect(porDestinatario.get("sin-push@x.com")).toBe("u9");
+    // Sin cuenta no hay campanita posible, se queda como estaba.
+    expect(porDestinatario.get("sin-cuenta@x.com")).toBeUndefined();
+  });
+
+  it("si el aviso sale solo por email, cada quien conserva su propia fila", async () => {
+    prepararAudiencia({ emails: ["ana@x.com"], userIdByEmail: { "ana@x.com": "u1" } });
+    usar(supabaseFalso({ encoladas: [entrega({ channel: "email" })] }));
+
+    await processAnnouncementDeliveries();
+
+    expect(sendTransactionalEmail.mock.calls[0]![0].notification.userId).toBe("u1");
   });
 });
 

@@ -9,6 +9,7 @@ import {
   type TenantEmailBranding,
 } from "@/shared/lib/email-branding";
 import { resolveAudienceContacts } from "@/shared/lib/audience-resolver";
+import { userIdParaEmailSinDuplicarCampanita } from "@/shared/lib/notification-recipients";
 import { parseAnnouncementScope } from "../lib/scope";
 
 type DeliveryRow = {
@@ -173,6 +174,23 @@ export async function processAnnouncementDeliveries() {
     grouped.set(dedupeKey, list);
   }
 
+  // Que avisos de este lote tambien salen por push. El push ya deja la fila en
+  // la campanita de cada destinatario, asi que el email del MISMO aviso no
+  // debe volver a dejarla (ver userIdParaEmailSinDuplicarCampanita).
+  //
+  // Se consulta la tabla en vez de mirar solo el lote reclamado porque el push
+  // y el email son filas distintas: el batch puede partirlas en dos corridas y
+  // el email quedaria sin saber que su push gemelo existe.
+  const announcementIdsDelLote = [...new Set((deliveries as DeliveryRow[]).map((row) => row.announcement_id))];
+  const { data: entregasPush } = await supabase
+    .from("announcement_deliveries")
+    .select("announcement_id")
+    .in("announcement_id", announcementIdsDelLote)
+    .eq("channel", "push");
+  const avisosQueTambienVanPorPush = new Set(
+    (entregasPush ?? []).map((row) => row.announcement_id).filter(Boolean),
+  );
+
   let successCount = 0;
   let failCount = 0;
   let sentContactsCount = 0;
@@ -255,7 +273,13 @@ export async function processAnnouncementDeliveries() {
               sendAnnouncementEmail(contact, announcement.title, announcement.body, branding, {
                 organizationId: primary.organization_id,
                 announcementId: primary.announcement_id,
-                userId: audience.userIdByEmail[contact],
+                // Si este aviso tambien sale por push, quien este en el grupo
+                // de push ya tiene su fila en la campanita: el email no la
+                // duplica. Al resto (contacto sin cuenta o fuera del alcance
+                // del push) se le arma la suya, que es su unica via.
+                userId: avisosQueTambienVanPorPush.has(primary.announcement_id)
+                  ? userIdParaEmailSinDuplicarCampanita(audience.userIdByEmail[contact], audience.userIds)
+                  : audience.userIdByEmail[contact],
               }),
               DELIVERY_SEND_TIMEOUT_MS,
               `announcement email to ${contact}`,
@@ -308,7 +332,7 @@ async function sendAnnouncementEmail(
   title: string,
   body: string,
   branding: TenantEmailBranding,
-  notification: { organizationId: string; announcementId: string; userId?: string },
+  notification: { organizationId: string; announcementId: string; userId?: string | null },
 ) {
   const brandName = branding.companyName;
   const result = await sendTransactionalEmail({

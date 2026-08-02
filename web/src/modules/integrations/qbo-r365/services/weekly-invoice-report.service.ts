@@ -2,6 +2,8 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
+import { resolveUserIdByEmail } from "@/infrastructure/notifications/log-notification";
+import { userIdParaEmailSinDuplicarCampanita } from "@/shared/lib/notification-recipients";
 import { buildWeeklyReportHtml } from "./weekly-report-template";
 import { createReferralToken } from "./referral-token";
 import { createQboReportPreferenceToken } from "./report-preference-token";
@@ -825,6 +827,14 @@ export async function sendWeeklyInvoiceReport(input: {
         internalCopyRecipient,
       });
       const primaryText = `${orgReport.text}\n\n${reportRecurrenceNotice}${preferencesUrl ? `\n\nUnsubscribe: ${preferencesUrl}` : ""}`;
+
+      // Si el push de mas abajo va a alcanzar a quien recibe este email, la
+      // campanita ya le queda por ahi: el email no la duplica. Se resuelve el
+      // usuario del email a mano porque el destinatario puede ser una casilla
+      // generica (support/billing) que no es de nadie en particular.
+      const usuarioDelEmail = await resolveUserIdByEmail(orgEmailTarget);
+      const elPushLoAlcanza = !input.overrideRecipientEmail && orgRecipient.pushUserIds.length > 0;
+
       const result = await sendTransactionalEmail({
         to: orgEmailTarget,
         subject: brandedSubject(subject),
@@ -834,6 +844,9 @@ export async function sendWeeklyInvoiceReport(input: {
         notification: {
           source: "qbo_weekly_invoice_report",
           organizationId: input.organizationId,
+          userId: elPushLoAlcanza
+            ? userIdParaEmailSinDuplicarCampanita(usuarioDelEmail, orgRecipient.pushUserIds)
+            : usuarioDelEmail,
           title: orgSubjectBase,
         },
       });

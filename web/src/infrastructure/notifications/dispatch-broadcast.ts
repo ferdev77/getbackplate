@@ -2,6 +2,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { sendPushToOrg, sendPushToUsers } from "@/infrastructure/push/send-to-org";
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { getAuthEmailByUserId } from "@/shared/lib/auth-users";
+import { userIdParaEmailSinDuplicarCampanita } from "@/shared/lib/notification-recipients";
 
 export type NotificationBroadcastChannel = "push" | "email";
 
@@ -38,13 +39,25 @@ export async function resolveTargetOrgIds(
   return (data ?? []).map((o) => o.id);
 }
 
+/**
+ * A quien se le manda el email, con su usuario cuando se conoce.
+ *
+ * El usuario hace falta para no repetirle la campanita a quien tambien recibe
+ * el push de esta misma difusion (ver userIdParaEmailSinDuplicarCampanita).
+ */
+type DestinatarioDeEmail = { email: string; userId: string | null };
+
 async function resolveBroadcastEmails(
   supabase: ReturnType<typeof createSupabaseAdminClient>,
   input: DispatchNotificationBroadcastInput,
-): Promise<string[]> {
+): Promise<DestinatarioDeEmail[]> {
   if (input.targetType === "users") {
     const emailByUserId = await getAuthEmailByUserId(input.userIds);
-    return [...new Set([...emailByUserId.values()])];
+    const porEmail = new Map<string, string>();
+    for (const [userId, email] of emailByUserId) {
+      if (email && !porEmail.has(email)) porEmail.set(email, userId);
+    }
+    return [...porEmail].map(([email, userId]) => ({ email, userId }));
   }
 
   const targetOrgIds = await resolveTargetOrgIds(supabase, input.orgIds);
@@ -52,11 +65,16 @@ async function resolveBroadcastEmails(
 
   const { data } = await supabase
     .from("organization_user_profiles")
-    .select("email")
+    .select("email, user_id")
     .in("organization_id", targetOrgIds)
     .not("email", "is", null);
 
-  return [...new Set((data ?? []).map((row) => row.email).filter((email): email is string => Boolean(email)))];
+  const porEmail = new Map<string, string | null>();
+  for (const row of data ?? []) {
+    if (!row.email || porEmail.has(row.email)) continue;
+    porEmail.set(row.email, row.user_id ?? null);
+  }
+  return [...porEmail].map(([email, userId]) => ({ email, userId }));
 }
 
 export async function dispatchNotificationBroadcast(
@@ -77,6 +95,10 @@ export async function dispatchNotificationBroadcast(
     targetCount = (await resolveTargetOrgIds(supabase, input.orgIds)).length;
   }
 
+  // A quien ya le dejo su fila en la campanita el push de esta difusion. El
+  // email de mas abajo no se la repite: seria el mismo aviso dos veces.
+  const alcanzadosPorPush = new Set<string>();
+
   if (input.channels.includes("push")) {
     const payload = {
       title: input.title,
@@ -86,6 +108,7 @@ export async function dispatchNotificationBroadcast(
     };
 
     if (input.targetType === "users") {
+      for (const userId of input.userIds) alcanzadosPorPush.add(userId);
       const result = await sendPushToUsers(input.userIds, payload, {
         source: "superadmin_broadcast",
         createdBy: input.createdBy,
@@ -95,6 +118,20 @@ export async function dispatchNotificationBroadcast(
       pushFailed = result.failed;
     } else {
       const targetOrgIds = await resolveTargetOrgIds(supabase, input.orgIds);
+
+      // sendPushToOrg resuelve los miembros por dentro pero no los devuelve:
+      // se consultan igual, con el mismo criterio, para saber a quien alcanzo.
+      if (targetOrgIds.length) {
+        const { data: miembros } = await supabase
+          .from("memberships")
+          .select("user_id")
+          .in("organization_id", targetOrgIds)
+          .eq("status", "active");
+        for (const fila of miembros ?? []) {
+          if (fila.user_id) alcanzadosPorPush.add(fila.user_id);
+        }
+      }
+
       const results = await Promise.allSettled(
         targetOrgIds.map((orgId) =>
           sendPushToOrg(orgId, payload, {
@@ -117,9 +154,9 @@ export async function dispatchNotificationBroadcast(
   }
 
   if (input.channels.includes("email")) {
-    const emails = await resolveBroadcastEmails(supabase, input);
+    const destinatarios = await resolveBroadcastEmails(supabase, input);
     const results = await Promise.allSettled(
-      emails.map((email) =>
+      destinatarios.map(({ email, userId }) =>
         sendTransactionalEmail({
           to: email,
           subject: input.title,
@@ -127,6 +164,7 @@ export async function dispatchNotificationBroadcast(
           text: input.body,
           notification: {
             source: "superadmin_broadcast",
+            userId: userIdParaEmailSinDuplicarCampanita(userId, alcanzadosPorPush),
             actionUrl: input.actionUrl ?? null,
             title: input.title,
             createdBy: input.createdBy,

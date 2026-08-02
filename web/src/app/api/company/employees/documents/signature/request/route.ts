@@ -237,6 +237,9 @@ export async function POST(request: Request) {
     const notificationTitle = "You have a document to sign";
     const notificationBody = `"${linkedDocument.title}" requires your signature.`;
 
+    // Si tiene cuenta, el push de abajo le garantiza su fila en la campanita:
+    // el email va con userId:null para no duplicarla. Sin cuenta, no hay
+    // campanita posible de todos modos.
     void sendTransactionalEmail({
       to: employeeEmail,
       subject: notificationTitle,
@@ -246,7 +249,7 @@ export async function POST(request: Request) {
         source: "document_signature_requested",
         sourceId: notificationSourceId,
         organizationId: tenant.organizationId,
-        userId: employee.user_id,
+        userId: null,
         actionUrl: "/portal/documents",
         title: notificationTitle,
       },

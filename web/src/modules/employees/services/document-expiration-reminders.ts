@@ -2,6 +2,7 @@ import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { buildBrandedEmailSubject, getTenantEmailBranding, resolveEmailSenderName } from "@/shared/lib/email-branding";
 import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
+import { userIdParaEmailSinDuplicarCampanita } from "@/shared/lib/notification-recipients";
 
 function parseUtcDateOnly(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
@@ -138,6 +139,9 @@ export async function processEmployeeDocumentExpirationReminders() {
       `<p>Please review and update the documentation in the employee dashboard.</p>`,
     ].join("\n");
 
+    const pushUserIds = [employee.user_id, link.reviewed_by]
+      .filter((v): v is string => typeof v === "string" && v.length > 0);
+
     let deliveryFailed = false;
     for (const email of recipients) {
       const result = await sendTransactionalEmail({
@@ -149,7 +153,9 @@ export async function processEmployeeDocumentExpirationReminders() {
           source: "document_expiration",
           sourceId: `${link.employee_id}:${link.document_id}`,
           organizationId: link.organization_id,
-          userId: userIdByEmail.get(email),
+          // El push de mas abajo va a la misma gente: a quien esta ahi ya le
+          // deja su fila en la campanita, el email no la duplica.
+          userId: userIdParaEmailSinDuplicarCampanita(userIdByEmail.get(email), pushUserIds),
           actionUrl: "/portal/documents",
           title: subject,
         },
@@ -162,8 +168,6 @@ export async function processEmployeeDocumentExpirationReminders() {
       }
     }
 
-    const pushUserIds = [employee.user_id, link.reviewed_by]
-      .filter((v): v is string => typeof v === "string" && v.length > 0);
     if (pushUserIds.length > 0) {
       void sendPushToUsers(
         pushUserIds,
@@ -352,6 +356,14 @@ export async function processEmployeeDocumentPendingReminders() {
       `<p>${link.requested_without_file ? "Go to the portal and upload the requested file." : "Review the document from the employee dashboard to approve or reject it."}</p>`,
     ].join("\n");
 
+    const managerUserIdsForOrg = (managerMemberships ?? [])
+      .filter((m) => m.organization_id === link.organization_id)
+      .map((m) => m.user_id)
+      .filter((v): v is string => typeof v === "string" && v.length > 0);
+    const pushUserIds = link.requested_without_file
+      ? [employee.user_id].filter((v): v is string => Boolean(v))
+      : managerUserIdsForOrg;
+
     let delivered = 0;
     for (const email of recipients) {
       const result = await sendTransactionalEmail({
@@ -363,7 +375,12 @@ export async function processEmployeeDocumentPendingReminders() {
           source: "document_pending",
           sourceId: `${link.employee_id}:${link.document_id}`,
           organizationId: link.organization_id,
-          userId: link.requested_without_file ? employee.user_id ?? undefined : managerUserIdByEmail.get(email),
+          // El push de mas abajo va a la misma gente: a quien esta ahi ya le
+          // deja su fila en la campanita, el email no la duplica.
+          userId: userIdParaEmailSinDuplicarCampanita(
+            link.requested_without_file ? employee.user_id ?? undefined : managerUserIdByEmail.get(email),
+            pushUserIds,
+          ),
           actionUrl: link.requested_without_file ? "/portal/documents" : "/app/employees",
           title: subject,
         },
@@ -376,13 +393,6 @@ export async function processEmployeeDocumentPendingReminders() {
       }
     }
 
-    const managerUserIdsForOrg = (managerMemberships ?? [])
-      .filter((m) => m.organization_id === link.organization_id)
-      .map((m) => m.user_id)
-      .filter((v): v is string => typeof v === "string" && v.length > 0);
-    const pushUserIds = link.requested_without_file
-      ? [employee.user_id].filter((v): v is string => Boolean(v))
-      : managerUserIdsForOrg;
     if (pushUserIds.length > 0) {
       void sendPushToUsers(
         pushUserIds,

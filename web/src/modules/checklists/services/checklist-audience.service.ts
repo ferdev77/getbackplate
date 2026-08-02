@@ -5,6 +5,7 @@ import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
 import { resolveTenantAppUrlByOrganizationId } from "@/shared/lib/custom-domains";
 import { buildBrandedEmailSubject, getTenantEmailBranding, resolveEmailSenderName } from "@/shared/lib/email-branding";
 import { resolveAudienceContacts } from "@/shared/lib/audience-resolver";
+import { userIdParaEmailSinDuplicarCampanita } from "@/shared/lib/notification-recipients";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -117,7 +118,12 @@ export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput &
         notification: {
           source: "checklist",
           organizationId: input.organizationId,
-          userId: contacts.userIdByEmail[to],
+          // El push de este mismo evento es siempre activo y va a la misma
+          // audiencia (ver sendChecklistAudiencePush), asi que a quien esta
+          // ahi ya le dejo su fila en la campanita: el email no la duplica.
+          // A quien solo tiene email (contacto sin cuenta o fuera del push)
+          // se le arma la suya, que es su unica via.
+          userId: userIdParaEmailSinDuplicarCampanita(contacts.userIdByEmail[to], contacts.userIds),
           actionUrl: reportsUrl.startsWith("http") ? "/app/reports" : reportsUrl,
           title: subject,
         },

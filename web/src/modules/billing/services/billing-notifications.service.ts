@@ -68,6 +68,14 @@ async function sendBillingEmail(params: {
   actionUrl: string;
   attachmentUrl?: string;
   attachmentName?: string;
+  /**
+   * Si este aviso tambien se manda por push a la org (sendPushToOrg alcanza a
+   * todos los miembros activos), y admin.userId es un miembro real, el push
+   * ya le garantiza su fila en la campanita -- el email va con userId:null
+   * para no duplicarla. Cuando no hay push acompañando (ej: pago exitoso sin
+   * sendPush), el email es la unica via y debe armar su propia fila.
+   */
+  pushAcompanaEsteAviso: boolean;
 }) {
   const admin = await getOrganizationAdminEmail(params.organizationId);
   if (!admin) {
@@ -86,7 +94,7 @@ async function sendBillingEmail(params: {
       source: "billing",
       sourceId: params.type,
       organizationId: params.organizationId,
-      userId: admin.userId,
+      userId: params.pushAcompanaEsteAviso ? null : admin.userId,
       actionUrl: params.actionUrl,
       title: params.subject,
     },
@@ -118,6 +126,7 @@ export async function sendRenewalReminderEmail(
     html,
     type: "renewal_reminder",
     actionUrl: "/app/billing/portal-launch",
+    pushAcompanaEsteAviso: true,
   });
   void sendPushToOrg(
     organizationId,
@@ -139,6 +148,7 @@ export async function sendPaymentFailedEmail(organizationId: string, retryLink: 
     html,
     type: "payment_failed",
     actionUrl: "/app/billing/portal-launch",
+    pushAcompanaEsteAviso: true,
   });
   void sendPushToOrg(
     organizationId,
@@ -176,6 +186,7 @@ export async function sendSubscriptionActivatedEmail(params: {
     html,
     type: "subscription_activated",
     actionUrl: "/app/dashboard",
+    pushAcompanaEsteAviso: true,
   });
   void sendPushToOrg(
     params.organizationId,
@@ -226,6 +237,7 @@ export async function sendSuccessfulPaymentEmail(params: {
     actionUrl: params.invoiceUrl ?? "/app/billing/portal-launch",
     attachmentUrl: params.invoicePdfUrl,
     attachmentName: `Invoice-${params.invoiceNumber}.pdf`,
+    pushAcompanaEsteAviso: Boolean(params.sendPush),
   });
 
   if (params.sendPush) {

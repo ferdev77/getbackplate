@@ -158,3 +158,23 @@ export async function isActiveMember(supabase: SupabaseClient, organizationId: s
     .maybeSingle();
   return Boolean(data);
 }
+
+/**
+ * Cuando el mismo evento se manda por push Y por email a gente que se
+ * superpone, el email no debe repetir la fila que el push ya garantiza en la
+ * campanita (ver `_sendToSubscriptions` en send-to-org.ts y el companion de
+ * `sendTransactionalEmail` en infrastructure/email/client.ts).
+ *
+ * Devuelve el valor a pasar como `notification.userId` de un email: `null` si
+ * ese destinatario ya esta en el grupo de push de este mismo aviso (evita
+ * duplicar), o el mismo userId (o `undefined` si no se sabe) si no esta, para
+ * que el email le arme su propia fila -- es la unica via en que se entera.
+ */
+export function userIdParaEmailSinDuplicarCampanita(
+  candidateUserId: string | null | undefined,
+  pushUserIds: Iterable<string>,
+): string | null | undefined {
+  if (!candidateUserId) return candidateUserId;
+  const yaEnPush = pushUserIds instanceof Set ? pushUserIds : new Set(pushUserIds);
+  return yaEnPush.has(candidateUserId) ? null : candidateUserId;
+}
