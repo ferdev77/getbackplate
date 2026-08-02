@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
-import { notifyVendorEvent } from "@/modules/vendors/notifications";
+import { notifyVendorEvent, sucursalesDelProveedor } from "@/modules/vendors/notifications";
 
 // Coerce empty string / null → null before further validation
 const nullableStr = (max: number) =>
@@ -223,6 +223,9 @@ export async function PUT(request: Request, { params }: RouteParams) {
     title: isDeactivation ? "Vendor deactivated" : "Vendor updated",
     body: existing.name,
     source: isDeactivation ? "vendor_deactivated" : "vendor_updated",
+    // Las locaciones que quedan despues de este cambio: si se reasigno el
+    // proveedor, el aviso va a quienes lo tienen ahora.
+    branchIds: branch_ids ?? existingBranchIds,
   });
 
   return NextResponse.json({ ok: true });
@@ -249,6 +252,10 @@ export async function DELETE(_req: Request, { params }: RouteParams) {
   if (!existing) {
     return NextResponse.json({ error: "Proveedor no encontrado" }, { status: 404 });
   }
+
+  // Las locaciones se leen antes del delete: el cascade se las lleva, y sin
+  // ellas el aviso no sabria a quien le importaba este proveedor.
+  const branchIds = await sucursalesDelProveedor(admin, organizationId, id);
 
   // Hard delete — cascade removes vendor_locations via FK
   const { error: deleteError } = await admin
@@ -280,6 +287,7 @@ export async function DELETE(_req: Request, { params }: RouteParams) {
     title: "Vendor deleted",
     body: existing.name,
     source: "vendor_deleted",
+    branchIds,
   });
 
   return NextResponse.json({ ok: true });

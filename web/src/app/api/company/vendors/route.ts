@@ -232,6 +232,7 @@ export async function POST(request: Request) {
     title: "New vendor added",
     body: vendorData.name,
     source: "vendor_created",
+    branchIds: branch_ids ?? [],
   });
 
   return NextResponse.json({ vendor: { id: newVendor.id } }, { status: 201 });

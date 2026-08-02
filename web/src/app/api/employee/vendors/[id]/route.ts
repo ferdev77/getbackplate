@@ -7,7 +7,7 @@ import {
   resolveEmployeeVendorScope,
 } from "@/modules/vendors/lib/employee-scope";
 import { logAuditEvent } from "@/shared/lib/audit";
-import { notifyVendorEvent } from "@/modules/vendors/notifications";
+import { notifyVendorEvent, sucursalesDelProveedor } from "@/modules/vendors/notifications";
 
 const nullableStr = (max: number) =>
   z.preprocess(
@@ -199,6 +199,9 @@ export async function PUT(request: Request, { params }: RouteParams) {
     title: isDeactivation ? "Vendor deactivated" : "Vendor updated",
     body: existing.name,
     source: isDeactivation ? "vendor_deactivated" : "vendor_updated",
+    // Las locaciones que quedan despues de este cambio: si se reasigno el
+    // proveedor, el aviso va a quienes lo tienen ahora.
+    branchIds: branch_ids ?? existingBranchIds,
   });
 
   return NextResponse.json({ ok: true });
@@ -236,6 +239,10 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Proveedor no encontrado" }, { status: 404 });
   }
 
+  // Las locaciones se leen antes del delete: el cascade se las lleva, y sin
+  // ellas el aviso no sabria a quien le importaba este proveedor.
+  const branchIds = await sucursalesDelProveedor(admin, organizationId, id);
+
   const { error: deleteError } = await admin
     .from("vendors")
     .delete()
@@ -265,6 +272,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     title: "Vendor deleted",
     body: existing.name,
     source: "vendor_deleted",
+    branchIds,
   });
 
   return NextResponse.json({ ok: true });
