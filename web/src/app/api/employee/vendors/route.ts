@@ -7,6 +7,7 @@ import {
   resolveEmployeeVendorScope,
 } from "@/modules/vendors/lib/employee-scope";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { notifyVendorEvent } from "@/modules/vendors/notifications";
 
 const nullableStr = (max: number) =>
   z.preprocess(
@@ -237,6 +238,15 @@ export async function POST(request: Request) {
     outcome: "success",
     severity: "medium",
     metadata: { source: "employee", name: vendorData.name, category: vendorData.category, branch_ids },
+  });
+
+  void notifyVendorEvent({
+    supabase: admin,
+    organizationId,
+    actorId,
+    title: "New vendor added",
+    body: vendorData.name,
+    source: "vendor_created",
   });
 
   return NextResponse.json({ vendor: { id: newVendor.id } }, { status: 201 });

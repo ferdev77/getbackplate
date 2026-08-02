@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { notifyVendorEvent } from "@/modules/vendors/notifications";
 
 // Coerce empty string / null → null before further validation
 const nullableStr = (max: number) =>
@@ -223,6 +224,15 @@ export async function POST(request: Request) {
     console.error("[vendors POST] logAuditEvent error:", auditErr);
     // Non-fatal — vendor was created successfully
   }
+
+  void notifyVendorEvent({
+    supabase: admin,
+    organizationId,
+    actorId,
+    title: "New vendor added",
+    body: vendorData.name,
+    source: "vendor_created",
+  });
 
   return NextResponse.json({ vendor: { id: newVendor.id } }, { status: 201 });
 }

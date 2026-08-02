@@ -11,8 +11,18 @@ const sendPushToUsers = vi.hoisted(() =>
 
 vi.mock("@/infrastructure/push/send-to-org", () => ({ sendPushToUsers }));
 
-const { notifyMaintenanceRequested, notifyMaintenanceStatusChanged, notifyMaintenanceUpdate } =
-  await import("../maintenance-events.service");
+const sendEmail = vi.hoisted(() => vi.fn().mockResolvedValue({ ok: true }));
+vi.mock("@/shared/lib/brevo", () => ({ sendEmail }));
+
+const getAuthEmailByUserId = vi.hoisted(() => vi.fn());
+vi.mock("@/shared/lib/auth-users", () => ({ getAuthEmailByUserId }));
+
+const {
+  notifyMaintenanceRequested,
+  notifyMaintenanceStatusChanged,
+  notifyMaintenanceUpdate,
+  notifyMaintenanceResponseByEmail,
+} = await import("../maintenance-events.service");
 
 /**
  * A quien le llega cada aviso de mantenimiento, y que dice.
@@ -124,6 +134,9 @@ function cuerpoPara(userId: string) {
 
 beforeEach(() => {
   sendPushToUsers.mockClear();
+  sendEmail.mockClear();
+  sendEmail.mockResolvedValue({ ok: true });
+  getAuthEmailByUserId.mockReset();
 });
 
 describe("a quien le llega", () => {
@@ -427,5 +440,59 @@ describe("no se manda nada al vacío", () => {
     });
 
     expect(sendPushToUsers.mock.calls.flatMap((c) => c[0])).toEqual(["dos-sombreros"]);
+  });
+});
+
+describe("notifyMaintenanceResponseByEmail", () => {
+  it("le manda a los admins y a cualquiera con permiso de mantenimiento, sin filtrar por locación", async () => {
+    getAuthEmailByUserId.mockResolvedValue(
+      new Map([
+        ["admin-1", "admin@x.com"],
+        ["encargado", "encargado@x.com"],
+      ]),
+    );
+
+    await notifyMaintenanceResponseByEmail({
+      supabase: supabaseFalso({ admins: ["admin-1"], operativos: [{ userId: "encargado", locaciones: ["loc-z"] }] }),
+      organizationId: "org-1",
+      title: "Heladera",
+      body: "Pasó a resuelto",
+      actorUserId: null,
+    });
+
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    const call = sendEmail.mock.calls[0]![0];
+    expect(call.to).toEqual(
+      expect.arrayContaining([{ email: "admin@x.com" }, { email: "encargado@x.com" }]),
+    );
+    expect(call.subject).toContain("Heladera");
+    expect(call.htmlContent).toContain("Pasó a resuelto");
+  });
+
+  it("no le manda a quien escribió la respuesta", async () => {
+    getAuthEmailByUserId.mockResolvedValue(new Map([["encargado", "encargado@x.com"]]));
+
+    await notifyMaintenanceResponseByEmail({
+      supabase: supabaseFalso({ admins: ["admin-1"], operativos: [{ userId: "encargado", todas: true }] }),
+      organizationId: "org-1",
+      title: "Heladera",
+      body: "Hay una novedad",
+      actorUserId: "admin-1",
+    });
+
+    expect(getAuthEmailByUserId).toHaveBeenCalledWith(["encargado"]);
+  });
+
+  it("sin nadie que gestione mantenimiento, no manda nada", async () => {
+    await notifyMaintenanceResponseByEmail({
+      supabase: supabaseFalso({}),
+      organizationId: "org-1",
+      title: "Heladera",
+      body: "Hay una novedad",
+      actorUserId: null,
+    });
+
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(getAuthEmailByUserId).not.toHaveBeenCalled();
   });
 });

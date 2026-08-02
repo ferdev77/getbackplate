@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { notifyVendorEvent } from "@/modules/vendors/notifications";
 
 // Coerce empty string / null → null before further validation
 const nullableStr = (max: number) =>
@@ -208,11 +209,20 @@ export async function PUT(request: Request, { params }: RouteParams) {
     eventDomain: "settings",
     outcome: "success",
     severity: isDeactivation ? "medium" : "low",
-    metadata: { 
-      name: existing.name, 
+    metadata: {
+      name: existing.name,
       changes: Object.keys(changedFields).length > 0 ? changedFields : null,
       ...(branchesChanged ? { branch_ids } : {})
     },
+  });
+
+  void notifyVendorEvent({
+    supabase: admin,
+    organizationId,
+    actorId: access.userId,
+    title: isDeactivation ? "Vendor deactivated" : "Vendor updated",
+    body: existing.name,
+    source: isDeactivation ? "vendor_deactivated" : "vendor_updated",
   });
 
   return NextResponse.json({ ok: true });
@@ -261,6 +271,15 @@ export async function DELETE(_req: Request, { params }: RouteParams) {
     outcome: "success",
     severity: "high",
     metadata: { name: existing.name },
+  });
+
+  void notifyVendorEvent({
+    supabase: admin,
+    organizationId,
+    actorId: access.userId,
+    title: "Vendor deleted",
+    body: existing.name,
+    source: "vendor_deleted",
   });
 
   return NextResponse.json({ ok: true });

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { getActiveOrganizationIdFromCookie } from "@/shared/lib/tenant-selection";
+import { notifySuperadmins } from "@/infrastructure/push/notify-superadmins";
 
 const feedbackSchema = z.object({
   feedbackType: z.enum(["bug", "idea", "other"]).default("idea"),
@@ -99,6 +100,11 @@ export async function POST(request: Request) {
       page_path: pagePath,
     },
   });
+
+  void notifySuperadmins(
+    { title: "New feedback (employee)", body: title, url: "/superadmin/feedback" },
+    { source: "feedback_submitted", organizationId },
+  );
 
   return NextResponse.json({ ok: true });
 }

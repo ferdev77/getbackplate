@@ -44,6 +44,7 @@ export const maintenanceUpdateSchema = z.object({
   status: z.enum(MAINTENANCE_STATUSES).optional(),
   message: z.string().trim().max(5000).optional().nullable(),
   scheduled_visit_at: z.string().trim().optional().nullable(),
+  send_email: z.boolean().optional(),
 });
 
 type AnySupabase = ReturnType<typeof createSupabaseAdminClient> & {

@@ -25,6 +25,7 @@ import {
   syncEmployeeProfileProjection,
   upsertEmployeeContractDocument,
 } from "@/modules/employees/services/company-employees-route-support";
+import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
 
 import {
   ALLOWED_CREATE_MODES,
@@ -587,7 +588,7 @@ export async function POST(request: Request) {
     const employeeIdValue = employeeId as string;
     const { data: existingEmployee, error: existingEmployeeError } = await supabase
       .from("employees")
-      .select("id, user_id, status")
+      .select("id, user_id, status, position_id, department_id")
       .eq("organization_id", tenant.organizationId)
       .eq("id", employeeIdValue)
       .maybeSingle();
@@ -991,6 +992,23 @@ export async function POST(request: Request) {
         mode: "edit",
       },
     });
+
+    const reassignedUserId = linkedUserId ?? existingEmployee.user_id ?? null;
+    const positionChanged = positionId !== existingEmployee.position_id;
+    const departmentChanged = departmentId !== existingEmployee.department_id;
+    if (reassignedUserId && (positionChanged || departmentChanged)) {
+      const changeParts = [
+        positionChanged && position ? `Position: ${position}` : null,
+        departmentChanged && department ? `Department: ${department}` : null,
+      ].filter((part): part is string => Boolean(part));
+      if (changeParts.length) {
+        void sendPushToUsers(
+          [reassignedUserId],
+          { title: "Your role was updated", body: changeParts.join(" · "), url: "/portal/home" },
+          { source: "employee_role_reassigned", sourceId: employeeIdValue, organizationId: tenant.organizationId },
+        );
+      }
+    }
 
     return NextResponse.json({ ok: true, employeeId, mode: "edit" });
   }

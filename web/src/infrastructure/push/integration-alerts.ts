@@ -1,5 +1,5 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { sendPushToUsers } from "./send-to-org";
+import { notifySuperadmins } from "./notify-superadmins";
 
 export type IntegrationAlertInput =
   | {
@@ -77,14 +77,6 @@ export async function notifyIntegrationEvent(input: IntegrationAlertInput): Prom
   try {
     const admin = createSupabaseAdminClient();
 
-    const { data: superadmins, error: superadminsError } = await admin
-      .from("superadmin_users")
-      .select("user_id");
-    if (superadminsError) throw new Error(superadminsError.message);
-
-    const superadminIds = Array.from(new Set((superadmins ?? []).map((s) => String(s.user_id))));
-    if (superadminIds.length === 0) return;
-
     let orgName: string | null = null;
     if (input.kind !== "receipt_processing_failed") {
       const { data: org } = await admin
@@ -96,7 +88,7 @@ export async function notifyIntegrationEvent(input: IntegrationAlertInput): Prom
     }
 
     const payload = buildPayload(orgName, input);
-    await sendPushToUsers(superadminIds, { ...payload, url: "/superadmin/notifications" }, {
+    await notifySuperadmins({ ...payload, url: "/superadmin/notifications" }, {
       source: "integration_alert",
       ...(input.kind !== "receipt_processing_failed" ? { organizationId: input.organizationId } : {}),
     });

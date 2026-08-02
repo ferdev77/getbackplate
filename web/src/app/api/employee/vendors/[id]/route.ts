@@ -7,6 +7,7 @@ import {
   resolveEmployeeVendorScope,
 } from "@/modules/vendors/lib/employee-scope";
 import { logAuditEvent } from "@/shared/lib/audit";
+import { notifyVendorEvent } from "@/modules/vendors/notifications";
 
 const nullableStr = (max: number) =>
   z.preprocess(
@@ -191,6 +192,15 @@ export async function PUT(request: Request, { params }: RouteParams) {
     },
   });
 
+  void notifyVendorEvent({
+    supabase: admin,
+    organizationId,
+    actorId: access.userId,
+    title: isDeactivation ? "Vendor deactivated" : "Vendor updated",
+    body: existing.name,
+    source: isDeactivation ? "vendor_deactivated" : "vendor_updated",
+  });
+
   return NextResponse.json({ ok: true });
 }
 
@@ -246,6 +256,15 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     outcome: "success",
     severity: "high",
     metadata: { source: "employee", name: existing.name },
+  });
+
+  void notifyVendorEvent({
+    supabase: admin,
+    organizationId,
+    actorId: access.userId,
+    title: "Vendor deleted",
+    body: existing.name,
+    source: "vendor_deleted",
   });
 
   return NextResponse.json({ ok: true });

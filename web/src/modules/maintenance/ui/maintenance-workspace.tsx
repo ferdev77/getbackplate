@@ -602,6 +602,7 @@ export function MaintenanceWorkspace({
   const [draftForm, setDraftForm] = useState<MaintenanceRequestFormState>(() => deriveFormState(branches));
   const [responseStatus, setResponseStatus] = useState<"schedule_visit" | MaintenanceStatus>(() => defaultResponseStatus(initialRequests[0] ?? null));
   const [responseScheduledVisitAt, setResponseScheduledVisitAt] = useState("");
+  const [responseSendEmail, setResponseSendEmail] = useState(false);
 
   const selectedRequest = useMemo(
     () => requests.find((request) => request.id === selectedId) ?? requests[0] ?? null,
@@ -712,6 +713,7 @@ export function MaintenanceWorkspace({
           status: normalizedStatus,
           scheduled_visit_at: scheduledVisitAt,
           message: formData.get("message"),
+          send_email: formData.get("send_email") === "on",
         }),
       });
       if (!response.ok) throw new Error("Could not save the response.");
@@ -728,6 +730,7 @@ export function MaintenanceWorkspace({
       }
 
       toast.success("Response saved.");
+      setResponseSendEmail(false);
       await refresh(activeStatus);
     } catch {
       toast.error("Could not save the response.");
@@ -760,6 +763,7 @@ export function MaintenanceWorkspace({
   useEffect(() => {
     setResponseStatus(defaultResponseStatus(selectedRequest));
     setResponseScheduledVisitAt("");
+    setResponseSendEmail(false);
   }, [selectedRequest]);
 
   const categoryOptions = useMemo(
@@ -1145,6 +1149,18 @@ export function MaintenanceWorkspace({
                   ) : null}
                   <textarea name="message" rows={3} placeholder="Reporte, notas o requerimientos..." className="w-full rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-sm" />
                   <input name="files" type="file" multiple className="w-full rounded-xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-xs" />
+                  <div className="flex items-center justify-between gap-3">
+                    <label className="flex items-center gap-2 text-xs font-semibold text-[var(--gbp-text2)]">
+                      <input
+                        name="send_email"
+                        type="checkbox"
+                        checked={responseSendEmail}
+                        onChange={(event) => setResponseSendEmail(event.target.checked)}
+                        className="h-4 w-4 rounded border-[var(--gbp-border)]"
+                      />
+                      Enviar por email
+                    </label>
+                  </div>
                   <button disabled={responding} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60">
                     {responding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                     Guardar respuesta

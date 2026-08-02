@@ -1,5 +1,5 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
+import { notifySuperadmins } from "@/infrastructure/push/notify-superadmins";
 
 const LEAD_SOURCES = ["seat_request", "public_referral", "private_referral"] as const;
 
@@ -57,28 +57,7 @@ export async function notifyNewLead(lead: {
   companyName?: string | null;
 }): Promise<void> {
   try {
-    const supabase = createSupabaseAdminClient();
-
-    const { data: superadmins, error: superadminsError } = await supabase
-      .from("superadmin_users")
-      .select("user_id");
-    if (superadminsError) throw new Error(superadminsError.message);
-
-    const superadminIds = Array.from(new Set((superadmins ?? []).map((s) => String(s.user_id))));
-    if (superadminIds.length === 0) return;
-
-    const { data: subs, error: subsError } = await supabase
-      .from("push_subscriptions")
-      .select("user_id")
-      .eq("is_active", true)
-      .in("user_id", superadminIds);
-    if (subsError) throw new Error(subsError.message);
-
-    const userIds = Array.from(new Set((subs ?? []).map((s) => String(s.user_id))));
-    if (userIds.length === 0) return;
-
-    await sendPushToUsers(
-      userIds,
+    await notifySuperadmins(
       {
         title: "New lead",
         body: `${LEAD_SOURCE_LABELS[lead.source]}: ${lead.companyName ?? lead.contactName} (${lead.contactEmail})`,

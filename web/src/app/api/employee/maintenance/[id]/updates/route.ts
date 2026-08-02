@@ -1,7 +1,9 @@
 import { NextResponse, after } from "next/server";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { nombreDeLaLocacion } from "@/modules/maintenance/lib/location-label";
+import { estadoEnPalabras } from "@/modules/maintenance/lib/labels";
 import {
+  notifyMaintenanceResponseByEmail,
   notifyMaintenanceStatusChanged,
   notifyMaintenanceUpdate,
 } from "@/modules/maintenance/services/maintenance-events.service";
@@ -63,14 +65,31 @@ export async function POST(request: Request, context: RouteContext) {
       // en que quedo, el segundo que hay algo para leer.
       if (parsed.data.status) {
         await notifyMaintenanceStatusChanged({ ...comun, toStatus: parsed.data.status });
-        return;
+      } else {
+        await notifyMaintenanceUpdate({
+          ...comun,
+          message: parsed.data.message ?? null,
+          scheduledVisitAt: parsed.data.scheduled_visit_at ?? null,
+        });
       }
 
-      await notifyMaintenanceUpdate({
-        ...comun,
-        message: parsed.data.message ?? null,
-        scheduledVisitAt: parsed.data.scheduled_visit_at ?? null,
-      });
+      // El push/campanita ya llega siempre -- el email es aparte, solo si lo
+      // tildaron a proposito (un email por cada comentario seria demasiado).
+      if (parsed.data.send_email) {
+        const cuerpoEmail = parsed.data.status
+          ? `Pasó a ${estadoEnPalabras(parsed.data.status)}${parsed.data.message ? ` — ${parsed.data.message}` : ""}`
+          : parsed.data.scheduled_visit_at
+            ? `Visita programada para el ${parsed.data.scheduled_visit_at}`
+            : (parsed.data.message ?? "Hay una novedad");
+
+        await notifyMaintenanceResponseByEmail({
+          supabase: admin,
+          organizationId: access.tenant.organizationId,
+          title: comun.title,
+          body: cuerpoEmail,
+          actorUserId: access.userId,
+        });
+      }
     });
 
     return NextResponse.json({ ok: true });

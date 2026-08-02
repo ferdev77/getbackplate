@@ -1,8 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
+import { sendEmail } from "@/shared/lib/brevo";
+import { getAuthEmailByUserId } from "@/shared/lib/auth-users";
 import {
   companyAdminUserIds,
+  employeesWhoCanOperate,
   employeesWhoCanOperateWithScope,
   isActiveMember,
 } from "@/shared/lib/notification-recipients";
@@ -262,5 +265,42 @@ export async function notifyMaintenanceUpdate(params: {
     body: cuerpo,
     locationName: params.locationName,
     source: params.scheduledVisitAt ? "maintenance_visit_scheduled" : "maintenance_update",
+  });
+}
+
+/**
+ * Manda por email la respuesta a una solicitud, cuando quien la escribe tilda
+ * "Enviar por email" a proposito -- a diferencia del push/campanita (que ya
+ * llega siempre), esto es opcional porque un email por cada comentario seria
+ * demasiado.
+ *
+ * Va a company_admins y a cualquiera con permiso de editar mantenimiento, sin
+ * filtrar por locacion: el pedido fue explicito, "cualquiera que tenga [el
+ * permiso]", no solo quienes atienden esa sucursal en particular.
+ */
+export async function notifyMaintenanceResponseByEmail(params: {
+  supabase: SupabaseClient;
+  organizationId: string;
+  title: string;
+  body: string;
+  actorUserId: string | null;
+}): Promise<void> {
+  const [admins, operativos] = await Promise.all([
+    companyAdminUserIds(params.supabase, params.organizationId),
+    employeesWhoCanOperate(params.supabase, params.organizationId, MODULO),
+  ]);
+
+  const userIds = [...new Set([...admins, ...operativos])].filter((id) => id !== params.actorUserId);
+  if (!userIds.length) return;
+
+  const emailByUserId = await getAuthEmailByUserId(userIds);
+  const to = [...emailByUserId.values()].map((email) => ({ email }));
+  if (!to.length) return;
+
+  await sendEmail({
+    to,
+    subject: `Mantenimiento: ${params.title}`,
+    htmlContent: `<p>${params.body}</p>`,
+    notification: { source: "maintenance_response_email", organizationId: params.organizationId },
   });
 }

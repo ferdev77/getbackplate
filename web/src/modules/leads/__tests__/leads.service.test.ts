@@ -12,14 +12,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type PayloadPush = { title: string; body: string; url: string };
 
-const sendPushToUsers = vi.hoisted(() =>
-  vi.fn<(usuarios: string[], payload: PayloadPush, opciones?: unknown) => Promise<{ sent: number; expired: number; failed: number }>>(
+const notifySuperadmins = vi.hoisted(() =>
+  vi.fn<(payload: PayloadPush, opciones?: unknown) => Promise<{ sent: number; expired: number; failed: number }>>(
     async () => ({ sent: 1, expired: 0, failed: 0 }),
   ),
 );
 const createSupabaseAdminClient = vi.hoisted(() => vi.fn());
 
-vi.mock("@/infrastructure/push/send-to-org", () => ({ sendPushToUsers }));
+vi.mock("@/infrastructure/push/notify-superadmins", () => ({ notifySuperadmins }));
 vi.mock("@/infrastructure/supabase/client/admin", () => ({ createSupabaseAdminClient }));
 
 const { createLead, notifyNewLead, reconcileOrphanReferralLeads } = await import("../leads.service");
@@ -68,7 +68,7 @@ function supabaseFalso(opciones: {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  sendPushToUsers.mockResolvedValue({ sent: 1, expired: 0, failed: 0 } as never);
+  notifySuperadmins.mockResolvedValue({ sent: 1, expired: 0, failed: 0 });
 });
 
 describe("createLead", () => {
@@ -131,65 +131,23 @@ describe("notifyNewLead", () => {
     companyName: "Tacos SA",
   };
 
-  it("avisa solo a superadmins con push activo", async () => {
-    supabaseFalso({
-      filas: {
-        superadmin_users: [{ user_id: "sa-1" }, { user_id: "sa-2" }],
-        push_subscriptions: [{ user_id: "sa-1" }],
-      },
-    });
-
+  it("delega en notifySuperadmins -- avisa a todos, no solo a quien tiene push activo", async () => {
     await notifyNewLead(LEAD);
 
-    expect(sendPushToUsers).toHaveBeenCalledTimes(1);
-    expect(sendPushToUsers.mock.calls[0]![0]).toEqual(["sa-1"]);
-  });
-
-  it("no repite a la misma persona con dos dispositivos", async () => {
-    supabaseFalso({
-      filas: {
-        superadmin_users: [{ user_id: "sa-1" }],
-        push_subscriptions: [{ user_id: "sa-1" }, { user_id: "sa-1" }],
-      },
-    });
-
-    await notifyNewLead(LEAD);
-
-    expect(sendPushToUsers.mock.calls[0]![0]).toEqual(["sa-1"]);
-  });
-
-  it("sin superadmins no manda nada", async () => {
-    supabaseFalso({ filas: { superadmin_users: [] } });
-
-    await notifyNewLead(LEAD);
-
-    expect(sendPushToUsers).not.toHaveBeenCalled();
-  });
-
-  it("sin nadie suscrito no manda nada", async () => {
-    supabaseFalso({ filas: { superadmin_users: [{ user_id: "sa-1" }], push_subscriptions: [] } });
-
-    await notifyNewLead(LEAD);
-
-    expect(sendPushToUsers).not.toHaveBeenCalled();
+    expect(notifySuperadmins).toHaveBeenCalledTimes(1);
   });
 
   it("si falla no revienta el alta del lead", async () => {
     // Es fire-and-forget: el lead ya se guardo, el aviso es secundario.
-    supabaseFalso({ errorAlLeer: { superadmin_users: "sin permiso" } });
+    notifySuperadmins.mockRejectedValueOnce(new Error("sin permiso"));
 
     await expect(notifyNewLead(LEAD)).resolves.toBeUndefined();
-    expect(sendPushToUsers).not.toHaveBeenCalled();
   });
 
   it("el mensaje dice de dónde viene y quién es", async () => {
-    supabaseFalso({
-      filas: { superadmin_users: [{ user_id: "sa-1" }], push_subscriptions: [{ user_id: "sa-1" }] },
-    });
-
     await notifyNewLead(LEAD);
 
-    const payload = sendPushToUsers.mock.calls[0]![1];
+    const payload = notifySuperadmins.mock.calls[0]![0];
     expect(payload.body).toContain("Seat request");
     expect(payload.body).toContain("Tacos SA");
     expect(payload.body).toContain("ana@x.com");
