@@ -85,6 +85,7 @@ export async function POST(request: Request, context: RouteContext) {
         await notifyMaintenanceResponseByEmail({
           supabase: admin,
           organizationId: access.tenant.organizationId,
+          branchId,
           title: comun.title,
           body: cuerpoEmail,
           actorUserId: access.userId,

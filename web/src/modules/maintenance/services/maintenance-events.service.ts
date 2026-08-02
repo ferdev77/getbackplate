@@ -277,30 +277,72 @@ export async function notifyMaintenanceUpdate(params: {
  * Va a company_admins y a cualquiera con permiso de editar mantenimiento, sin
  * filtrar por locacion: el pedido fue explicito, "cualquiera que tenga [el
  * permiso]", no solo quienes atienden esa sucursal en particular.
+ *
+ * A quien ya le llego el push de este mismo cambio (los que atienden ESTA
+ * locacion, via `quienesAtienden`) se le manda el email sin duplicar su fila
+ * en la campanita -- ya tiene una. A quien tiene el permiso pero no cubre esta
+ * sucursal (por eso no recibio el push) se le arma su propia fila, porque para
+ * esa persona el email es la unica forma en que se entera.
  */
 export async function notifyMaintenanceResponseByEmail(params: {
   supabase: SupabaseClient;
   organizationId: string;
+  branchId: string | null;
   title: string;
   body: string;
   actorUserId: string | null;
 }): Promise<void> {
-  const [admins, operativos] = await Promise.all([
+  const [admins, operativos, yaAvisadosPorPush] = await Promise.all([
     companyAdminUserIds(params.supabase, params.organizationId),
     employeesWhoCanOperate(params.supabase, params.organizationId, MODULO),
+    quienesAtienden(params.supabase, params.organizationId, params.branchId),
   ]);
 
   const userIds = [...new Set([...admins, ...operativos])].filter((id) => id !== params.actorUserId);
   if (!userIds.length) return;
 
-  const emailByUserId = await getAuthEmailByUserId(userIds);
-  const to = [...emailByUserId.values()].map((email) => ({ email }));
-  if (!to.length) return;
+  const yaEnCampanita = new Set(yaAvisadosPorPush.map((p) => p.userId));
+  const conCampanitaYa = userIds.filter((id) => yaEnCampanita.has(id));
+  const sinCampanitaTodavia = userIds.filter((id) => !yaEnCampanita.has(id));
 
-  await sendEmail({
-    to,
-    subject: `Mantenimiento: ${params.title}`,
-    htmlContent: `<p>${params.body}</p>`,
-    notification: { source: "maintenance_response_email", organizationId: params.organizationId },
-  });
+  const emailByUserId = await getAuthEmailByUserId(userIds);
+  const subject = `Mantenimiento: ${params.title}`;
+  const htmlContent = `<p>${params.body}</p>`;
+
+  // Ya tienen fila en la campanita por el push: se manda igual el email, pero
+  // sin que dispare una segunda fila para el mismo aviso.
+  const paraConCampanita = conCampanitaYa
+    .map((userId) => emailByUserId.get(userId))
+    .filter((email): email is string => Boolean(email))
+    .map((email) => ({ email }));
+
+  const envios: Promise<unknown>[] = [];
+  if (paraConCampanita.length) {
+    envios.push(
+      sendEmail({
+        to: paraConCampanita,
+        subject,
+        htmlContent,
+        notification: { source: "maintenance_response_email", organizationId: params.organizationId, userId: null },
+      }),
+    );
+  }
+
+  // No tienen fila todavia (el push no los alcanzo por locacion): el email es
+  // la unica via, asi que cada uno se manda con su userId ya conocido -- se
+  // le arma su propia fila en la campanita.
+  for (const userId of sinCampanitaTodavia) {
+    const email = emailByUserId.get(userId);
+    if (!email) continue;
+    envios.push(
+      sendEmail({
+        to: [{ email }],
+        subject,
+        htmlContent,
+        notification: { source: "maintenance_response_email", organizationId: params.organizationId, userId },
+      }),
+    );
+  }
+
+  await Promise.all(envios);
 }

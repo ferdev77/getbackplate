@@ -455,18 +455,59 @@ describe("notifyMaintenanceResponseByEmail", () => {
     await notifyMaintenanceResponseByEmail({
       supabase: supabaseFalso({ admins: ["admin-1"], operativos: [{ userId: "encargado", locaciones: ["loc-z"] }] }),
       organizationId: "org-1",
+      branchId: "loc-a",
       title: "Heladera",
       body: "Pasó a resuelto",
       actorUserId: null,
     });
 
-    expect(sendEmail).toHaveBeenCalledTimes(1);
-    const call = sendEmail.mock.calls[0]![0];
-    expect(call.to).toEqual(
-      expect.arrayContaining([{ email: "admin@x.com" }, { email: "encargado@x.com" }]),
+    const destinatarios = sendEmail.mock.calls.flatMap((c) => c[0].to.map((r: { email: string }) => r.email));
+    expect(destinatarios).toEqual(expect.arrayContaining(["admin@x.com", "encargado@x.com"]));
+  });
+
+  it("no duplica la campanita de quien ya recibió el push (misma locación); a quien el push no alcanzó por locación le arma su propia fila", async () => {
+    getAuthEmailByUserId.mockResolvedValue(
+      new Map([
+        ["admin-1", "admin@x.com"],
+        ["local-a", "local-a@x.com"],
+        ["fuera-de-alcance", "fuera@x.com"],
+      ]),
     );
-    expect(call.subject).toContain("Heladera");
-    expect(call.htmlContent).toContain("Pasó a resuelto");
+
+    await notifyMaintenanceResponseByEmail({
+      supabase: supabaseFalso({
+        admins: ["admin-1"],
+        operativos: [
+          { userId: "local-a", locaciones: ["loc-a"] },
+          { userId: "fuera-de-alcance", locaciones: ["loc-b"] },
+        ],
+      }),
+      organizationId: "org-1",
+      branchId: "loc-a",
+      title: "Heladera",
+      body: "Pasó a resuelto",
+      actorUserId: null,
+    });
+
+    expect(sendEmail).toHaveBeenCalledTimes(2);
+
+    // admin-1 y local-a atienden loc-a: ya tienen fila por el push, se les
+    // manda el email con userId:null para no duplicarla.
+    const conCampanitaYa = sendEmail.mock.calls.find((c) =>
+      c[0].to.some((r: { email: string }) => r.email === "admin@x.com"),
+    )![0];
+    expect(conCampanitaYa.to).toEqual(
+      expect.arrayContaining([{ email: "admin@x.com" }, { email: "local-a@x.com" }]),
+    );
+    expect(conCampanitaYa.notification.userId).toBeNull();
+
+    // fuera-de-alcance solo cubre loc-b: el push no lo alcanzó, asi que el
+    // email se manda con su userId para que le arme su propia fila.
+    const sinCampanitaTodavia = sendEmail.mock.calls.find((c) =>
+      c[0].to.some((r: { email: string }) => r.email === "fuera@x.com"),
+    )![0];
+    expect(sinCampanitaTodavia.to).toEqual([{ email: "fuera@x.com" }]);
+    expect(sinCampanitaTodavia.notification.userId).toBe("fuera-de-alcance");
   });
 
   it("no le manda a quien escribió la respuesta", async () => {
@@ -475,6 +516,7 @@ describe("notifyMaintenanceResponseByEmail", () => {
     await notifyMaintenanceResponseByEmail({
       supabase: supabaseFalso({ admins: ["admin-1"], operativos: [{ userId: "encargado", todas: true }] }),
       organizationId: "org-1",
+      branchId: null,
       title: "Heladera",
       body: "Hay una novedad",
       actorUserId: "admin-1",
@@ -487,6 +529,7 @@ describe("notifyMaintenanceResponseByEmail", () => {
     await notifyMaintenanceResponseByEmail({
       supabase: supabaseFalso({}),
       organizationId: "org-1",
+      branchId: null,
       title: "Heladera",
       body: "Hay una novedad",
       actorUserId: null,

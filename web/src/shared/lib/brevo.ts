@@ -7,6 +7,13 @@ export interface SendEmailOptions {
   senderName?: string;
   notification: {
     source: string;
+    /**
+     * Solo para cuando el llamador ya sabe que este destinatario va a recibir
+     * (o ya recibio) su propia fila en la campanita por otro canal -- pasar
+     * `null` evita que se duplique. Sin este campo, se resuelve por email como
+     * siempre.
+     */
+    userId?: string | null;
     organizationId?: string | null;
     actionUrl?: string | null;
     sourceId?: string | null;
@@ -28,6 +35,7 @@ export async function sendEmail({ to, subject, htmlContent, senderName, notifica
       senderName,
       notification: {
         source: notification.source,
+        userId: notification.userId,
         organizationId: notification.organizationId ?? null,
         actionUrl: notification.actionUrl ?? null,
         sourceId: notification.sourceId ?? null,
