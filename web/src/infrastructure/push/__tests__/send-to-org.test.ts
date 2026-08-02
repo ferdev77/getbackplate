@@ -158,6 +158,26 @@ describe("sendPushToUsers / sendPushToOrg", () => {
     ]);
   });
 
+  it("con un dispositivo exitoso y otro con error real, no se duplica la fila del mismo usuario", async () => {
+    const { sendPushToUsers } = await import("../send-to-org");
+
+    queueResult("push_subscriptions", ok([
+      { id: "sub-ok", user_id: "user-1", endpoint: "e1", p256dh: "p1", auth: "a1" },
+      { id: "sub-boom", user_id: "user-1", endpoint: "e2", p256dh: "p2", auth: "a2" },
+    ]));
+    sendPushNotification
+      .mockResolvedValueOnce({ success: true })
+      .mockRejectedValueOnce(Object.assign(new Error("Provider unavailable"), { statusCode: 500 }));
+
+    const result = await sendPushToUsers(["user-1"], payload, options);
+
+    expect(result).toEqual({ sent: 1, expired: 0, failed: 1 });
+    // una sola fila: la que confirma que si le llego, no una segunda de "failed"
+    expect(logNotificationsBulk).toHaveBeenCalledWith([
+      expect.objectContaining({ channel: "push", status: "sent", userId: "user-1" }),
+    ]);
+  });
+
   it("con varios dispositivos del mismo usuario, un solo push exitoso alcanza para no duplicar en_app", async () => {
     const { sendPushToUsers } = await import("../send-to-org");
 

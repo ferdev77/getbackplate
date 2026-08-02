@@ -129,7 +129,11 @@ async function _sendToSubscriptions(
   // destinatarios de un broadcast por organizacion (sendPushToOrg), que no tienen
   // el respaldo de campanita de arriba porque ahi no hay una lista de "a quien
   // le tenia que llegar" mas alla de quien ya tenia suscripcion.
+  // Si el usuario ya recibio el push por otro dispositivo, no se duplica: el
+  // fallo de un dispositivo puntual ya quedo en los logs para diagnostico, pero
+  // esta persona si se entero, no hace falta una segunda fila para el mismo evento.
   for (const userId of new Set(failedUserIds)) {
+    if (sentUserIdSet.has(userId)) continue;
     rows.push({ ...baseRow, channel: "push" as const, userId, status: "failed" as const });
   }
 
