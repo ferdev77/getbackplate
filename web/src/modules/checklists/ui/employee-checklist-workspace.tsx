@@ -175,6 +175,9 @@ export function EmployeeChecklistWorkspace({
               isActive={payload.template.is_active}
               createdByName={payload.template.created_by_name}
               scopeLabels={payload.template.scope_labels}
+              // null (sin permiso) se pasa como undefined: la columna no se
+              // dibuja. Una lista vacia si se muestra, como "sin repartos".
+              deliveryHistory={payload.template.delivery_history ?? undefined}
               onClose={closePreview}
             />
           ) : (

@@ -202,6 +202,8 @@ export async function POST(request: Request) {
   await sendChecklistAudiencePush({
     supabase: admin,
     organizationId: access.tenant.organizationId,
+    templateId: result.templateId,
+    origen: "alta",
     templateName: name,
     event: "created",
     itemsCount: result.totalItems,
@@ -404,6 +406,8 @@ export async function PATCH(request: Request) {
   await sendChecklistAudiencePush({
     supabase: admin,
     organizationId: access.tenant.organizationId,
+    templateId: result.templateId,
+    origen: "edicion",
     templateName: name,
     event: "updated",
     itemsCount: result.totalItems,

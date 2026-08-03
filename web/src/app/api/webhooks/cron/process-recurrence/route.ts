@@ -155,6 +155,11 @@ async function processRecurrence(req: Request) {
                 organizationId: template.organization_id,
                 targetScope: targetScope,
                 templateBranchId: template.branch_id,
+                // Deja el envio atribuido a su plantilla y marcado como reparto
+                // automatico: es lo que separa esta vuelta del aviso del alta en
+                // el historial, que salen con el mismo titulo.
+                templateId: job.target_id,
+                origen: "recurrencia" as const,
               };
 
              try {

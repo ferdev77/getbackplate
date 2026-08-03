@@ -7,6 +7,10 @@ import { resolveEmployeeAllowedLocationIds } from "@/shared/lib/employee-api-sco
 import { assertTenantModuleApi } from "@/shared/lib/access";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
 import { resolveAnnouncementAuthorNames } from "@/shared/lib/announcement-authors";
+import {
+  obtenerHistorialDeRepartos,
+  puedeVerHistorialDeRepartos,
+} from "@/modules/checklists/services/checklist-delivery-history.service";
 
 // Nota: esto NO exige delegated capability "checklists.view" a proposito —
 // completar un checklist asignado (via scope de sucursal/departamento/puesto)
@@ -291,6 +295,23 @@ export async function GET(request: Request) {
     .eq("target_id", template.id)
     .maybeSingle();
 
+  // El historial de repartos es informacion del creador. Este modal se abre
+  // para cualquier checklist *asignado*, no solo para los propios: sin el
+  // filtro, un empleado veria los nombres de todos sus companeros
+  // destinatarios. Un empleado ve solo los que creo el; el admin, todos.
+  const visorDelHistorial = {
+    userId,
+    esCompanyAdmin: tenant.roleCode === "company_admin",
+  };
+  const deliveryHistory = puedeVerHistorialDeRepartos(visorDelHistorial, template.created_by)
+    ? await obtenerHistorialDeRepartos({
+        organizationId: tenant.organizationId,
+        templateId: template.id,
+        visor: visorDelHistorial,
+        templateCreatedBy: template.created_by,
+      })
+    : null;
+
   return NextResponse.json({
     template: {
       id: template.id,
@@ -304,6 +325,7 @@ export async function GET(request: Request) {
       scope_labels: scopeLabels,
       created_by: template.created_by,
       created_by_name: createdByName,
+      delivery_history: deliveryHistory,
     },
     sections,
     initialReport: latestSubmission

@@ -7,6 +7,14 @@ export type PushNotificationOptions = {
   sourceId?: string;
   organizationId?: string | null;
   createdBy?: string | null;
+  /**
+   * Datos extra que quedan guardados en la fila de notifications.
+   *
+   * Sirve para poder reconstruir despues que fue cada envio. Hoy lo usa el
+   * historial de repartos de checklists, que necesita distinguir el aviso del
+   * alta del reparto automatico del cron: los dos salen con el mismo titulo.
+   */
+  metadata?: Record<string, unknown>;
 };
 
 export async function sendPushToOrg(
@@ -126,6 +134,7 @@ async function _sendToSubscriptions(
     sourceId: options.sourceId ?? null,
     status: "sent" as const,
     createdBy: options.createdBy ?? null,
+    metadata: options.metadata,
   };
 
   // channel:'push' queda como diagnostico interno (no se muestra en la

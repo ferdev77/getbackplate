@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import type { RepartoDelHistorial } from "@/modules/checklists/services/checklist-delivery-history.service";
+
 const PREVIEW_GUARD_KEY = "portal-checklist-preview-guard";
 const PREVIEW_GUARD_TTL_MS = 15000;
 const PREVIEW_CACHE_TTL_MS = 60_000;
@@ -30,6 +32,12 @@ export type ChecklistPreviewPayload = {
       positions: string[];
       users: string[];
     };
+    /**
+     * Repartos del checklist. `null` cuando quien mira no puede verlos: solo
+     * el creador y los admins de empresa (ver checklist-delivery-history).
+     * Lista vacia = tiene permiso pero todavia no se repartio.
+     */
+    delivery_history: RepartoDelHistorial[] | null;
   };
   sections: Array<{ id: string; name: string; items: Array<{ id: string; label: string; priority: string }> }>;
   initialReport:

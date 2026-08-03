@@ -191,6 +191,8 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     checklistAudienceEmailCount = await sendChecklistAudienceEmail({
       supabase,
       organizationId: tenant.organizationId,
+      templateId: result.templateId,
+      origen: notificationEvent === "created" ? "alta" : "edicion",
       templateName: parsed.data.name,
       event: notificationEvent,
       itemsCount: result.totalItems,
@@ -203,6 +205,8 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   checklistAudiencePushCount = await sendChecklistAudiencePush({
     supabase,
     organizationId: tenant.organizationId,
+    templateId: result.templateId,
+    origen: notificationEvent === "created" ? "alta" : "edicion",
     templateName: parsed.data.name,
     event: notificationEvent,
     itemsCount: result.totalItems,

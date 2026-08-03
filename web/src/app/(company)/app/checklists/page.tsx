@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ClipboardPlus } from "lucide-react";
 import { ChecklistsListWorkspace } from "@/modules/checklists/ui/checklists-list-workspace";
 
@@ -6,6 +5,11 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { ChecklistCreateTrigger } from "@/modules/checklists/ui/checklist-create-trigger";
 import { ChecklistUpsertModal } from "@/modules/checklists/ui/checklist-upsert-modal";
+import { ChecklistPreviewModalRoute } from "@/modules/checklists/ui/checklist-preview-modal-route";
+import {
+  obtenerHistorialDeRepartos,
+  puedeVerHistorialDeRepartos,
+} from "@/modules/checklists/services/checklist-delivery-history.service";
 import { ChecklistDeleteModal } from "@/modules/checklists/ui/checklist-delete-modal";
 import { EmployeeChecklistRealtimeRefresh } from "@/modules/checklists/ui/employee-checklist-realtime-refresh";
 import { requireTenantModule } from "@/shared/lib/access";
@@ -40,13 +44,6 @@ const CARD_SOFT = "border-[var(--gbp-border)] bg-[var(--gbp-bg)]";
 function firstParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) return value[0] ?? "";
   return value ?? "";
-}
-
-function typeLabel(type: string) {
-  if (type === "opening") return "Apertura";
-  if (type === "closing") return "Cierre";
-  if (type === "prep") return "Prep";
-  return "Custom";
 }
 
 export default async function CompanyChecklistsPage({ searchParams }: CompanyChecklistsPageProps) {
@@ -324,6 +321,7 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
 
   const editingTemplate = action === "edit" ? templateRows.find((row) => row.id === templateId) ?? null : null;
   const previewTemplate = previewTemplateId ? templateRows.find((row) => row.id === previewTemplateId) ?? null : null;
+
   const deletingTemplate = deleteTemplateId ? templateRows.find((row) => row.id === deleteTemplateId) ?? null : null;
 
   const totalTemplates = templates?.length ?? 0;
@@ -332,6 +330,23 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
   const pending = pendingCount ?? 0;
   const { data: authData } = await supabase.auth.getUser();
   const userId = authData.user?.id ?? "";
+
+  // El historial de repartos solo lo ve un admin de empresa o quien creo el
+  // checklist. `null` significa "sin permiso" y hace que la columna no exista;
+  // una lista vacia significa "todavia no se repartio", que si se muestra.
+  const visorDelHistorial = {
+    userId: userId || null,
+    esCompanyAdmin: tenant.roleCode === "company_admin",
+  };
+  const deliveryHistory =
+    previewTemplate && puedeVerHistorialDeRepartos(visorDelHistorial, previewTemplate.created_by)
+      ? await obtenerHistorialDeRepartos({
+          organizationId: tenant.organizationId,
+          templateId: previewTemplate.id,
+          visor: visorDelHistorial,
+          templateCreatedBy: previewTemplate.created_by,
+        })
+      : null;
 
   return (
     <PageContent>
@@ -386,98 +401,47 @@ export default async function CompanyChecklistsPage({ searchParams }: CompanyChe
       />
 
       {previewTemplate ? (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-          <SlideUp className="flex max-h-[88vh] w-[720px] max-w-[95vw] flex-col overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] shadow-[0_24px_70px_rgba(0,0,0,.18)]">
-            <div className="flex items-center justify-between border-b-[1.5px] border-[var(--gbp-border)] px-6 py-5">
-              <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">Vista previa · {previewTemplate.name}</p>
-              <Link href="/app/checklists" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">✕</Link>
-            </div>
-            <div className="max-h-[68vh] space-y-3 overflow-y-auto px-6 py-5">
-              <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Metadata</p>
-                <div className="grid gap-2 text-xs text-[var(--gbp-text2)] sm:grid-cols-2">
-                  <p><span className="font-semibold text-[var(--gbp-text)]">Tipo:</span> {typeLabel(previewTemplate.checklist_type)}</p>
-                  <p><span className="font-semibold text-[var(--gbp-text)]">Shift:</span> {previewTemplate.shift || "-"}</p>
-                  <p><span className="font-semibold text-[var(--gbp-text)]">Frecuencia:</span> {previewTemplate.repeat_every || "-"}</p>
-                  <p><span className="font-semibold text-[var(--gbp-text)]">Estado:</span> {previewTemplate.is_active ? "Activo" : "Inactivo"}</p>
-                  <p className="sm:col-span-2"><span className="font-semibold text-[var(--gbp-text)]">Creado por:</span> {previewTemplate.created_by_name ?? "Dirección"}</p>
-                </div>
-
-                <div className="mt-3 border-t border-[var(--gbp-border)] pt-3">
-                  <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-muted)]">Alcance</p>
-                  {(() => {
-                    const scope =
-                      typeof previewTemplate.target_scope === "object" && previewTemplate.target_scope !== null
-                        ? (previewTemplate.target_scope as Record<string, string[]>)
-                        : {};
-
-                    const locations = Array.isArray(scope.locations)
-                      ? scope.locations.map((id) => branchNameMap.get(id) ?? id)
-                      : [];
-                    const departments = Array.isArray(scope.department_ids)
-                      ? scope.department_ids.map((id) => departmentNameMap.get(id) ?? id)
-                      : [];
-                    const positions = Array.isArray(scope.position_ids)
-                      ? scope.position_ids.map((id) => positionNameMap.get(id) ?? id)
-                      : [];
-                    const users = Array.isArray(scope.users)
-                      ? scope.users.map((id) => userNameById.get(id) ?? id)
-                      : [];
-                    const hasScopedRules =
-                      locations.length > 0 ||
-                      departments.length > 0 ||
-                      positions.length > 0 ||
-                      users.length > 0;
-
-                    return (
-                      <div className="space-y-2 text-xs text-[var(--gbp-text2)]">
-                        <div>
-                          <p className="mb-1 font-semibold text-[var(--gbp-text)]">Locaciones</p>
-                          <div className="flex flex-wrap gap-1">
-                            {locations.length ? locations.map((name) => <span key={`loc-${name}`} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-accent)_35%,transparent)] bg-[var(--gbp-accent-glow)] px-2 py-0.5 text-[10px] font-medium text-[var(--gbp-accent)]">{name}</span>) : <span>{hasScopedRules ? "No restringe por locación" : "Todas"}</span>}
-                          </div>
-                        </div>
-                        <div>
-                          <p className="mb-1 font-semibold text-[var(--gbp-text)]">Departamentos</p>
-                          <div className="flex flex-wrap gap-1">
-                            {departments.length ? departments.map((name) => <span key={`dep-${name}`} className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">{name}</span>) : <span>{hasScopedRules ? "No restringe por departamento" : "Todos"}</span>}
-                          </div>
-                        </div>
-                        <div>
-                          <p className="mb-1 font-semibold text-[var(--gbp-text)]">Puestos</p>
-                          <div className="flex flex-wrap gap-1">
-                            {positions.length ? positions.map((name) => <span key={`pos-${name}`} className="inline-flex items-center rounded-full border border-[color:color-mix(in_oklab,var(--gbp-success)_35%,transparent)] bg-[var(--gbp-success-soft)] px-2 py-0.5 text-[10px] font-medium text-[var(--gbp-success)]">{name}</span>) : <span>{hasScopedRules ? "No restringe por puesto" : "Todos"}</span>}
-                          </div>
-                        </div>
-                        <div>
-                          <p className="mb-1 font-semibold text-[var(--gbp-text)]">Usuarios</p>
-                          <div className="flex flex-wrap gap-1">
-                            {users.length ? users.map((name) => <span key={`usr-${name}`} className="inline-flex items-center rounded-full border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-2 py-0.5 text-[10px] text-[var(--gbp-text2)]">{name}</span>) : <span>{hasScopedRules ? "Sin usuarios especificos" : "Todos"}</span>}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              {(previewTemplate.templateSections ?? []).map((section) => (
-                <div key={section.id} className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
-                  <p className="text-sm font-semibold text-[var(--gbp-text)]">{section.name}</p>
-                  <ul className="mt-2 space-y-1.5">
-                    {section.items.map((item) => (
-                      <li key={item.id} className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-3 py-2 text-xs text-[var(--gbp-text2)]">{item.label}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-              {!previewTemplate.templateSections?.length ? <p className="text-sm text-[var(--gbp-text2)]">Sin secciones cargadas.</p> : null}
-            </div>
-            <div className="flex justify-end border-t-[1.5px] border-[var(--gbp-border)] px-6 py-4">
-              <Link href="/app/checklists" className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">Cerrar</Link>
-            </div>
-          </SlideUp>
-        </div>
+        <ChecklistPreviewModalRoute
+          templateName={previewTemplate.name}
+          sections={(previewTemplate.templateSections ?? []).map((section) => ({
+            id: section.id,
+            name: section.name,
+            items: section.items.map((item) => ({
+              id: item.id,
+              label: item.label,
+              priority: "",
+            })),
+          }))}
+          checklistType={previewTemplate.checklist_type}
+          shift={previewTemplate.shift}
+          // La frecuencia sale del reparto real, no de repeat_every: ese campo
+          // dice 'daily' por defecto aunque el checklist no se reparta nunca.
+          scheduledJob={previewTemplate.scheduledJob}
+          isActive={previewTemplate.is_active}
+          createdByName={previewTemplate.created_by_name ?? "Dirección"}
+          scopeLabels={(() => {
+            const scope =
+              typeof previewTemplate.target_scope === "object" && previewTemplate.target_scope !== null
+                ? (previewTemplate.target_scope as Record<string, string[]>)
+                : {};
+            return {
+              locations: Array.isArray(scope.locations)
+                ? scope.locations.map((id) => branchNameMap.get(id) ?? id)
+                : [],
+              departments: Array.isArray(scope.department_ids)
+                ? scope.department_ids.map((id) => departmentNameMap.get(id) ?? id)
+                : [],
+              positions: Array.isArray(scope.position_ids)
+                ? scope.position_ids.map((id) => positionNameMap.get(id) ?? id)
+                : [],
+              users: Array.isArray(scope.users)
+                ? scope.users.map((id) => userNameById.get(id) ?? id)
+                : [],
+            };
+          })()}
+          deliveryHistory={deliveryHistory ?? undefined}
+          closeHref="/app/checklists"
+        />
       ) : null}
 
       {deletingTemplate ? (

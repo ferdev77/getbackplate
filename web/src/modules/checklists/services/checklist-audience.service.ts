@@ -23,6 +23,34 @@ export type ChecklistAudienceInput = {
   templateBranchId?: string | null;
 };
 
+/**
+ * De donde salio un envio. Queda en notifications.metadata y es lo unico que
+ * permite distinguirlos despues: el alta y el reparto del cron mandan el mismo
+ * titulo ("Nuevo checklist: X"), asi que sin esto el historial muestra filas
+ * identicas y no se sabe si el checklist se esta repartiendo de verdad.
+ */
+export type OrigenDelEnvio = "alta" | "edicion" | "recurrencia";
+
+/**
+ * Lo que hace falta para que un envio quede atribuido a su plantilla.
+ *
+ * `templateId` viaja como source_id: sin el, las filas de notifications dicen
+ * source='checklist' y nada mas, y no hay forma de saber de que checklist eran.
+ * Es opcional para no romper llamadores viejos, pero un envio sin templateId no
+ * aparece en el historial.
+ */
+export type TrazaDelEnvio = {
+  templateId?: string | null;
+  origen?: OrigenDelEnvio;
+};
+
+function trazaANotificacion(traza: TrazaDelEnvio) {
+  return {
+    sourceId: traza.templateId ?? undefined,
+    metadata: traza.origen ? { origen: traza.origen } : undefined,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Audience Resolution
 // ---------------------------------------------------------------------------
@@ -52,7 +80,7 @@ async function resolveChecklistAudienceContacts(input: ChecklistAudienceInput) {
 // Email Delivery
 // ---------------------------------------------------------------------------
 
-export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput & {
+export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput & TrazaDelEnvio & {
   templateName: string;
   event: "created" | "updated" | "submitted";
   itemsCount: number;
@@ -118,6 +146,7 @@ export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput &
         notification: {
           source: "checklist",
           organizationId: input.organizationId,
+          ...trazaANotificacion(input),
           // El push de este mismo evento es siempre activo y va a la misma
           // audiencia (ver sendChecklistAudiencePush), asi que a quien esta
           // ahi ya le dejo su fila en la campanita: el email no la duplica.
@@ -137,7 +166,7 @@ export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput &
 // Push Delivery (siempre activo, no es opcional)
 // ---------------------------------------------------------------------------
 
-export async function sendChecklistAudiencePush(input: ChecklistAudienceInput & {
+export async function sendChecklistAudiencePush(input: ChecklistAudienceInput & TrazaDelEnvio & {
   templateName: string;
   event: "created" | "updated" | "submitted";
   itemsCount: number;
@@ -166,7 +195,11 @@ export async function sendChecklistAudiencePush(input: ChecklistAudienceInput & 
     payload: { title, body },
     adminUrl: "/app/reports",
     employeeUrl: "/portal/checklist",
-    options: { source: "checklist", organizationId: input.organizationId },
+    options: {
+      source: "checklist",
+      organizationId: input.organizationId,
+      ...trazaANotificacion(input),
+    },
   });
 }
 
