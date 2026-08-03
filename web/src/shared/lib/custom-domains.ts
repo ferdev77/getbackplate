@@ -178,6 +178,24 @@ export async function resolveOrganizationIdFromActiveDomain(host: string | null 
   return organizationId;
 }
 
+/** Authentication hand-offs require a fully active domain, not one still provisioning SSL. */
+export async function resolveOrganizationIdFromReadyAuthDomain(host: string | null | undefined) {
+  const normalizedHost = normalizeRequestHost(host);
+  if (!normalizedHost || isReservedPlatformHost(normalizedHost)) {
+    return null;
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("organization_domains")
+    .select("organization_id")
+    .eq("domain", normalizedHost)
+    .eq("status", "active")
+    .maybeSingle();
+  if (error) throw new Error(`Unable to resolve ready authentication domain: ${error.message}`);
+  return data?.organization_id ?? null;
+}
+
 export async function resolveTenantAppUrlByOrganizationId(params: {
   organizationId: string;
   fallbackAppUrl?: string | null;

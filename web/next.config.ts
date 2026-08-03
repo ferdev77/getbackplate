@@ -39,7 +39,7 @@ const nextConfig: NextConfig = {
       `connect-src 'self' https://${supabaseHost} https://*.supabase.co wss://${supabaseHost} wss://*.supabase.co https://sentry.io https://*.sentry.io https://api.brevo.com https://api.docuseal.com https://docuseal.com https://cdn.docuseal.com https://*.docuseal.com`,
       `frame-src 'self' https://docuseal.com https://*.docuseal.com`,
       `base-uri 'self'`,
-      `form-action 'self'`,
+      `form-action 'self'${publicAppHostname ? ` https://${publicAppHostname}` : ""}`,
       `object-src 'none'`,
       `upgrade-insecure-requests`,
     ];

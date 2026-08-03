@@ -51,6 +51,16 @@ export async function getSharedRuntimeValue<T>(scope: string, key: string) {
   return data ?? null;
 }
 
+export async function consumeSharedRuntimeValue<T>(scope: string, key: string) {
+  const redis = getRedisClient();
+  if (!redis) {
+    return null;
+  }
+
+  const data = await redis.getdel<T>(toRuntimeKey(scope, key));
+  return data ?? null;
+}
+
 export async function setSharedRuntimeValue<T>(params: {
   scope: string;
   key: string;

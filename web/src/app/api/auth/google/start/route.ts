@@ -3,63 +3,166 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { getCanonicalAppUrl, getRequestOrigin } from "@/shared/lib/app-url";
 import { normalizeOrganizationId } from "@/shared/lib/tenant-selection-shared";
-import { normalizeRequestHost } from "@/shared/lib/custom-domains";
+import {
+  normalizeRequestHost,
+  resolveOrganizationIdFromReadyAuthDomain,
+} from "@/shared/lib/custom-domains";
+import {
+  browserBindingValueMatches,
+  createGoogleLoginBrowserBinding,
+  createGoogleLoginFlow,
+  consumeGoogleLoginFlow,
+  getGoogleLoginFlow,
+  type GoogleLoginFlow,
+} from "@/modules/auth/google-login-flow";
+
+const RELAY_HEADERS = {
+  "Cache-Control": "no-store, max-age=0",
+  "Referrer-Policy": "no-referrer",
+  "X-Robots-Tag": "noindex, nofollow, noarchive",
+};
+
+function loginError(origin: string, message: string, organizationId?: string | null) {
+  const destination = new URL("/auth/login", origin);
+  destination.searchParams.set("error", message);
+  if (organizationId) destination.searchParams.set("org", organizationId);
+  return NextResponse.redirect(destination, { headers: RELAY_HEADERS });
+}
+
+function canonicalOrigin(request: Request) {
+  return process.env.NODE_ENV === "production"
+    ? new URL(getCanonicalAppUrl()).origin
+    : getRequestOrigin(request);
+}
+
+async function startCanonicalOAuth(params: {
+  canonicalOrigin: string;
+  organizationHint: string | null;
+  billingTrack: "integracion" | "plataforma";
+  initialFlow: GoogleLoginFlow | null;
+}) {
+  const oauthBinding = createGoogleLoginBrowserBinding("gb_google_oauth");
+  const flowToken = await createGoogleLoginFlow({
+    phase: "oauth_callback",
+    targetHost: params.initialFlow?.targetHost ?? null,
+    targetOrganizationId: params.initialFlow?.targetOrganizationId ?? null,
+    organizationIdHint: params.initialFlow?.organizationIdHint ?? params.organizationHint,
+    billingTrack: params.initialFlow?.billingTrack ?? (params.billingTrack === "integracion" ? "integration" : "platform"),
+    browserBindingCookie: params.initialFlow?.browserBindingCookie ?? null,
+    browserBindingHash: params.initialFlow?.browserBindingHash ?? null,
+    oauthBindingCookie: oauthBinding.cookieName,
+    oauthBindingHash: oauthBinding.hash,
+  });
+  if (!flowToken) {
+    return loginError(params.canonicalOrigin, "Unable to validate secure sign-in. Please try again.", params.organizationHint);
+  }
+
+  const callbackUrl = new URL("/auth/callback", params.canonicalOrigin);
+  callbackUrl.searchParams.set("google_flow", flowToken);
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: callbackUrl.toString() },
+  });
+  if (error || !data.url) {
+    return loginError(params.canonicalOrigin, "Unable to start sign-in with Google. Please try again.", params.organizationHint);
+  }
+
+  const response = NextResponse.redirect(data.url, { headers: RELAY_HEADERS });
+  response.cookies.set(oauthBinding.cookieName, oauthBinding.value, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/auth/callback",
+    maxAge: 5 * 60,
+  });
+  return response;
+}
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const organizationHint = normalizeOrganizationId(url.searchParams.get("org"));
   const billingTrack = url.searchParams.get("desde") === "integracion" ? "integracion" : "plataforma";
-  const startHost = normalizeRequestHost(url.searchParams.get("start_host"));
-
   const requestOrigin = getRequestOrigin(request);
-  const canonicalOrigin = process.env.NODE_ENV === "production"
-    ? new URL(getCanonicalAppUrl()).origin
-    : requestOrigin;
+  const appOrigin = canonicalOrigin(request);
 
-  // Google's redirect URI (Supabase's own /auth/v1/callback) and Supabase's
-  // redirect_to allow-list both require exact, pre-registered URLs — they
-  // can never accept an arbitrary customer's custom domain. So the entire
-  // OAuth/PKCE round trip (this route's cookie, Supabase, Google) always
-  // happens on the one permanent canonical domain. If sign-in was started
-  // from a different host (a tenant custom domain), bounce there first so
-  // the PKCE cookie this route sets is scoped to the domain that will
-  // actually complete the exchange, carrying along which host to hand the
-  // session back to once /auth/callback finishes (see the bridge in
-  // /auth/callback and /auth/bridge).
-  if (requestOrigin !== canonicalOrigin) {
-    const bounceUrl = new URL("/api/auth/google/start", canonicalOrigin);
-    if (organizationHint) bounceUrl.searchParams.set("org", organizationHint);
-    bounceUrl.searchParams.set("desde", billingTrack);
-    const originHost = normalizeRequestHost(new URL(requestOrigin).hostname);
-    if (originHost) bounceUrl.searchParams.set("start_host", originHost);
-    return NextResponse.redirect(bounceUrl);
+  if (requestOrigin === appOrigin) {
+    if (url.searchParams.has("flow")) {
+      return loginError(appOrigin, "Secure custom-domain sign-in must use the protected browser relay.", organizationHint);
+    }
+    return startCanonicalOAuth({ canonicalOrigin: appOrigin, organizationHint, billingTrack, initialFlow: null });
   }
 
-  const callbackUrl = new URL("/auth/callback", canonicalOrigin);
-  if (organizationHint) callbackUrl.searchParams.set("org", organizationHint);
-  callbackUrl.searchParams.set("desde", billingTrack);
-  if (startHost) callbackUrl.searchParams.set("start_host", startHost);
-  // Explicit marker so /auth/callback can identify this as a Google sign-in
-  // unambiguously — relying on "no `next` param" alone breaks if Supabase's
-  // redirect_to allow-list is misconfigured and it falls back to the
-  // project's Site URL, or if the safety-net redirect in proxy.ts injects
-  // its own default `next` before this request reaches /auth/callback.
-  callbackUrl.searchParams.set("auth_provider", "google");
+  const originHost = normalizeRequestHost(new URL(requestOrigin).hostname);
+  const targetOrganizationId = await resolveOrganizationIdFromReadyAuthDomain(originHost);
+  if (!originHost || !targetOrganizationId) {
+    return loginError(appOrigin, "This custom domain is not ready for sign-in.");
+  }
 
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: callbackUrl.toString(),
-    },
+  const browserBinding = createGoogleLoginBrowserBinding();
+  const flowToken = await createGoogleLoginFlow({
+    phase: "custom_handoff",
+    targetHost: originHost,
+    targetOrganizationId,
+    organizationIdHint: targetOrganizationId,
+    billingTrack: billingTrack === "integracion" ? "integration" : "platform",
+    browserBindingCookie: browserBinding.cookieName,
+    browserBindingHash: browserBinding.hash,
+    oauthBindingCookie: null,
+    oauthBindingHash: null,
   });
-
-  if (error || !data.url) {
-    const loginError = new URL("/auth/login", canonicalOrigin);
-    loginError.searchParams.set("error", "Unable to start sign-in with Google. Please try again.");
-    if (organizationHint) loginError.searchParams.set("org", organizationHint);
-    return NextResponse.redirect(loginError);
+  if (!flowToken) {
+    return loginError(appOrigin, "Unable to start secure sign-in. Please try again.", targetOrganizationId);
   }
 
-  return NextResponse.redirect(data.url);
+  const relayUrl = new URL("/api/auth/google/start", appOrigin);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>Starting secure sign-in</title></head><body><form id="relay" method="post" action="${relayUrl.toString()}"><input type="hidden" name="flow" value="${flowToken}"><input type="hidden" name="binding" value="${browserBinding.value}"></form><script>document.getElementById("relay").submit();</script><noscript><button type="submit" form="relay">Continue with Google</button></noscript></body></html>`;
+  const response = new NextResponse(html, {
+    status: 200,
+    headers: { ...RELAY_HEADERS, "Content-Type": "text/html; charset=utf-8" },
+  });
+  response.cookies.set(browserBinding.cookieName, browserBinding.value, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/auth/bridge",
+    maxAge: 5 * 60,
+  });
+  return response;
+}
+
+export async function POST(request: Request) {
+  const appOrigin = canonicalOrigin(request);
+  if (getRequestOrigin(request) !== appOrigin) {
+    return loginError(appOrigin, "Invalid secure sign-in relay.");
+  }
+
+  const form = await request.formData();
+  const flowToken = String(form.get("flow") ?? "");
+  const binding = String(form.get("binding") ?? "");
+  const preview = /^[A-Za-z0-9_-]{43}$/.test(flowToken) ? await getGoogleLoginFlow(flowToken) : null;
+  const requestOriginHeader = request.headers.get("origin");
+  const expectedRelayOrigin = preview?.targetHost ? `https://${preview.targetHost}` : null;
+  if (
+    !preview
+    || preview.phase !== "custom_handoff"
+    || preview.oauthBindingCookie !== null
+    || preview.oauthBindingHash !== null
+    || !browserBindingValueMatches(binding, preview.browserBindingHash)
+    || requestOriginHeader !== expectedRelayOrigin
+  ) {
+    return loginError(appOrigin, "Your secure sign-in relay expired or is invalid.");
+  }
+
+  const initialFlow = await consumeGoogleLoginFlow(flowToken);
+  if (!initialFlow || initialFlow.phase !== "custom_handoff" || initialFlow.createdAt !== preview.createdAt) {
+    return loginError(appOrigin, "Your secure sign-in relay was already used.");
+  }
+
+  return startCanonicalOAuth({
+    canonicalOrigin: appOrigin,
+    organizationHint: initialFlow.organizationIdHint,
+    billingTrack: initialFlow.billingTrack === "integration" ? "integracion" : "plataforma",
+    initialFlow,
+  });
 }

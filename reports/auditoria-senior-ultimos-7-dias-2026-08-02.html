@@ -38,7 +38,7 @@
     <section>
       <h2>Resultado general</h2>
       <div class="grid metrics">
-        <div class="metric"><strong>882/882</strong><span>pruebas aprobadas</span></div>
+        <div class="metric"><strong>901/901</strong><span>pruebas aprobadas</span></div>
         <div class="metric"><strong>165/165</strong><span>pruebas críticas</span></div>
         <div class="metric"><strong>173</strong><span>páginas compiladas</span></div>
         <div class="metric"><strong>211/211</strong><span>migraciones alineadas</span></div>
@@ -53,6 +53,7 @@
     <section>
       <h2>Qué quedó resuelto</h2>
       <div class="grid two">
+        <article class="card"><span class="badge fixed">Resuelto</span><h3 style="margin-top:10px">Login entre dominios</h3><p>El traslado de la sesión ahora queda ligado al navegador, usuario, empresa y dominio que iniciaron el acceso. Los pases son cifrados, duran poco y se usan una sola vez.</p></article>
         <article class="card"><span class="badge fixed">Resuelto</span><h3 style="margin-top:10px">Checklists</h3><p>Las respuestas se validan contra la lista correcta. Los cambios de estructura, el historial y las próximas rondas se guardan de forma coordinada.</p></article>
         <article class="card"><span class="badge fixed">Resuelto</span><h3 style="margin-top:10px">Proveedores</h3><p>Un empleado no puede volver global un proveedor, borrar sucursales que no controla ni eliminar un proveedor compartido con otras sucursales.</p></article>
         <article class="card"><span class="badge fixed">Resuelto</span><h3 style="margin-top:10px">Documentos y carpetas</h3><p>Los permisos heredados funcionan incluso con carpetas muy profundas. Una carpeta inexistente, cortada o de otra empresa ya no abre acceso por error.</p></article>
@@ -74,14 +75,13 @@
         <tr><td>Configuraciones automáticas</td><td><span class="dot"></span>2 activas</td></tr>
         <tr><td>Datos de las áreas modificadas</td><td><span class="dot"></span>Sin cambios</td></tr>
       </tbody></table></div>
-      <div class="callout good" style="margin-top:16px"><p><strong>No se tocaron</strong> los accesos OAuth, cobros Stripe, planes, sincronizaciones de QuickBooks ni reportes reales de Prodel.</p></div>
+      <div class="callout good" style="margin-top:16px"><p><strong>No se tocaron</strong> OAuth de Intuit, tokens QBO, webhooks, cobros Stripe, planes, sincronizaciones de QuickBooks ni reportes reales de Prodel.</p></div>
     </section>
 
     <section>
       <h2>Qué queda por hacer</h2>
       <p class="sub">No son fallas nuevas causadas por este trabajo. Son áreas sensibles que se dejaron separadas para no poner en riesgo clientes activos.</p>
       <div class="grid two">
-        <article class="card"><span class="badge priority">Prioridad 1</span><h3 style="margin-top:10px">Login entre dominios</h3><p>Revisar y reforzar el traslado de sesiones entre el dominio principal y los dominios personalizados.</p><p class="plain"><strong>En básico:</strong> asegurar que una llave de acceso solo pueda entregarse al dominio y a la empresa correctos.</p></article>
         <article class="card"><span class="badge priority">Prioridad 1</span><h3 style="margin-top:10px">Recuperación de cobros Stripe</h3><p>Preparar un mecanismo seguro para retomar cobros que quedaron a medias después de un error.</p><p class="plain"><strong>En básico:</strong> si el cliente paga y algo falla, el sistema debe completar el beneficio sin cobrar otra vez.</p></article>
         <article class="card"><span class="badge priority">Prioridad 1</span><h3 style="margin-top:10px">Planes dobles</h3><p>Comprobar que editar el plan general nunca apague módulos incluidos en el plan de integración.</p><p class="plain"><strong>En básico:</strong> cambiar un paquete no debe romper otro paquete que el cliente también paga.</p></article>
         <article class="card"><span class="badge pending">Prioridad 2</span><h3 style="margin-top:10px">Notificaciones totalmente recuperables</h3><p>Crear una cola permanente que recuerde cada envío y evite repeticiones incluso si el servidor se cae en el peor momento.</p><p class="plain"><strong>En básico:</strong> hoy el caso normal está protegido; falta blindar el segundo exacto entre “enviado” y “anotado como terminado”.</p></article>
@@ -94,7 +94,6 @@
       <h2>Orden recomendado</h2>
       <div class="callout warn">
         <ol>
-          <li>Reforzar el login entre dominios.</li>
           <li>Hacer recuperables los cobros de Stripe.</li>
           <li>Proteger completamente la convivencia de los dos tipos de plan.</li>
           <li>Crear la cola permanente de notificaciones.</li>
@@ -106,10 +105,10 @@
 
     <section>
       <h2>Conclusión</h2>
-      <div class="callout good"><h3>La parte segura del trabajo quedó terminada, aplicada y publicada.</h3><p>Checklists, proveedores, anuncios, documentos, permisos, migraciones y controles automáticos quedaron en un estado claramente mejor. Prodel continúa funcionando con la misma configuración.</p><p class="plain"><strong>En palabras básicas:</strong> cerramos las puertas que podían arreglarse sin tocar el motor de cobros, login o QuickBooks. Lo que falta está bien identificado y debe abordarse en ese orden, con pruebas aisladas antes de acercarse a datos reales.</p></div>
+      <div class="callout good"><h3>La parte segura del trabajo quedó terminada y verificada.</h3><p>Login, checklists, proveedores, anuncios, documentos, permisos, migraciones y controles automáticos quedaron en un estado claramente mejor. Prodel continúa funcionando con la misma configuración.</p><p class="plain"><strong>En palabras básicas:</strong> el login entre dominios ya tiene su cerradura nueva sin tocar el motor de QuickBooks. Lo siguiente es asegurar la recuperación de cobros Stripe y después los planes dobles.</p></div>
     </section>
 
-    <footer><p><strong>Estado verificado:</strong> commit <code>eac0767b</code>, rama <code>main</code>, 211 migraciones en desarrollo y producción, 882 pruebas generales, 165 críticas y build de 173 páginas.</p><p>Este informe reemplaza por completo la versión anterior del mismo archivo.</p></footer>
+    <footer><p><strong>Estado verificado:</strong> rama <code>main</code>, 211 migraciones en desarrollo y producción, 901 pruebas generales, 165 críticas y build de 173 páginas.</p><p>Este informe reemplaza por completo la versión anterior del mismo archivo.</p></footer>
   </main>
 </body>
 </html>
