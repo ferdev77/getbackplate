@@ -90,7 +90,12 @@ async function startCanonicalOAuth(params: {
     return loginError(params.canonicalOrigin, "Unable to start sign-in with Google. Please try again.", params.organizationHint);
   }
 
-  const response = NextResponse.redirect(data.url, { headers: RELAY_HEADERS });
+  const response = params.initialFlow
+    ? new NextResponse(
+        `<!doctype html><html><head><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>Continue to Google</title></head><body><script>location.replace(${JSON.stringify(data.url).replaceAll("<", "\\u003c")});</script><noscript><a href="${data.url.replaceAll("&", "&amp;").replaceAll('"', "&quot;")}">Continue to Google</a></noscript></body></html>`,
+        { status: 200, headers: { ...RELAY_HEADERS, "Content-Type": "text/html; charset=utf-8" } },
+      )
+    : NextResponse.redirect(data.url, { headers: RELAY_HEADERS });
   response.cookies.set(oauthBinding.cookieName, oauthBinding.value, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

@@ -218,7 +218,8 @@ describe("GET /api/auth/google/start", () => {
       body: new URLSearchParams({ flow: FLOW_TOKEN, binding: "browser-binding" }),
     }));
 
-    expect(response.headers.get("location")).toBe("https://google.example/oauth");
+    expect(response.status).toBe(200);
+    await expect(response.text()).resolves.toContain('location.replace("https://google.example/oauth")');
     expect(mocks.consumeFlow).toHaveBeenCalledWith(FLOW_TOKEN);
     expect(mocks.signIn).toHaveBeenCalledOnce();
   });
