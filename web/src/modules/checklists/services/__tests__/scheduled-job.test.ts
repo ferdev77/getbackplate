@@ -13,11 +13,11 @@ import { syncChecklistScheduledJob } from "../checklist-template.service";
 
 type Operacion =
   | { tipo: "update"; datos: Record<string, unknown>; id: string }
-  | { tipo: "insert"; datos: Record<string, unknown> }
+  | { tipo: "upsert"; datos: Record<string, unknown>; onConflict: string }
   | { tipo: "delete"; filtros: Record<string, string> };
 
 /** Mock que registra lo que se le pide a scheduled_jobs. */
-function supabaseFalso(jobExistente: { id: string } | null) {
+function supabaseFalso(jobExistente: { id: string } | null, writeError: { message: string } | null = null) {
   const operaciones: Operacion[] = [];
 
   function encadenable() {
@@ -46,9 +46,9 @@ function supabaseFalso(jobExistente: { id: string } | null) {
           },
         };
       },
-      insert: async (datos: Record<string, unknown>) => {
-        operaciones.push({ tipo: "insert", datos });
-        return { error: null };
+      upsert: async (datos: Record<string, unknown>, options: { onConflict: string }) => {
+        operaciones.push({ tipo: "upsert", datos, onConflict: options.onConflict });
+        return { error: writeError };
       },
       delete: () => {
         const filtros: Record<string, string> = {};
@@ -93,8 +93,8 @@ describe("syncChecklistScheduledJob", () => {
     const ops = await sincronizar({ jobExistente: null });
 
     expect(ops).toHaveLength(1);
-    expect(ops[0].tipo).toBe("insert");
-    const insert = ops[0] as Extract<Operacion, { tipo: "insert" }>;
+    expect(ops[0].tipo).toBe("upsert");
+    const insert = ops[0] as Extract<Operacion, { tipo: "upsert" }>;
     expect(insert.datos.job_type).toBe("checklist_generator");
     expect(insert.datos.target_id).toBe("tpl-1");
     expect(insert.datos.organization_id).toBe("org-1");
@@ -106,18 +106,18 @@ describe("syncChecklistScheduledJob", () => {
     const ops = await sincronizar({ jobExistente: { id: "job-1" }, recurrenceType: "weekly", customDays: [1, 3] });
 
     expect(ops).toHaveLength(1);
-    expect(ops[0].tipo).toBe("update");
-    const update = ops[0] as Extract<Operacion, { tipo: "update" }>;
-    expect(update.id).toBe("job-1");
+    expect(ops[0].tipo).toBe("upsert");
+    const update = ops[0] as Extract<Operacion, { tipo: "upsert" }>;
     expect(update.datos.recurrence_type).toBe("weekly");
     expect(update.datos.custom_days).toEqual([1, 3]);
+    expect(update.onConflict).toBe("organization_id,job_type,target_id");
   });
 
   it("borra el reparto cuando le sacan la frecuencia", async () => {
     const ops = await sincronizar({ jobExistente: { id: "job-1" }, recurrenceType: "none" });
 
     expect(ops.some((op) => op.tipo === "delete")).toBe(true);
-    expect(ops.some((op) => op.tipo === "insert" || op.tipo === "update")).toBe(false);
+    expect(ops.some((op) => op.tipo === "upsert" || op.tipo === "update")).toBe(false);
   });
 
   it("borra el reparto cuando el checklist pasa a borrador", async () => {
@@ -130,12 +130,26 @@ describe("syncChecklistScheduledJob", () => {
   it("no crea nada si no hay frecuencia y tampoco habia reparto", async () => {
     const ops = await sincronizar({ jobExistente: null, recurrenceType: "none" });
 
-    expect(ops.some((op) => op.tipo === "insert" || op.tipo === "update")).toBe(false);
+    expect(ops.some((op) => op.tipo === "upsert" || op.tipo === "update")).toBe(false);
   });
 
   it("no crea nada si el checklist es borrador y no habia reparto", async () => {
     const ops = await sincronizar({ jobExistente: null, isActive: false });
 
-    expect(ops.some((op) => op.tipo === "insert" || op.tipo === "update")).toBe(false);
+    expect(ops.some((op) => op.tipo === "upsert" || op.tipo === "update")).toBe(false);
+  });
+
+  it("propaga un error al crear el reparto", async () => {
+    const { cliente } = supabaseFalso(null, { message: "scheduled write failed" });
+    const result = await syncChecklistScheduledJob({
+      supabase: cliente as unknown as ClienteServicio,
+      organizationId: "org-1",
+      templateId: "tpl-1",
+      recurrenceType: "daily",
+      customDays: [],
+      isActive: true,
+    });
+
+    expect(result).toEqual({ ok: false, message: "scheduled write failed" });
   });
 });

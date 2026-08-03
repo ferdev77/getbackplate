@@ -4,6 +4,8 @@ import { calculateNextRunAt, RecurrenceType } from "@/shared/lib/cron-utils";
 import { processAnnouncementDeliveries } from "@/modules/announcements/services/deliveries";
 import { applyPendingChecklistSections } from "@/modules/checklists/services/checklist-template.service";
 import { parseChecklistSections } from "@/modules/checklists/lib/sections";
+import { normalizeChecklistNotificationChannels } from "@/modules/checklists/lib/notification-channels";
+import { processAnnouncementRecurrenceJob } from "@/modules/announcements/services/announcement-recurrence.service";
 
 type JobError = { id: string; error: string };
 
@@ -17,6 +19,7 @@ type ScheduledJob = {
   cron_expression: string | null;
   custom_days: number[] | null;
   next_run_at: string;
+  schedule_revision: number;
 };
 
 export async function POST(req: Request) {
@@ -51,7 +54,7 @@ async function processRecurrence(req: Request) {
     const nowIso = new Date().toISOString();
     const { data: jobs, error: fetchError } = await supabaseAdmin
       .from("scheduled_jobs")
-      .select("id, organization_id, job_type, target_id, metadata, recurrence_type, cron_expression, custom_days, next_run_at")
+      .select("id, organization_id, job_type, target_id, metadata, recurrence_type, cron_expression, custom_days, next_run_at, schedule_revision")
       .eq("is_active", true)
       .lte("next_run_at", nowIso)
       .order("next_run_at", { ascending: true })
@@ -72,6 +75,7 @@ async function processRecurrence(req: Request) {
 
     // 3. Process each job
     for (const job of (jobs ?? []) as ScheduledJob[]) {
+      const processingToken = crypto.randomUUID();
       try {
         const nextRun = calculateNextRunAt(
           job.recurrence_type as RecurrenceType,
@@ -80,28 +84,23 @@ async function processRecurrence(req: Request) {
         );
         const runStartedAt = new Date().toISOString();
 
-        const { data: claimedRows, error: claimError } = await supabaseAdmin
-          .from("scheduled_jobs")
-          .update({
-            last_run_at: runStartedAt,
-            next_run_at: nextRun.toISOString(),
-          })
-          .eq("organization_id", job.organization_id)
-          .eq("id", job.id)
-          .eq("is_active", true)
-          .eq("next_run_at", job.next_run_at)
-          .select("id")
-          .limit(1);
+        const { data: claimed, error: claimError } = await supabaseAdmin.rpc("claim_scheduled_job", {
+          p_organization_id: job.organization_id,
+          p_job_id: job.id,
+          p_expected_next_run_at: job.next_run_at,
+          p_processing_token: processingToken,
+        });
 
         if (claimError) {
           throw new Error(`Failed to claim job: ${claimError.message}`);
         }
 
-        if (!claimedRows || claimedRows.length === 0) {
+        if (!claimed) {
           continue;
         }
 
         console.info(`Processing job ${job.id} of type ${job.job_type}`);
+        let jobRemoved = false;
         
         if (job.job_type === 'checklist_generator') {
            const { data: template } = await supabaseAdmin
@@ -111,7 +110,18 @@ async function processRecurrence(req: Request) {
              .eq('id', job.target_id)
              .maybeSingle();
 
-           // Arranca una vuelta nueva: es el momento de aplicar los items que
+             if (!template || !template.is_active) {
+               const { error: deleteError } = await supabaseAdmin
+                 .from("scheduled_jobs")
+                 .delete()
+                 .eq("organization_id", job.organization_id)
+                 .eq("id", job.id)
+                 .eq("processing_token", processingToken);
+               if (deleteError) throw new Error(`Failed to remove orphan checklist job: ${deleteError.message}`);
+               jobRemoved = true;
+             }
+
+            // Arranca una vuelta nueva: es el momento de aplicar los items que
            // quedaron pendientes por haberse editado con la vuelta anterior ya
            // en curso (ver upsertChecklistTemplate). Se aplica ANTES de avisar,
            // para que quien reciba el recordatorio ya vea la lista nueva.
@@ -128,11 +138,9 @@ async function processRecurrence(req: Request) {
                sections,
              });
 
-             if (!applied.ok) {
-               console.error(
-                 `[process-recurrence] no se pudieron aplicar los items pendientes del checklist ${job.target_id}: ${applied.message}`,
-               );
-             }
+              if (!applied.ok) {
+                throw new Error(`No se pudieron aplicar los items pendientes: ${applied.message}`);
+              }
            }
 
            if (template && template.is_active) {
@@ -140,10 +148,7 @@ async function processRecurrence(req: Request) {
                 template.target_scope && typeof template.target_scope === "object"
                   ? (template.target_scope as Record<string, unknown>)
                   : {};
-              const notifyVia = targetScope?.notify_via || 'none';
-              const notifyChannels = Array.isArray(targetScope?.notify_channels)
-                ? targetScope.notify_channels
-                : [];
+               const notifyChannels = normalizeChecklistNotificationChannels(targetScope);
 
               const audienceInput = {
                 supabase: supabaseAdmin,
@@ -164,8 +169,8 @@ async function processRecurrence(req: Request) {
                  itemsCount: 0,
                });
 
-               if (notifyVia !== 'none') {
-                  if (notifyChannels.includes("email") || notifyVia === "email" || notifyVia === "all") {
+               if (notifyChannels.length > 0) {
+                  if (notifyChannels.includes("email")) {
                    await sendChecklistAudienceEmail({
                      ...audienceInput,
                      templateName: template.name,
@@ -174,7 +179,7 @@ async function processRecurrence(req: Request) {
                      actorEmail: "Sistema (Recurrencia)",
                    });
                  }
-                 if (notifyChannels.includes("sms") || notifyVia === "sms") {
+                  if (notifyChannels.includes("sms")) {
                    await sendChecklistAudienceTwilio({
                      ...audienceInput,
                      channel: "sms",
@@ -189,30 +194,43 @@ async function processRecurrence(req: Request) {
              }
            }
          } else if (job.job_type === 'announcement_delivery') {
-            const channels = Array.isArray(job.metadata?.channels)
-              ? (job.metadata.channels as string[])
-              : ["email"];
-           
-           const { error: insertError } = await supabaseAdmin
-             .from("announcement_deliveries")
-             .insert(
-               channels.map((channel: string) => ({
-                 organization_id: job.organization_id,
-                 announcement_id: job.target_id,
-                 channel,
-                 status: "queued",
-               }))
-             );
-           
-           if (insertError) {
-             throw new Error(`Failed to queue deliveries: ${insertError.message}`);
-           }
-           
-           pushDeliveriesToProcess = true;
+            const recurrenceResult = await processAnnouncementRecurrenceJob({
+              supabase: supabaseAdmin,
+               job: { ...job, processing_token: processingToken },
+              nextRun,
+              now: new Date(runStartedAt),
+             });
+             pushDeliveriesToProcess ||= recurrenceResult.queued;
+             jobRemoved = recurrenceResult.removed;
+          }
+
+        if (!jobRemoved) {
+          const { data: completed, error: completeError } = await supabaseAdmin.rpc("complete_scheduled_job", {
+            p_organization_id: job.organization_id,
+            p_job_id: job.id,
+            p_processing_token: processingToken,
+            p_expected_revision: job.schedule_revision,
+            p_next_run_at: nextRun.toISOString(),
+            p_last_run_at: runStartedAt,
+          });
+          if (completeError) {
+            throw new Error(`Failed to complete job: ${completeError.message}`);
+          }
+          if (!completed) {
+            console.info(`Schedule ${job.id} changed while its claimed occurrence was running; preserving the newer schedule.`);
+          }
         }
 
         processedCount++;
        } catch (err: unknown) {
+         const { error: releaseError } = await supabaseAdmin.rpc("release_scheduled_job", {
+           p_organization_id: job.organization_id,
+           p_job_id: job.id,
+           p_processing_token: processingToken,
+         });
+         if (releaseError) {
+           console.error(`Error releasing job ${job.id}:`, releaseError);
+         }
          console.error(`Error processing job ${job.id}:`, err);
          errors.push({ id: job.id, error: err instanceof Error ? err.message : "Unknown error" });
        }

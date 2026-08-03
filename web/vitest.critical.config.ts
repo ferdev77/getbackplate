@@ -12,6 +12,9 @@ export default defineConfig({
       "src/modules/integrations/qbo-r365/usage-billing-rules.test.ts",
       "src/modules/organizations/services/plan-module-rules.test.ts",
       "src/shared/lib/__tests__/{document-access,private-document-access,scope-policy}.test.ts",
+      "src/shared/lib/__tests__/{notification-guards,notification-recipients}.test.ts",
+      "src/modules/vendors/__tests__/notifications.test.ts",
+      "src/modules/checklists/lib/notification-channels.test.ts",
     ],
     coverage: {
       provider: "v8",

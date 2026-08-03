@@ -8,6 +8,7 @@ import { createAnnouncementAction } from "@/modules/announcements/actions";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import {
   ScopeModalContent,
+  ScopeModalDialog,
   ScopeModalHeader,
   ScopeModalDivider,
   ScopeModalField,
@@ -50,6 +51,7 @@ type AnnouncementCreateModalProps = {
     is_recurring?: boolean;
     recurrence_type?: string;
     custom_days?: number[];
+    notification_channels?: string[];
   };
   submitEndpoint?: string;
   redirectPath?: string;
@@ -75,6 +77,10 @@ type AnnouncementCreateModalProps = {
       };
       created_by: string | null;
       created_by_name?: string;
+      is_recurring?: boolean;
+      recurrence_type?: string;
+      custom_days?: number[];
+      notification_channels?: string[];
     };
   }) => void;
 };
@@ -83,8 +89,8 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(createAnnouncementAction, { success: false, message: "" });
   const [isApiPending, setIsApiPending] = useState(false);
-  const [notifySms, setNotifySms] = useState(false);
-  const [notifyEmail, setNotifyEmail] = useState(false);
+  const [notifySms, setNotifySms] = useState(Boolean(initial?.notification_channels?.includes("sms")));
+  const [notifyEmail, setNotifyEmail] = useState(Boolean(initial?.notification_channels?.includes("email")));
   const [hasExpiry, setHasExpiry] = useState(Boolean(initial?.expires_at));
   const [isRecurring, setIsRecurring] = useState(Boolean(initial?.is_recurring));
   const [scopeValid, setScopeValid] = useState(true);
@@ -184,6 +190,10 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
             },
             created_by: typeof data.created_by === "string" ? data.created_by : null,
             created_by_name: publisherName,
+            is_recurring: payload.is_recurring,
+            recurrence_type: payload.recurrence_type,
+            custom_days: JSON.parse(payload.custom_days) as number[],
+            notification_channels: payload.notify_channels,
           },
         });
         if (onClose) onClose();
@@ -198,8 +208,11 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
   const pending = submitEndpoint ? isApiPending : isPending;
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-      <div className={SCOPE_MODAL_PANEL}>
+    <ScopeModalDialog
+      onClose={handleClose}
+      overlayClassName="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5"
+      panelClassName={SCOPE_MODAL_PANEL}
+    >
         <ScopeModalHeader
           title={mode === "edit" ? "Editar aviso" : "Nuevo aviso"}
           subtitle={
@@ -236,6 +249,7 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
                   defaultValue={initial?.title ?? ""}
                   placeholder="ej. Reunión obligatoria"
                   data-testid="announcement-title-input"
+                  data-modal-initial-focus
                   className={SCOPE_MODAL_INPUT}
                 />
               </ScopeModalField>
@@ -287,10 +301,10 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
                 <RecurrenceSelector initialType={initial?.recurrence_type} initialDays={initial?.custom_days} />
               ) : null}
 
-              {mode === "create" ? (
+              {mode === "create" || isRecurring ? (
                 <>
                   <ScopeModalToggleRow
-                    label="Enviar también por email"
+                    label={mode === "edit" ? "Email en próximos repartos" : "Enviar también por email"}
                     sub="Solo a quien tenga email cargado"
                     checked={notifyEmail}
                     onChange={setNotifyEmail}
@@ -300,8 +314,11 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
                   ) : null}
                   {notifySms ? <input type="hidden" name="notify_channel" value="sms" /> : null}
                   {notifyEmail ? <input type="hidden" name="notify_channel" value="email" /> : null}
-                  {/* La notificacion interna y el push van siempre. */}
-                  <input type="hidden" name="notify_channel" value="push" />
+                  {/* En alta push va siempre. En edicion se conserva el contrato
+                      historico del job sin agregar canales que no tenia. */}
+                  {mode === "create" || !initial?.is_recurring || initial.notification_channels?.includes("push") ? (
+                    <input type="hidden" name="notify_channel" value="push" />
+                  ) : null}
                 </>
               ) : null}
             </ScopeModalContent>
@@ -348,7 +365,6 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
             />
           </div>
         </form>
-      </div>
-    </div>
+    </ScopeModalDialog>
   );
 }

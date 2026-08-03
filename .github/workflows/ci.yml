@@ -82,6 +82,9 @@ jobs:
       - name: Run tests with coverage
         run: npm run test:coverage
 
+      - name: Run critical coverage gate
+        run: npm run test:critical
+
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         if: always()
@@ -128,22 +131,32 @@ jobs:
 
       - name: Check if the dev database secret is configured
         id: check
+        env:
+          IS_FORK_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
         run: |
           if [ -z "$SUPABASE_DB_POOLER_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then
-            echo "skip=true" >> $GITHUB_OUTPUT
-            echo ""
-            echo "⚠️  Secrets de desarrollo no configurados — saltando verificación de RLS."
-            echo "   Para habilitarla, agregar en GitHub → Settings → Secrets → Actions:"
-            echo "     · SUPABASE_DB_POOLER_URL_DEV   (cadena de conexión del proyecto de DESARROLLO)"
-            echo "     · NEXT_PUBLIC_SUPABASE_URL_DEV (URL de la API del proyecto de DESARROLLO)"
+            if [ "$IS_FORK_PR" = "true" ]; then
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              echo "::warning::RLS y migraciones no validados: GitHub no entrega secrets a PRs desde forks."
+              echo "## RLS NOT VALIDATED" >> "$GITHUB_STEP_SUMMARY"
+              echo "PR externo sin acceso a los secrets del proyecto de desarrollo." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+
+            echo "::error::Faltan SUPABASE_DB_POOLER_URL_DEV o NEXT_PUBLIC_SUPABASE_URL_DEV. Una rama interna no puede omitir migraciones/RLS."
+            exit 1
           else
-            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "skip=false" >> "$GITHUB_OUTPUT"
             echo "✓ Secret encontrado — corriendo verificación de RLS y alcance."
           fi
 
       - name: Install dependencies
         if: steps.check.outputs.skip != 'true'
         run: npm ci
+
+      - name: Verify dev migration history
+        if: steps.check.outputs.skip != 'true'
+        run: node scripts/verify-dev-migrations.mjs
 
       - name: Verify RLS isolation and scope rules
         if: steps.check.outputs.skip != 'true'

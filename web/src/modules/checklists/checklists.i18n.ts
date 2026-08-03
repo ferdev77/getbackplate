@@ -27,10 +27,13 @@ export const CHECKLISTS_EN: Record<string, string> = {
   "No se pudo crear el checklist": "Unable to create the checklist",
   "No se pudo verificar el estado del checklist": "Unable to check the checklist status",
   "No se pudieron guardar los cambios pendientes": "Unable to save the pending changes",
+  "No se pudo actualizar el reparto del checklist": "Unable to update the checklist schedule",
   "No se pudieron reemplazar los ítems del checklist": "Unable to replace the checklist items",
   "No se pudieron reemplazar las secciones del checklist": "Unable to replace the checklist sections",
   "El checklist se guardó, pero falló una sección": "The checklist was saved, but a section failed",
   "El checklist se guardó, pero fallaron los ítems": "The checklist was saved, but the items failed",
+  "El checklist recibió una respuesta mientras se editaba. Volvé a intentar para aplicar los cambios de forma segura.":
+    "The checklist changed while you were editing it. Try again to apply the changes safely.",
   "No se pueden cambiar los ítems: este checklist ya tiene {n} {respuestas} y no tiene una frecuencia definida, así que no hay un próximo reparto donde aplicarlos sin mezclar los resultados. Podés duplicarlo como checklist nuevo, o asignarle una frecuencia y editarlo después.":
     "The items cannot be changed: this checklist already has {n} {respuestas} and no frequency set, so there is no next run to apply them to without mixing the results. You can duplicate it as a new checklist, or set a frequency and edit it afterwards.",
 
@@ -52,6 +55,8 @@ export const CHECKLISTS_EN: Record<string, string> = {
   "Diaria": "Daily",
   "Semanal": "Weekly",
   "Mensual": "Monthly",
+  "Anual": "Yearly",
+  "Días específicos": "Specific days",
 };
 
 export function createChecklistsTranslator(locale: "es" | "en" | undefined) {

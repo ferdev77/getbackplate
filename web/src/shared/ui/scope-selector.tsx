@@ -7,6 +7,7 @@ import {
   effectiveScopeLocations,
   emitScopeForMode,
   makeScopeMatcher,
+  scopeSubjectOverlapsLocations,
   validateScopeMode,
   type ScopeMode,
   type ScopeRestriction,
@@ -30,6 +31,7 @@ export type ScopeSelectorUser = {
   id: string;
   user_id: string | null;
   branch_id?: string | null;
+  location_ids?: string[];
   department_id?: string | null;
   position_id?: string | null;
   first_name: string;
@@ -243,7 +245,7 @@ export function ScopeSelector({
   const audience = useMemo(() => {
     if (mode === "all") {
       const reach = restricted
-        ? usersWithAccess.filter((user) => user.branch_id && availableLocationIds.includes(user.branch_id))
+        ? usersWithAccess.filter((user) => scopeSubjectOverlapsLocations(user, availableLocationIds))
         : usersWithAccess;
       return { group: reach, hand: [] as ScopeSelectorUser[], broadcast: true };
     }
@@ -344,7 +346,7 @@ export function ScopeSelector({
   const candidates = useMemo(() => {
     const q = query.trim().toLowerCase();
     const pool = restricted
-      ? usersWithAccess.filter((user) => user.branch_id && availableLocationIds.includes(user.branch_id))
+      ? usersWithAccess.filter((user) => scopeSubjectOverlapsLocations(user, availableLocationIds))
       : usersWithAccess;
 
     return pool

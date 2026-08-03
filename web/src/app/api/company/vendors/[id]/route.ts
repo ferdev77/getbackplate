@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { notifyVendorEvent, sucursalesDelProveedor } from "@/modules/vendors/notifications";
+import { mapVendorMutationError, saveVendorTransaction } from "@/modules/vendors/mutation";
 
 // Coerce empty string / null → null before further validation
 const nullableStr = (max: number) =>
@@ -92,39 +93,22 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
   const admin = createSupabaseAdminClient();
 
-  if (parsed.data.category) {
-    const { data: category } = await admin
-      .from("vendor_categories")
-      .select("id")
-      .eq("organization_id", organizationId)
-      .eq("code", parsed.data.category)
-      .maybeSingle();
-
-    if (!category) {
-      return NextResponse.json({ error: "Categoría inválida" }, { status: 422 });
-    }
-  }
-
   // Verify vendor belongs to org and get current data for diffing
-  const [{ data: existing }, { data: existingLocations }] = await Promise.all([
-    admin
-      .from("vendors")
-      .select("*")
-      .eq("id", id)
-      .eq("organization_id", organizationId)
-      .maybeSingle(),
-    admin
-      .from("vendor_locations")
-      .select("branch_id")
-      .eq("vendor_id", id)
-      .eq("organization_id", organizationId),
-  ]);
+  const { data: existing, error: existingError } = await admin
+    .from("vendors")
+    .select("*")
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (existingError) {
+    console.error("[vendors PUT] existing vendor error:", existingError);
+    return NextResponse.json({ error: "No se pudo consultar el proveedor" }, { status: 500 });
+  }
 
   if (!existing) {
     return NextResponse.json({ error: "Proveedor no encontrado" }, { status: 404 });
   }
-
-  const existingBranchIds = (existingLocations ?? []).map((l) => l.branch_id).filter(Boolean).sort();
 
   const { branch_ids, ...updateFields } = parsed.data;
 
@@ -141,51 +125,20 @@ export async function PUT(request: Request, { params }: RouteParams) {
   if ("notes" in updateFields) updatePayload.notes = updateFields.notes || null;
   if (updateFields.is_active !== undefined) updatePayload.is_active = updateFields.is_active;
 
-  if (Object.keys(updatePayload).length > 0) {
-    const { error: updateError } = await admin
-      .from("vendors")
-      .update(updatePayload)
-      .eq("id", id)
-      .eq("organization_id", organizationId);
+  const { data: savedVendor, error: saveError } = await saveVendorTransaction(admin, {
+    organizationId,
+    vendorId: id,
+    actorId: access.userId,
+    patch: updatePayload,
+    replaceLocations: branch_ids !== undefined,
+    branchIds: branch_ids ?? null,
+    employeeScopeIds: null,
+  });
 
-    if (updateError) {
-      return NextResponse.json({ error: "Error al actualizar proveedor" }, { status: 500 });
-    }
-  }
-
-  // Re-sync vendor_locations if branch_ids provided
-  let branchesChanged = false;
-  if (branch_ids !== undefined) {
-    const sortedNew = [...branch_ids].sort();
-    if (JSON.stringify(existingBranchIds) !== JSON.stringify(sortedNew)) {
-      branchesChanged = true;
-    }
-    
-    // Only update locations if they actually changed
-    if (branchesChanged) {
-      await admin
-        .from("vendor_locations")
-        .delete()
-        .eq("vendor_id", id)
-        .eq("organization_id", organizationId);
-
-      if (branch_ids.length > 0) {
-        await admin.from("vendor_locations").insert(
-          branch_ids.map((bid) => ({
-            vendor_id: id,
-            organization_id: organizationId,
-            branch_id: bid,
-          }))
-        );
-      } else {
-        // Global (sin locación específica)
-        await admin.from("vendor_locations").insert({
-          vendor_id: id,
-          organization_id: organizationId,
-          branch_id: null,
-        });
-      }
-    }
+  if (saveError || !savedVendor) {
+    console.error("[vendors PUT] save_vendor_transaction error:", saveError);
+    const mapped = mapVendorMutationError(saveError ?? { message: "invalid_vendor_rpc_result" });
+    return NextResponse.json(mapped.body, { status: mapped.status });
   }
 
   // Calculate actual changes to log
@@ -200,32 +153,36 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
   const isDeactivation = updatePayload.is_active === false && existing.is_active !== false;
 
-  await logAuditEvent({
-    action: isDeactivation ? "vendor.deactivate" : "vendor.update",
-    entityType: "vendor",
-    entityId: id,
-    organizationId,
-    actorId: access.userId,
-    eventDomain: "settings",
-    outcome: "success",
-    severity: isDeactivation ? "medium" : "low",
-    metadata: {
-      name: existing.name,
-      changes: Object.keys(changedFields).length > 0 ? changedFields : null,
-      ...(branchesChanged ? { branch_ids } : {})
-    },
-  });
+  try {
+    await logAuditEvent({
+      action: isDeactivation ? "vendor.deactivate" : "vendor.update",
+      entityType: "vendor",
+      entityId: id,
+      organizationId,
+      actorId: access.userId,
+      eventDomain: "settings",
+      outcome: "success",
+      severity: isDeactivation ? "medium" : "low",
+      metadata: {
+        name: existing.name,
+        changes: Object.keys(changedFields).length > 0 ? changedFields : null,
+        ...(savedVendor.branchesChanged
+          ? { branch_ids: savedVendor.branchIds, is_global: savedVendor.isGlobal }
+          : {}),
+      },
+    });
+  } catch (error) {
+    console.error("[vendors PUT] logAuditEvent error after commit:", error);
+  }
 
   void notifyVendorEvent({
     supabase: admin,
     organizationId,
     actorId: access.userId,
     title: isDeactivation ? "Proveedor desactivado" : "Proveedor actualizado",
-    body: existing.name,
+    body: savedVendor.vendorName,
     source: isDeactivation ? "vendor_deactivated" : "vendor_updated",
-    // Las locaciones que quedan despues de este cambio: si se reasigno el
-    // proveedor, el aviso va a quienes lo tienen ahora.
-    branchIds: branch_ids ?? existingBranchIds,
+    locationScope: { branchIds: savedVendor.branchIds, isGlobal: savedVendor.isGlobal },
   });
 
   return NextResponse.json({ ok: true });
@@ -255,7 +212,13 @@ export async function DELETE(_req: Request, { params }: RouteParams) {
 
   // Las locaciones se leen antes del delete: el cascade se las lleva, y sin
   // ellas el aviso no sabria a quien le importaba este proveedor.
-  const branchIds = await sucursalesDelProveedor(admin, organizationId, id);
+  let locationScope;
+  try {
+    locationScope = await sucursalesDelProveedor(admin, organizationId, id);
+  } catch (error) {
+    console.error("[vendors DELETE] vendor scope error:", error);
+    return NextResponse.json({ error: "No se pudo resolver el alcance del proveedor" }, { status: 500 });
+  }
 
   // Hard delete — cascade removes vendor_locations via FK
   const { error: deleteError } = await admin
@@ -287,7 +250,7 @@ export async function DELETE(_req: Request, { params }: RouteParams) {
     title: "Proveedor eliminado",
     body: existing.name,
     source: "vendor_deleted",
-    branchIds,
+    locationScope,
   });
 
   return NextResponse.json({ ok: true });

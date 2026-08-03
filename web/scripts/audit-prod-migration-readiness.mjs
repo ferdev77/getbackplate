@@ -5,15 +5,7 @@ import pg from "pg";
 const EXPECTED_PROJECT_REF = "mfhyemwypuzsqjqxtbjf";
 const DEVELOPMENT_PROJECT_REF = "uubdslmtfxwraszinpao";
 const EXPECTED_MISSING = [
-  "20260726000003",
-  "20260726000004",
-  "20260726000005",
-  "20260726000006",
-  "20260726000007",
-  "20260726000008",
-  "20260726000009",
-  "20260726000010",
-  "20260726000011",
+  "20260802000008",
 ];
 const databaseUrl = process.env.SUPABASE_DB_POOLER_URL ?? "";
 const apiUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";

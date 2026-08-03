@@ -95,6 +95,9 @@ describe("nadie mas resuelve locaciones por su cuenta", () => {
     // Resolucion a granel, ya usa la regla.
     "shared/lib/audience-resolver.ts",
     "shared/lib/scope-users-catalog.ts",
+    // Valida personas elegidas contra las tres fuentes y entrega esas filas al
+    // mismo combinarLocaciones; no implementa una regla paralela.
+    "shared/lib/scope-validation.ts",
     // Trae el alcance de quienes pueden operar un modulo, para no avisarle a
     // alguien de una locacion donde no trabaja. Usa combinarLocaciones.
     "shared/lib/notification-recipients.ts",

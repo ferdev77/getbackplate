@@ -463,31 +463,46 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          item_label: string | null
+          item_sort_order: number | null
           is_checked: boolean
           is_flagged: boolean
           organization_id: string
+          section_id_snapshot: string | null
+          section_name: string | null
+          section_sort_order: number | null
           submission_id: string
-          template_item_id: string
+          template_item_id: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           id?: string
+          item_label?: string | null
+          item_sort_order?: number | null
           is_checked?: boolean
           is_flagged?: boolean
           organization_id: string
+          section_id_snapshot?: string | null
+          section_name?: string | null
+          section_sort_order?: number | null
           submission_id: string
-          template_item_id: string
+          template_item_id?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
+          item_label?: string | null
+          item_sort_order?: number | null
           is_checked?: boolean
           is_flagged?: boolean
           organization_id?: string
+          section_id_snapshot?: string | null
+          section_name?: string | null
+          section_sort_order?: number | null
           submission_id?: string
-          template_item_id?: string
+          template_item_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -525,7 +540,10 @@ export type Database = {
           status: string
           submitted_at: string | null
           submitted_by: string
-          template_id: string
+          template_created_by: string | null
+          template_id: string | null
+          template_id_snapshot: string | null
+          template_name: string | null
           updated_at: string
         }
         Insert: {
@@ -538,7 +556,10 @@ export type Database = {
           status?: string
           submitted_at?: string | null
           submitted_by: string
-          template_id: string
+          template_created_by?: string | null
+          template_id?: string | null
+          template_id_snapshot?: string | null
+          template_name?: string | null
           updated_at?: string
         }
         Update: {
@@ -551,7 +572,10 @@ export type Database = {
           status?: string
           submitted_at?: string | null
           submitted_by?: string
-          template_id?: string
+          template_created_by?: string | null
+          template_id?: string | null
+          template_id_snapshot?: string | null
+          template_name?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -677,6 +701,8 @@ export type Database = {
           is_active: boolean
           name: string
           organization_id: string
+          pending_sections: Json | null
+          pending_since: string | null
           repeat_every: string | null
           shift: string | null
           target_scope: Json
@@ -693,6 +719,8 @@ export type Database = {
           is_active?: boolean
           name: string
           organization_id: string
+          pending_sections?: Json | null
+          pending_since?: string | null
           repeat_every?: string | null
           shift?: string | null
           target_scope?: Json
@@ -709,6 +737,8 @@ export type Database = {
           is_active?: boolean
           name?: string
           organization_id?: string
+          pending_sections?: Json | null
+          pending_since?: string | null
           repeat_every?: string | null
           shift?: string | null
           target_scope?: Json
@@ -1865,6 +1895,7 @@ export type Database = {
       }
       organization_user_profiles: {
         Row: {
+          all_locations: boolean
           branch_id: string | null
           created_at: string
           department_id: string | null
@@ -1874,6 +1905,7 @@ export type Database = {
           id: string
           is_employee: boolean
           last_name: string | null
+          location_scope_ids: string[]
           organization_id: string
           phone: string | null
           position_id: string | null
@@ -1883,6 +1915,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          all_locations?: boolean
           branch_id?: string | null
           created_at?: string
           department_id?: string | null
@@ -1892,6 +1925,7 @@ export type Database = {
           id?: string
           is_employee?: boolean
           last_name?: string | null
+          location_scope_ids?: string[]
           organization_id: string
           phone?: string | null
           position_id?: string | null
@@ -1901,6 +1935,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          all_locations?: boolean
           branch_id?: string | null
           created_at?: string
           department_id?: string | null
@@ -1910,6 +1945,7 @@ export type Database = {
           id?: string
           is_employee?: boolean
           last_name?: string | null
+          location_scope_ids?: string[]
           organization_id?: string
           phone?: string | null
           position_id?: string | null
@@ -2210,7 +2246,10 @@ export type Database = {
           metadata: Json | null
           next_run_at: string
           organization_id: string
+          processing_started_at: string | null
+          processing_token: string | null
           recurrence_type: string
+          schedule_revision: number
           target_id: string
           updated_at: string
         }
@@ -2225,7 +2264,10 @@ export type Database = {
           metadata?: Json | null
           next_run_at: string
           organization_id: string
+          processing_started_at?: string | null
+          processing_token?: string | null
           recurrence_type: string
+          schedule_revision?: number
           target_id: string
           updated_at?: string
         }
@@ -2240,7 +2282,10 @@ export type Database = {
           metadata?: Json | null
           next_run_at?: string
           organization_id?: string
+          processing_started_at?: string | null
+          processing_token?: string | null
           recurrence_type?: string
+          schedule_revision?: number
           target_id?: string
           updated_at?: string
         }
@@ -2687,9 +2732,14 @@ export type Database = {
         Args: {
           doc_access_scope: Json
           doc_branch_id: string
+          doc_folder_id?: string | null
           doc_id: string
           doc_org_id: string
         }
+        Returns: boolean
+      }
+      can_read_document_folder: {
+        Args: { folder_id: string; folder_org_id: string }
         Returns: boolean
       }
       can_submit_checklist: {
@@ -2830,6 +2880,144 @@ export type Database = {
         Returns: boolean
       }
       is_superadmin: { Args: never; Returns: boolean }
+      resolve_folder_effective_scope: {
+        Args: { p_folder_id: string; p_org_id: string }
+        Returns: {
+          scope: Json
+          source_folder_id: string | null
+        }[]
+      }
+      claim_scheduled_job: {
+        Args: {
+          p_expected_next_run_at: string
+          p_job_id: string
+          p_organization_id: string
+          p_processing_token: string
+        }
+        Returns: boolean
+      }
+      complete_scheduled_job: {
+        Args: {
+          p_expected_revision: number
+          p_job_id: string
+          p_last_run_at: string
+          p_next_run_at: string
+          p_organization_id: string
+          p_processing_token: string
+        }
+        Returns: boolean
+      }
+      delete_employee_vendor_transaction: {
+        Args: {
+          p_actor_id: string
+          p_employee_scope_ids: string[]
+          p_organization_id: string
+          p_vendor_id: string
+        }
+        Returns: {
+          branch_ids: string[]
+          is_global: boolean
+          vendor_name: string
+        }[]
+      }
+      release_scheduled_job: {
+        Args: {
+          p_job_id: string
+          p_organization_id: string
+          p_processing_token: string
+        }
+        Returns: boolean
+      }
+      replace_checklist_sections_transaction: {
+        Args: {
+          p_expected_cycle_submissions?: number | null
+          p_organization_id: string
+          p_sections: Json
+          p_template_id: string
+        }
+        Returns: undefined
+      }
+      save_employee_vendor_transaction: {
+        Args: {
+          p_actor_id: string
+          p_branch_ids: string[] | null
+          p_employee_scope_ids: string[]
+          p_organization_id: string
+          p_patch: Json
+          p_replace_locations: boolean
+          p_vendor_id: string
+        }
+        Returns: {
+          branch_ids: string[]
+          branches_changed: boolean
+          created: boolean
+          is_global: boolean
+          vendor_id: string
+          vendor_name: string
+        }[]
+      }
+      save_checklist_template_transaction: {
+        Args: {
+          p_branch_id: string | null
+          p_checklist_type: string
+          p_created_by: string | null
+          p_custom_days: number[]
+          p_defer_sections: boolean
+          p_department: string | null
+          p_department_id: string | null
+          p_expected_cycle_submissions: number | null
+          p_is_active: boolean
+          p_name: string
+          p_next_run_at: string | null
+          p_organization_id: string
+          p_recurrence_type: string
+          p_repeat_every: string
+          p_sections: Json
+          p_shift: string | null
+          p_target_scope: Json
+          p_template_id: string | null
+        }
+        Returns: string
+      }
+      save_announcement_transaction: {
+        Args: {
+          p_announcement_id: string | null
+          p_body: string
+          p_created_by: string | null
+          p_custom_days: number[]
+          p_expires_at: string | null
+          p_is_featured: boolean
+          p_kind: string
+          p_next_run_at: string | null
+          p_organization_id: string
+          p_publish_at: string
+          p_recurrence_type: string
+          p_schedule_metadata: Json
+          p_should_run: boolean
+          p_target_scope: Json
+          p_title: string
+        }
+        Returns: string
+      }
+      save_vendor_transaction: {
+        Args: {
+          p_actor_id: string
+          p_branch_ids: string[] | null
+          p_employee_scope_ids: string[] | null
+          p_organization_id: string
+          p_patch: Json
+          p_replace_locations: boolean
+          p_vendor_id: string | null
+        }
+        Returns: {
+          branch_ids: string[]
+          branches_changed: boolean
+          created: boolean
+          is_global: boolean
+          vendor_id: string
+          vendor_name: string
+        }[]
+      }
       submit_checklist_transaction: {
         Args: {
           p_branch_id: string
@@ -2839,6 +3027,18 @@ export type Database = {
           p_submitted_at: string
           p_submitted_by: string
           p_template_id: string
+        }
+        Returns: undefined
+      }
+      sync_announcement_scheduled_job: {
+        Args: {
+          p_announcement_id: string
+          p_custom_days: number[]
+          p_metadata: Json
+          p_next_run_at: string | null
+          p_organization_id: string
+          p_recurrence_type: string
+          p_should_run: boolean
         }
         Returns: undefined
       }

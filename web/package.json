@@ -34,6 +34,7 @@
     "verify:rls-isolation": "node --env-file=.env.local scripts/verify-tenant-isolation.mjs",
     "verify:rls-isolation:dev": "node --env-file=.env.local scripts/verify-dev-rls-isolation.mjs",
     "migrate:dev": "node --env-file=.env.local scripts/apply-dev-migration.mjs",
+    "migrate:prod": "node --env-file=.env.production.local scripts/apply-prod-migration.mjs",
     "verify:migrations:dev": "node --env-file=.env.local scripts/verify-dev-migrations.mjs",
     "audit:migrations:prod": "node --env-file=.env.production.local scripts/audit-prod-migration-readiness.mjs",
     "migrate:security:prod:20260726": "node --env-file=.env.production.local scripts/apply-prod-security-migrations-20260726.mjs",

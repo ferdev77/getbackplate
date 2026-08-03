@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import {
   ScopeModalContent,
+  ScopeModalDialog,
   ScopeModalHeader,
   ScopeModalField,
   ScopeModalNote,
@@ -116,8 +117,11 @@ export function DocumentFolderModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-      <div className={SCOPE_MODAL_PANEL}>
+    <ScopeModalDialog
+      onClose={closeModal}
+      overlayClassName="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5"
+      panelClassName={SCOPE_MODAL_PANEL}
+    >
         <ScopeModalHeader
           title="Crear carpeta"
           subtitle="Lo que guardes adentro hereda este alcance si no tiene uno propio"
@@ -129,7 +133,13 @@ export function DocumentFolderModal({
               <ScopeModalSection label="Datos de la carpeta" />
 
               <ScopeModalField label="Nombre">
-                <input name="name" required className={SCOPE_MODAL_INPUT} placeholder="ej. Manuales, Operaciones" />
+                <input
+                  name="name"
+                  required
+                  data-modal-initial-focus
+                  className={SCOPE_MODAL_INPUT}
+                  placeholder="ej. Manuales, Operaciones"
+                />
               </ScopeModalField>
 
               <ScopeModalField label="Carpeta padre">
@@ -180,7 +190,6 @@ export function DocumentFolderModal({
             />
           </div>
         </form>
-      </div>
-    </div>
+    </ScopeModalDialog>
   );
 }

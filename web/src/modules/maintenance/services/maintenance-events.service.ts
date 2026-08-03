@@ -44,7 +44,7 @@ async function conQuienReporto(
     params.requestedByUserId,
   );
   if (!requestedBy || atienden.some((p) => p.userId === requestedBy)) return atienden;
-  return [{ userId: requestedBy, necesitaSaberLaLocacion: true }, ...atienden];
+  return [{ userId: requestedBy, necesitaSaberLaLocacion: true, url: URL_EMPLEADO }, ...atienden];
 }
 
 /** Saca a quien acaba de hacer la accion: no necesita que le avisen de lo suyo. */
@@ -69,7 +69,8 @@ function sinElActor(gente: DestinatarioDeMantenimiento[], actorUserId: string | 
  */
 
 const MODULO = "maintenance";
-const URL_DESTINO = "/app/maintenance";
+const URL_ADMIN = "/app/maintenance";
+const URL_EMPLEADO = "/portal/maintenance";
 
 /**
  * Quien atiende una solicitud de ESTA locacion.
@@ -83,7 +84,11 @@ const URL_DESTINO = "/app/maintenance";
  * le hace falta aclarar de que sucursal es: a quien tiene una sola, decirselo
  * no le aporta nada.
  */
-export type DestinatarioDeMantenimiento = { userId: string; necesitaSaberLaLocacion: boolean };
+export type DestinatarioDeMantenimiento = {
+  userId: string;
+  necesitaSaberLaLocacion: boolean;
+  url: typeof URL_ADMIN | typeof URL_EMPLEADO;
+};
 
 async function quienesAtienden(
   supabase: SupabaseClient,
@@ -99,7 +104,7 @@ async function quienesAtienden(
 
   // Un admin alcanza toda la organizacion: siempre le sirve saber de cual es.
   for (const userId of admins) {
-    lista.set(userId, { userId, necesitaSaberLaLocacion: true });
+    lista.set(userId, { userId, necesitaSaberLaLocacion: true, url: URL_ADMIN });
   }
 
   for (const persona of operativos) {
@@ -114,6 +119,7 @@ async function quienesAtienden(
     lista.set(persona.userId, {
       userId: persona.userId,
       necesitaSaberLaLocacion: persona.alcanzaTodas || persona.locationIds.length > 1,
+      url: URL_EMPLEADO,
     });
   }
 
@@ -123,8 +129,8 @@ async function quienesAtienden(
 /**
  * Manda el aviso, aclarando de que sucursal es solo a quien maneja mas de una.
  *
- * Van dos tandas porque el cuerpo del mensaje es uno solo por envio: a quien
- * tiene un solo local, nombrarselo no le agrega nada.
+ * Se agrupa por portal y por necesidad de aclarar la locacion: el cuerpo y la
+ * URL son unicos por envio.
  */
 async function avisar(params: {
   supabase: SupabaseClient;
@@ -138,29 +144,33 @@ async function avisar(params: {
 }) {
   if (params.gente.length === 0) return 0;
 
-  const conLocacion = params.locationName
-    ? params.gente.filter((p) => p.necesitaSaberLaLocacion).map((p) => p.userId)
-    : [];
-  const sinLocacion = params.gente
-    .filter((p) => !params.locationName || !p.necesitaSaberLaLocacion)
-    .map((p) => p.userId);
-
-  const enviar = async (userIds: string[], body: string) => {
+  const enviar = async (userIds: string[], body: string, url: DestinatarioDeMantenimiento["url"]) => {
     if (userIds.length === 0) return 0;
     const { sent } = await sendPushToUsers(
       userIds,
-      { title: params.title, body, url: URL_DESTINO },
+      { title: params.title, body, url },
       { source: params.source, organizationId: params.organizationId },
     );
     return sent;
   };
 
-  const [a, b] = await Promise.all([
-    enviar(conLocacion, [params.locationName, params.body].filter(Boolean).join(" · ")),
-    enviar(sinLocacion, params.body),
-  ]);
+  const envios: Array<Promise<number>> = [];
+  for (const url of [URL_ADMIN, URL_EMPLEADO] as const) {
+    const deEsePortal = params.gente.filter((persona) => persona.url === url);
+    const conLocacion = params.locationName
+      ? deEsePortal.filter((persona) => persona.necesitaSaberLaLocacion).map((persona) => persona.userId)
+      : [];
+    const sinLocacion = deEsePortal
+      .filter((persona) => !params.locationName || !persona.necesitaSaberLaLocacion)
+      .map((persona) => persona.userId);
 
-  return a + b;
+    envios.push(
+      enviar(conLocacion, [params.locationName, params.body].filter(Boolean).join(" · "), url),
+      enviar(sinLocacion, params.body, url),
+    );
+  }
+
+  return (await Promise.all(envios)).reduce((total, sent) => total + sent, 0);
 }
 
 /**

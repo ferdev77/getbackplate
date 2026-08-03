@@ -43,13 +43,28 @@ const ids = {
   documentDirectUser: randomUUID(),
   documentBranchOnly: randomUUID(),
   documentDirectUserWithBranch: randomUUID(),
+  documentInheritedFolderScope: randomUUID(),
+  folderScoped: randomUUID(),
+  folderInheritedChild: randomUUID(),
   employeeMultiLoc: randomUUID(),
   announcementAndScope: randomUUID(),
   announcementDirectUser: randomUUID(),
   announcementSecondaryLocation: randomUUID(),
   checklistAndScope: randomUUID(),
   checklistDirectUser: randomUUID(),
+  vendorCategory: randomUUID(),
+  vendorPartialScope: randomUUID(),
+  vendorOwnedScope: randomUUID(),
 };
+
+const deepFolderIds = Array.from({ length: 55 }, () => randomUUID());
+
+const andScope = JSON.stringify({
+  users: [],
+  locations: [ids.branchA, ids.branchA2],
+  department_ids: [ids.departmentA],
+  position_ids: [ids.positionA],
+});
 
 const client = new pg.Client({ connectionString: databaseUrl, ssl: { rejectUnauthorized: false } });
 
@@ -94,6 +109,29 @@ async function canReadRow(table, userId, rowId) {
     );
     return rows[0].allowed;
   });
+}
+
+async function resolveFolderScope(userId, organizationId, folderId) {
+  return asUser(userId, async () => {
+    const { rows } = await client.query(
+      "select scope, source_folder_id from public.resolve_folder_effective_scope($1, $2)",
+      [organizationId, folderId],
+    );
+    return rows;
+  });
+}
+
+async function expectDatabaseError(query, values, pattern, message) {
+  await client.query("savepoint expected_database_error");
+  try {
+    await client.query(query, values);
+    assert.fail(message);
+  } catch (error) {
+    assert.match(error instanceof Error ? error.message : String(error), pattern, message);
+  } finally {
+    await client.query("rollback to savepoint expected_database_error");
+    await client.query("release savepoint expected_database_error");
+  }
 }
 
 async function createFixtures() {
@@ -174,12 +212,6 @@ async function createFixtures() {
     where membership.organization_id = $1 and membership.user_id = $3
   `, [ids.organizationA, ids.admin, ids.employeeMismatch]);
 
-  const andScope = JSON.stringify({
-    users: [],
-    locations: [ids.branchA, ids.branchA2],
-    department_ids: [ids.departmentA],
-    position_ids: [ids.positionA],
-  });
   const directScope = JSON.stringify({ users: [ids.employeeA], locations: [], department_ids: [], position_ids: [] });
 
   // Avisos y checklists: mismas dos formas de alcance que documentos, para que
@@ -209,9 +241,81 @@ async function createFixtures() {
       ($8,$2,$3,$4,'Branch only','rls/branch-only.pdf','active','{}'::jsonb),
       ($9,$2,$3,$4,'Direct user with branch','rls/direct-user-branch.pdf','active',$7::jsonb)
   `, [ids.documentAndScope, ids.organizationA, ids.branchA, ids.admin, andScope, ids.documentDirectUser, directScope, ids.documentBranchOnly, ids.documentDirectUserWithBranch]);
+
+  await client.query(`
+    insert into public.document_folders (id, organization_id, parent_id, name, created_by, access_scope)
+    values
+      ($1,$2,null,'Scoped folder',$3,$4::jsonb),
+      ($5,$2,$1,'Inherited child',$3,'{}'::jsonb)
+  `, [ids.folderScoped, ids.organizationA, ids.admin, andScope, ids.folderInheritedChild]);
+
+  let parentFolderId = ids.folderScoped;
+  for (const [index, folderId] of deepFolderIds.entries()) {
+    await client.query(`
+      insert into public.document_folders (id, organization_id, parent_id, name, created_by, access_scope)
+      values ($1,$2,$3,$4,$5,'{}'::jsonb)
+    `, [folderId, ids.organizationA, parentFolderId, `Deep folder ${index + 1}`, ids.admin]);
+    parentFolderId = folderId;
+  }
+
+  await client.query(`
+    insert into public.documents (id, organization_id, branch_id, folder_id, owner_user_id, title, file_path, status, access_scope)
+    values ($1,$2,null,$3,$4,'Inherited folder scope','rls/inherited-folder-scope.pdf','active','{}'::jsonb)
+  `, [ids.documentInheritedFolderScope, ids.organizationA, ids.folderInheritedChild, ids.admin]);
+
+  await client.query(`
+    insert into public.vendor_categories (id, organization_id, code, name, created_by)
+    values ($1,$2,'rls-test','RLS test',$3)
+  `, [ids.vendorCategory, ids.organizationA, ids.admin]);
+  await client.query(`
+    insert into public.vendors (id, organization_id, name, category, created_by)
+    values
+      ($1,$2,'Partial scope vendor','rls-test',$3),
+      ($4,$2,'Owned scope vendor','rls-test',$3)
+  `, [ids.vendorPartialScope, ids.organizationA, ids.admin, ids.vendorOwnedScope]);
+  await client.query(`
+    insert into public.vendor_locations (vendor_id, organization_id, branch_id)
+    values ($1,$2,$3), ($1,$2,$4), ($5,$2,$3)
+  `, [ids.vendorPartialScope, ids.organizationA, ids.branchA, ids.branchA2, ids.vendorOwnedScope]);
 }
 
 async function verify() {
+  const { rows: concurrencySchema } = await client.query(`
+    select
+      exists(
+        select 1 from information_schema.columns
+        where table_schema = 'public' and table_name = 'scheduled_jobs' and column_name = 'schedule_revision'
+      ) as schedule_revision,
+      to_regprocedure('public.sync_announcement_scheduled_job(uuid,uuid,boolean,text,integer[],timestamp with time zone,jsonb)') is not null as announcement_sync,
+      to_regprocedure('public.save_announcement_transaction(uuid,uuid,uuid,text,text,text,boolean,timestamp with time zone,timestamp with time zone,jsonb,boolean,text,integer[],timestamp with time zone,jsonb)') is not null as announcement_save,
+      to_regprocedure('public.save_checklist_template_transaction(uuid,uuid,uuid,text,text,uuid,text,text,uuid,text,jsonb,boolean,jsonb,boolean,integer,text,integer[],timestamp with time zone)') is not null as checklist_save
+  `);
+  assert.equal(concurrencySchema[0].schedule_revision, true, "scheduled job revision fencing must be installed");
+  assert.equal(concurrencySchema[0].announcement_sync, true, "atomic announcement schedule sync must be installed");
+  assert.equal(concurrencySchema[0].announcement_save, true, "atomic announcement save must be installed");
+  assert.equal(concurrencySchema[0].checklist_save, true, "atomic checklist save must be installed");
+
+  const announcementLeaseToken = randomUUID();
+  await client.query(`
+    insert into public.scheduled_jobs (
+      organization_id, job_type, target_id, recurrence_type, next_run_at,
+      processing_token, processing_started_at
+    ) values ($1,'announcement_delivery',$2,'daily',now(),$3,now())
+  `, [ids.organizationA, ids.announcementAndScope, announcementLeaseToken]);
+  await expectDatabaseError(`
+    select public.save_announcement_transaction(
+      $1,$2,$3,'Changed during delivery','body','general',false,null,now(),$4::jsonb,
+      false,'none','{}'::integer[],null,'{}'::jsonb
+    )
+  `, [ids.organizationA, ids.announcementAndScope, ids.admin, andScope], /announcement_schedule_busy/,
+  "an announcement edit must not overtake an active recurrence lease");
+  const { rows: unchangedAnnouncement } = await client.query(
+    "select title from public.announcements where id = $1",
+    [ids.announcementAndScope],
+  );
+  assert.equal(unchangedAnnouncement[0].title, "AND scope", "busy schedule rejection must roll back announcement content");
+  await client.query("delete from public.scheduled_jobs where target_id = $1", [ids.announcementAndScope]);
+
   assert.deepEqual(await visibleIds("employees", ids.employeeA, ids.organizationA), [ids.employeeRowA]);
   assert.deepEqual(await visibleIds("employees", ids.admin, ids.organizationA).then((items) => items.sort()), [ids.employeeRowA, ids.employeeRowMismatch, ids.employeeRowOutOfScope].sort());
   assert.deepEqual(await visibleIds("employees", ids.employeeMismatch, ids.organizationA).then((items) => items.sort()), [ids.employeeRowA, ids.employeeRowMismatch].sort());
@@ -236,6 +340,51 @@ async function verify() {
   // para toda esa sucursal. employeeMismatch comparte la sucursal A con employeeA.
   assert.equal(await canReadDocument(ids.employeeA, ids.documentDirectUserWithBranch), true, "direct user scope should grant access even when the document has its own branch");
   assert.equal(await canReadDocument(ids.employeeMismatch, ids.documentDirectUserWithBranch), false, "direct user scope must remain private even when the document has its own branch");
+
+  assert.equal(await canReadRow("document_folders", ids.employeeA, ids.folderScoped), true, "matching employee should read a scoped folder without RLS recursion");
+  assert.equal(await canReadRow("document_folders", ids.employeeA, ids.folderInheritedChild), true, "matching employee should read a child inheriting folder scope");
+  assert.equal(await canReadRow("document_folders", ids.employeeMismatch, ids.folderInheritedChild), false, "one matching dimension must not bypass inherited folder scope");
+  assert.equal(await canReadRow("document_folders", ids.employeeB, ids.folderInheritedChild), false, "inherited folders must remain tenant isolated");
+  assert.equal(await canReadDocument(ids.employeeA, ids.documentInheritedFolderScope), true, "documents should inherit a matching ancestor folder scope");
+  assert.equal(await canReadDocument(ids.employeeMismatch, ids.documentInheritedFolderScope), false, "documents should enforce every inherited scope dimension");
+
+  const allowedResolvedScope = await resolveFolderScope(ids.employeeA, ids.organizationA, ids.folderInheritedChild);
+  assert.equal(allowedResolvedScope.length, 1, "authorized callers should resolve inherited folder scope");
+  assert.equal(allowedResolvedScope[0].source_folder_id, ids.folderScoped, "resolver should identify the scoped ancestor");
+  assert.deepEqual(allowedResolvedScope[0].scope, JSON.parse(andScope), "resolver should return the ancestor's effective scope");
+  assert.deepEqual(await resolveFolderScope(ids.employeeMismatch, ids.organizationA, ids.folderInheritedChild), [], "same-tenant callers outside the effective scope must receive no resolver data");
+  assert.deepEqual(await resolveFolderScope(ids.employeeB, ids.organizationA, ids.folderInheritedChild), [], "cross-tenant callers must receive no resolver data");
+  assert.deepEqual(await resolveFolderScope(ids.employeeA, ids.organizationA, randomUUID()), [], "nonexistent folders must return no resolver data");
+  const deepResolvedScope = await resolveFolderScope(
+    ids.employeeA,
+    ids.organizationA,
+    deepFolderIds[deepFolderIds.length - 1],
+  );
+  assert.equal(deepResolvedScope.length, 1, "folder inheritance must not fail open or truncate after 50 levels");
+  assert.equal(deepResolvedScope[0].source_folder_id, ids.folderScoped, "deep inheritance should reach its scoped ancestor");
+
+  const savedVendor = await client.query(`
+    select * from public.save_employee_vendor_transaction(
+      $1, $2, $3, '{"notes":"safe update"}'::jsonb, true, $4::uuid[], $4::uuid[]
+    )
+  `, [ids.organizationA, ids.vendorPartialScope, ids.employeeA, [ids.branchA]]);
+  assert.equal(savedVendor.rowCount, 1, "employee vendor update should commit atomically");
+  assert.deepEqual(
+    savedVendor.rows[0].branch_ids,
+    [ids.branchA, ids.branchA2].sort(),
+    "employee vendor update must preserve locations outside the actor scope",
+  );
+  await expectDatabaseError(
+    "select * from public.delete_employee_vendor_transaction($1,$2,$3,$4::uuid[])",
+    [ids.organizationA, ids.vendorPartialScope, ids.employeeA, [ids.branchA]],
+    /vendor_out_of_scope/,
+    "employee must not delete a vendor that also belongs to hidden locations",
+  );
+  const deletedOwnedVendor = await client.query(
+    "select * from public.delete_employee_vendor_transaction($1,$2,$3,$4::uuid[])",
+    [ids.organizationA, ids.vendorOwnedScope, ids.employeeA, [ids.branchA]],
+  );
+  assert.equal(deletedOwnedVendor.rows[0].vendor_name, "Owned scope vendor", "employee may delete a fully owned vendor");
 
   // Regla de Oro de Alcance en avisos y checklists. Antes solo se verificaba
   // sobre documentos, y por eso ambos modulos se desviaron sin ser detectados:
@@ -288,6 +437,7 @@ async function verify() {
     "public.get_user_id_by_email(text)",
     "public.create_employee_transaction(uuid,uuid,uuid,uuid,uuid,text,text,text,text,text,text,text,timestamp with time zone,date,text,text,text,text,text,text,text,text,text,text,text,boolean,uuid,text,text,text,date,date,numeric,text,text,text,text,timestamp with time zone,jsonb)",
     "public.submit_checklist_transaction(uuid,uuid,uuid,uuid,uuid,jsonb,timestamp with time zone)",
+    "public.save_vendor_transaction(uuid,uuid,uuid,jsonb,boolean,uuid[],uuid[])",
   ];
   for (const signature of privilegedFunctions) {
     const { rows } = await client.query(`
@@ -308,6 +458,45 @@ async function verify() {
   `);
   assert.equal(directoryPrivileges[0].anon, false, "get_company_users must not be executable by anon");
   assert.equal(directoryPrivileges[0].authenticated, true, "get_company_users is used by authenticated admins");
+
+  const documentFunctions = [
+    { signature: "public.can_read_document(uuid,uuid,jsonb,uuid,uuid)", serviceRole: false },
+    { signature: "public.can_read_document_folder(uuid,uuid)", serviceRole: false },
+    { signature: "public.resolve_folder_effective_scope(uuid,uuid)", serviceRole: true },
+  ];
+  for (const { signature, serviceRole } of documentFunctions) {
+    const { rows } = await client.query(`
+      select
+        has_function_privilege('anon', $1, 'execute') as anon,
+        has_function_privilege('authenticated', $1, 'execute') as authenticated,
+        has_function_privilege('service_role', $1, 'execute') as service_role,
+        pg_get_functiondef($1::regprocedure) as definition
+    `, [signature]);
+    assert.equal(rows[0].anon, false, `${signature} must not be executable by anon`);
+    assert.equal(rows[0].authenticated, true, `${signature} is required by authenticated RLS or RPC callers`);
+    assert.equal(rows[0].service_role, serviceRole, `${signature} service_role grant must be minimal`);
+    assert.match(rows[0].definition, /SECURITY DEFINER/i, `${signature} must bypass recursive RLS internally`);
+    assert.match(rows[0].definition, /SET search_path TO ''/i, `${signature} must use a fixed empty search_path`);
+  }
+
+  const { rows: privateResolverPrivileges } = await client.query(`
+    select
+      has_schema_privilege('anon', 'app_private', 'usage') as anon_schema,
+      has_schema_privilege('authenticated', 'app_private', 'usage') as authenticated_schema,
+      has_schema_privilege('service_role', 'app_private', 'usage') as service_role_schema,
+      has_function_privilege('anon', 'app_private.resolve_folder_effective_scope(uuid,uuid)', 'execute') as anon_function,
+      has_function_privilege('authenticated', 'app_private.resolve_folder_effective_scope(uuid,uuid)', 'execute') as authenticated_function,
+      has_function_privilege('service_role', 'app_private.resolve_folder_effective_scope(uuid,uuid)', 'execute') as service_role_function,
+      pg_get_functiondef('app_private.resolve_folder_effective_scope(uuid,uuid)'::regprocedure) as definition
+  `);
+  assert.equal(privateResolverPrivileges[0].anon_schema, false, "anon must not access the private schema");
+  assert.equal(privateResolverPrivileges[0].authenticated_schema, false, "authenticated must not access the private schema");
+  assert.equal(privateResolverPrivileges[0].service_role_schema, false, "service_role must not access the private schema directly");
+  assert.equal(privateResolverPrivileges[0].anon_function, false, "anon must not execute the private resolver");
+  assert.equal(privateResolverPrivileges[0].authenticated_function, false, "authenticated must not execute the private resolver");
+  assert.equal(privateResolverPrivileges[0].service_role_function, false, "service_role must not execute the private resolver directly");
+  assert.match(privateResolverPrivileges[0].definition, /SECURITY DEFINER/i, "private resolver must bypass folder RLS");
+  assert.match(privateResolverPrivileges[0].definition, /SET search_path TO ''/i, "private resolver must use a fixed empty search_path");
 }
 
 await client.connect();

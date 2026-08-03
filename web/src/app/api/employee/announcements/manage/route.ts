@@ -55,9 +55,10 @@ export async function POST(request: Request) {
   const expiresAt = String(body?.expires_at ?? "").trim() || null;
   const isFeatured = body?.is_featured === true;
   // El push va siempre, igual que en el panel de admin.
-  const notifyChannels = [
-    ...new Set([...(Array.isArray(body?.notify_channels) ? body.notify_channels.map(String) : []), "push"]),
-  ].filter((channel) => ["sms", "email", "in_app", "push"].includes(channel));
+  const selectedNotifyChannels = [...new Set(
+    Array.isArray(body?.notify_channels) ? body.notify_channels.map(String) : [],
+  )].filter((channel) => ["sms", "email", "in_app", "push"].includes(channel));
+  const notifyChannels = [...new Set([...selectedNotifyChannels, "push"])];
   const isRecurring = body?.is_recurring === true;
   const recurrenceType = String(body?.recurrence_type ?? "daily").trim() || "daily";
   let customDays: number[] = [];
@@ -226,10 +227,10 @@ export async function PATCH(request: Request) {
   const kind = normalizeKind(String(body?.kind ?? "general"));
   const expiresAt = String(body?.expires_at ?? "").trim() || null;
   const isFeatured = body?.is_featured === true;
-  // El push va siempre, igual que en el panel de admin.
-  const notifyChannels = [
-    ...new Set([...(Array.isArray(body?.notify_channels) ? body.notify_channels.map(String) : []), "push"]),
-  ].filter((channel) => ["sms", "email", "in_app", "push"].includes(channel));
+  // En una edicion se conservan exactamente los canales del reparto futuro.
+  const notifyChannels = [...new Set(
+    Array.isArray(body?.notify_channels) ? body.notify_channels.map(String) : [],
+  )].filter((channel) => ["sms", "email", "in_app", "push"].includes(channel));
   const isRecurring = body?.is_recurring === true;
   const recurrenceType = String(body?.recurrence_type ?? "daily").trim() || "daily";
   let customDays: number[] = [];

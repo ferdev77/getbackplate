@@ -5,6 +5,7 @@ import {
   effectiveScopeLocations,
   emitScopeForMode,
   makeScopeMatcher,
+  scopeSubjectOverlapsLocations,
   validateScopeMode,
   type ScopeRestriction,
   type ScopeSelection,
@@ -268,5 +269,33 @@ describe("makeScopeMatcher con varias locaciones por persona", () => {
 
   it("sin filtro de locación alcanza a cualquiera", () => {
     expect(matcher([])({ branch_id: null, location_ids: [] })).toBe(true);
+  });
+});
+
+describe("scopeSubjectOverlapsLocations", () => {
+  it("incluye una locacion secundaria aunque la principal sea otra", () => {
+    expect(
+      scopeSubjectOverlapsLocations(
+        { branch_id: "loc-a", location_ids: ["loc-a", "loc-b"] },
+        ["loc-b"],
+      ),
+    ).toBe(true);
+  });
+
+  it("incluye a quien alcanza todas aunque no tenga locacion principal", () => {
+    expect(
+      scopeSubjectOverlapsLocations({ branch_id: null, location_ids: ["loc-a", "loc-b"] }, ["loc-b"]),
+    ).toBe(true);
+  });
+
+  it("cae a la locacion principal cuando no hay lista efectiva", () => {
+    expect(scopeSubjectOverlapsLocations({ branch_id: "loc-a" }, ["loc-a"])).toBe(true);
+  });
+
+  it("rechaza cuando no hay ninguna locacion en comun", () => {
+    expect(
+      scopeSubjectOverlapsLocations({ branch_id: "loc-a", location_ids: ["loc-a"] }, ["loc-b"]),
+    ).toBe(false);
+    expect(scopeSubjectOverlapsLocations({ branch_id: "loc-a" }, [])).toBe(false);
   });
 });

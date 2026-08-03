@@ -30,6 +30,55 @@ function supabaseFalso(opciones: {
   const operaciones: Operacion[] = [];
 
   const cliente = {
+    async rpc(name: string, args: Record<string, unknown>) {
+      if (name === "save_announcement_transaction") {
+        if (opciones.errorAlGuardar) return { data: null, error: { message: opciones.errorAlGuardar } };
+        if (args.p_announcement_id && opciones.avisoExiste === false) {
+          return { data: null, error: { code: "P0002", message: "announcement_not_found" } };
+        }
+        operaciones.push({
+          tabla: "announcements",
+          tipo: args.p_announcement_id ? "update" : "insert",
+          datos: {
+            organization_id: args.p_organization_id,
+            created_by: args.p_created_by,
+            title: args.p_title,
+            target_scope: args.p_target_scope,
+          },
+          filtros: {},
+        });
+        const tipo = args.p_should_run ? (opciones.jobExistente ? "update" : "insert") : "delete";
+        operaciones.push({
+          tabla: "scheduled_jobs",
+          tipo,
+          datos: args.p_should_run ? {
+            job_type: "announcement_delivery",
+            target_id: "av-1",
+            recurrence_type: args.p_recurrence_type,
+            custom_days: args.p_custom_days,
+            metadata: args.p_schedule_metadata,
+          } : undefined,
+          filtros: {},
+        });
+        return { data: "av-1", error: null };
+      }
+      if (name === "sync_announcement_scheduled_job") {
+        const tipo = args.p_should_run ? (opciones.jobExistente ? "update" : "insert") : "delete";
+        operaciones.push({
+          tabla: "scheduled_jobs",
+          tipo,
+          datos: args.p_should_run ? {
+            job_type: "announcement_delivery",
+            target_id: args.p_announcement_id,
+            recurrence_type: args.p_recurrence_type,
+            custom_days: args.p_custom_days,
+            metadata: args.p_metadata,
+          } : undefined,
+          filtros: {},
+        });
+      }
+      return { data: null, error: null };
+    },
     from(tabla: string) {
       const filtros: Record<string, unknown> = {};
       let tipo = "select";
@@ -176,6 +225,36 @@ describe("las entregas se encolan (el bug que dejo a todos sin notificar)", () =
     expect(processAnnouncementDeliveries).not.toHaveBeenCalled();
   });
 
+  it("al editar no vuelve a notificar aunque el caller mande canales", async () => {
+    const { cliente, operaciones } = supabaseFalso({ avisoExiste: true });
+
+    await upsertAnnouncement({
+      supabase: cliente,
+      ...BASE,
+      announcementId: "av-1",
+      deliveryChannels: ["email", "push"],
+    });
+
+    expect(operacionesDe(operaciones, "announcement_deliveries", "insert")).toHaveLength(0);
+    expect(processAnnouncementDeliveries).not.toHaveBeenCalled();
+  });
+
+  it("un aviso vencido en el limite exacto no se encola ni reparte", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-02T12:00:00.000Z"));
+    const { cliente, operaciones } = supabaseFalso();
+
+    await upsertAnnouncement({
+      supabase: cliente,
+      ...BASE,
+      expiresAt: "2026-08-02T12:00:00.000Z",
+    });
+
+    expect(operacionesDe(operaciones, "announcement_deliveries", "insert")).toHaveLength(0);
+    expect(processAnnouncementDeliveries).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
   it("si no se pudo encolar lo avisa, en vez de decir que salio todo bien", async () => {
     const { cliente } = supabaseFalso({ errorAlEncolar: "tabla llena" });
 
@@ -211,6 +290,11 @@ describe("el reparto periodico", () => {
 
     expect(operacionesDe(operaciones, "scheduled_jobs", "insert")).toHaveLength(0);
     expect(operacionesDe(operaciones, "scheduled_jobs", "update")).toHaveLength(1);
+    expect(operacionesDe(operaciones, "scheduled_jobs", "update")[0]?.datos).toMatchObject({
+      recurrence_type: "weekly",
+      custom_days: [1, 3],
+      metadata: { channels: ["email"] },
+    });
   });
 
   it("si le sacan la periodicidad, el reparto se borra", async () => {
@@ -233,5 +317,22 @@ describe("el reparto periodico", () => {
 
     expect(operacionesDe(operaciones, "scheduled_jobs", "insert")).toHaveLength(0);
     expect(operacionesDe(operaciones, "scheduled_jobs", "delete")).toHaveLength(1);
+  });
+
+  it("no arma un reparto cuya proxima vuelta cae al vencer", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-02T12:00:00.000Z"));
+    const { cliente, operaciones } = supabaseFalso();
+
+    await upsertAnnouncement({
+      supabase: cliente,
+      ...BASE,
+      expiresAt: "2026-08-03T12:00:00.000Z",
+      recurrence: { isRecurring: true, recurrenceType: "daily", customDays: [], channels: ["push"] },
+    });
+
+    expect(operacionesDe(operaciones, "scheduled_jobs", "insert")).toHaveLength(0);
+    expect(operacionesDe(operaciones, "scheduled_jobs", "delete")).toHaveLength(1);
+    vi.useRealTimers();
   });
 });

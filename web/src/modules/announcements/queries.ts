@@ -5,6 +5,38 @@ import { hasMissingColumnError } from "@/shared/lib/supabase-compat";
 import { resolveAnnouncementAuthorNames } from "@/modules/announcements/lib/authors";
 import { extractDisplayName } from "@/shared/lib/user";
 
+export type AnnouncementRecurrenceConfig = {
+  is_recurring: boolean;
+  recurrence_type: string;
+  custom_days: number[];
+  notification_channels: string[];
+};
+
+export function announcementRecurrenceByTarget(
+  jobs: Array<{
+    target_id: string;
+    recurrence_type: string;
+    custom_days: number[] | null;
+    metadata: unknown;
+  }>,
+) {
+  const result: Record<string, AnnouncementRecurrenceConfig> = {};
+  for (const job of jobs) {
+    const metadata = job.metadata && typeof job.metadata === "object"
+      ? job.metadata as Record<string, unknown>
+      : {};
+    result[job.target_id] = {
+      is_recurring: true,
+      recurrence_type: job.recurrence_type,
+      custom_days: job.custom_days ?? [],
+      notification_channels: Array.isArray(metadata.channels)
+        ? metadata.channels.filter((channel): channel is string => typeof channel === "string")
+        : [],
+    };
+  }
+  return result;
+}
+
 export async function getAnnouncementPageData(organizationId: string) {
   const supabase = await createSupabaseServerClient();
 
@@ -19,6 +51,17 @@ export async function getAnnouncementPageData(organizationId: string) {
 
   if (annError) {
     console.error("[announcements] Error fetching announcements:", annError);
+  }
+
+  const { data: announcementJobs, error: jobsError } = await supabase
+    .from("scheduled_jobs")
+    .select("target_id, recurrence_type, custom_days, metadata")
+    .eq("organization_id", organizationId)
+    .eq("job_type", "announcement_delivery")
+    .eq("is_active", true);
+
+  if (jobsError) {
+    console.error("[announcements] Error fetching recurrence jobs:", jobsError);
   }
 
   const fetchOrderedBranches = async () => {
@@ -167,5 +210,6 @@ export async function getAnnouncementPageData(organizationId: string) {
     adminUserIds,
     scopeUsers,
     publisherName: extractDisplayName(authData.user),
+    recurrenceByAnnouncementId: announcementRecurrenceByTarget(announcementJobs ?? []),
   };
 }

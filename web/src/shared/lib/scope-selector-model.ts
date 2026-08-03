@@ -156,6 +156,17 @@ export type ScopeMatchSubject = {
   position_label?: string;
 };
 
+/** True when any effective location of a catalog user is allowed. */
+export function scopeSubjectOverlapsLocations(
+  subject: Pick<ScopeMatchSubject, "branch_id" | "location_ids">,
+  allowedLocationIds: readonly string[],
+) {
+  if (allowedLocationIds.length === 0) return false;
+  const allowed = new Set(allowedLocationIds);
+  const effective = [subject.branch_id, ...(subject.location_ids ?? [])];
+  return effective.some((id) => Boolean(id && allowed.has(id)));
+}
+
 /**
  * Compara por id, igual que el servidor. El nombre solo se usa cuando el origen
  * de datos no trae el id: si se comparara por nombre habiendo id, un puesto

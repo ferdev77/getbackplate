@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
   const { data: submission } = await supabase
     .from("checklist_submissions")
-    .select("id, status, submitted_by, template_id, template_name")
+    .select("id, status, submitted_by, template_id, template_name, template_created_by")
     .eq("organization_id", organizationId)
     .eq("id", submissionId)
     .maybeSingle();
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
       supabase,
       organizationId,
       templateName: template?.name ?? submission.template_name ?? "Checklist",
-      templateCreatedBy: template?.created_by ?? null,
+      templateCreatedBy: submission.template_created_by ?? template?.created_by ?? null,
       submittedByUserId: submission.submitted_by ?? null,
       reviewedByUserId: moduleAccess.userId,
     });

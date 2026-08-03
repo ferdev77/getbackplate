@@ -1,4 +1,15 @@
-import type { ReactNode } from "react";
+"use client";
+
+import {
+  createContext,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+} from "react";
 
 /**
  * Las tres zonas de un modal con alcance: contenido | alcance | audiencia.
@@ -22,6 +33,112 @@ export const SCOPE_MODAL_FOOTER =
 
 /** El form ocupa la fila del medio y deja su propio pie abajo. */
 export const SCOPE_MODAL_FORM = "grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_auto]";
+
+const ScopeModalTitleIdContext = createContext<string | null>(null);
+const ScopeModalCanCloseContext = createContext(true);
+
+const FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled]):not([type='hidden'])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "[tabindex]:not([tabindex='-1'])",
+].join(",");
+
+export function getFocusTrapTargetIndex(currentIndex: number, count: number, backwards: boolean) {
+  if (count <= 0) return -1;
+  if (currentIndex < 0) return backwards ? count - 1 : 0;
+  return backwards
+    ? (currentIndex - 1 + count) % count
+    : (currentIndex + 1) % count;
+}
+
+function getFocusableElements(panel: HTMLElement) {
+  return Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+    (element) => element.getClientRects().length > 0 && element.getAttribute("aria-hidden") !== "true",
+  );
+}
+
+export function ScopeModalDialog({
+  children,
+  onClose,
+  overlayClassName,
+  panelClassName,
+  closeOnBackdrop = false,
+  canClose = true,
+}: {
+  children: ReactNode;
+  onClose: () => void;
+  overlayClassName: string;
+  panelClassName: string;
+  closeOnBackdrop?: boolean;
+  canClose?: boolean;
+}) {
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const previouslyFocused = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const panel = panelRef.current;
+    const requestedInitialFocus = panel?.querySelector<HTMLElement>("[data-modal-initial-focus]");
+    (requestedInitialFocus ?? panel)?.focus();
+
+    return () => {
+      if (previouslyFocused?.isConnected) previouslyFocused.focus();
+    };
+  }, []);
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      if (!canClose) return;
+      event.preventDefault();
+      event.stopPropagation();
+      onClose();
+      return;
+    }
+
+    if (event.key !== "Tab") return;
+    const panel = panelRef.current;
+    if (!panel) return;
+    const focusable = getFocusableElements(panel);
+    event.preventDefault();
+    if (focusable.length === 0) {
+      panel.focus();
+      return;
+    }
+    const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
+    focusable[getFocusTrapTargetIndex(currentIndex, focusable.length, event.shiftKey)]?.focus();
+  };
+
+  const handleBackdropClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (closeOnBackdrop && canClose && event.target === event.currentTarget) {
+      onClose();
+    }
+  };
+
+  return (
+    <div className={overlayClassName} onClick={handleBackdropClick}>
+      <ScopeModalCanCloseContext.Provider value={canClose}>
+        <ScopeModalTitleIdContext.Provider value={titleId}>
+          <div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            tabIndex={-1}
+            onKeyDown={handleKeyDown}
+            className={`${panelClassName} outline-none`}
+          >
+            {children}
+          </div>
+        </ScopeModalTitleIdContext.Provider>
+      </ScopeModalCanCloseContext.Provider>
+    </div>
+  );
+}
 
 export function ScopeModalZones({
   children,
@@ -174,19 +291,27 @@ export function ScopeModalHeader({
   subtitle?: string;
   onClose: () => void;
 }) {
+  const contextTitleId = useContext(ScopeModalTitleIdContext);
+  const canClose = useContext(ScopeModalCanCloseContext);
+  const fallbackTitleId = useId();
+  const titleId = contextTitleId ?? fallbackTitleId;
+
   return (
     <div className={SCOPE_MODAL_HEADER}>
       <div className="min-w-0">
-        <p className="font-serif text-sm font-bold text-[var(--gbp-text)]">{title}</p>
+        <h2 id={titleId} className="font-serif text-sm font-bold text-[var(--gbp-text)]">
+          {title}
+        </h2>
         {subtitle ? (
           <p className="mt-0.5 truncate text-[11.5px] text-[var(--gbp-text2)]">{subtitle}</p>
         ) : null}
       </div>
       <button
         type="button"
-        onClick={onClose}
+        onClick={canClose ? onClose : undefined}
+        disabled={!canClose}
         aria-label="Cerrar"
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]"
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-[var(--gbp-muted)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
       >
         ✕
       </button>

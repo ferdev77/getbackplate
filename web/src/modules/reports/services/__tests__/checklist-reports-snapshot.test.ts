@@ -5,6 +5,7 @@ import {
   formatDateLabel,
   initials,
   relativeFromNow,
+  resolveChecklistHistoryItemMeta,
   shortName,
 } from "../checklist-reports-snapshot";
 
@@ -126,5 +127,47 @@ describe("colorForUser", () => {
       expect(colorForUser(id)).toBeTruthy();
       expect(typeof colorForUser(id)).toBe("string");
     }
+  });
+});
+
+describe("resolveChecklistHistoryItemMeta", () => {
+  const live = {
+    sectionId: "live-section",
+    sectionName: "Live section",
+    sectionOrder: 9,
+    itemOrder: 8,
+    label: "Live label",
+  };
+
+  it("uses frozen structure after template rows are deleted", () => {
+    expect(resolveChecklistHistoryItemMeta({
+      sectionId: "frozen-section",
+      sectionName: "Opening",
+      sectionOrder: 1,
+      itemOrder: 2,
+      itemLabel: "Check freezer",
+    }, undefined)).toEqual({
+      sectionKey: "frozen-section",
+      sectionName: "Opening",
+      sectionOrder: 1,
+      itemOrder: 2,
+      label: "Check freezer",
+    });
+  });
+
+  it("prefers snapshots and falls back to live metadata for legacy rows", () => {
+    expect(resolveChecklistHistoryItemMeta({
+      sectionId: null,
+      sectionName: null,
+      sectionOrder: null,
+      itemOrder: null,
+      itemLabel: "Frozen label",
+    }, live)).toEqual({
+      sectionKey: "live-section",
+      sectionName: "Live section",
+      sectionOrder: 9,
+      itemOrder: 8,
+      label: "Frozen label",
+    });
   });
 });

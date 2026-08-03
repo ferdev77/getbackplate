@@ -23,6 +23,8 @@ describe("frecuenciaDelChecklist", () => {
     expect(frecuenciaDelChecklist({ recurrence_type: "daily" })).toBe("daily");
     expect(frecuenciaDelChecklist({ recurrence_type: "weekly" })).toBe("weekly");
     expect(frecuenciaDelChecklist({ recurrence_type: "monthly" })).toBe("monthly");
+    expect(frecuenciaDelChecklist({ recurrence_type: "yearly" })).toBe("yearly");
+    expect(frecuenciaDelChecklist({ recurrence_type: "custom_days" })).toBe("custom_days");
   });
 
   it("un reparto con el tipo vacio no se repite", () => {
@@ -46,5 +48,7 @@ describe("etiquetaDeFrecuencia", () => {
     expect(etiquetaDeFrecuencia({ recurrence_type: "daily" })).toBe("Diaria");
     expect(etiquetaDeFrecuencia({ recurrence_type: "weekly" })).toBe("Semanal");
     expect(etiquetaDeFrecuencia({ recurrence_type: "monthly" })).toBe("Mensual");
+    expect(etiquetaDeFrecuencia({ recurrence_type: "yearly" })).toBe("Anual");
+    expect(etiquetaDeFrecuencia({ recurrence_type: "custom_days" })).toBe("Días específicos");
   });
 });

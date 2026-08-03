@@ -143,6 +143,31 @@ export function colorForUser(userId: string) {
   return palette[hash % palette.length] ?? palette[0];
 }
 
+export function resolveChecklistHistoryItemMeta(
+  snapshot: {
+    sectionId: string | null;
+    sectionName: string | null;
+    sectionOrder: number | null;
+    itemOrder: number | null;
+    itemLabel: string | null;
+  },
+  live: {
+    sectionId: string;
+    sectionName: string;
+    sectionOrder: number;
+    itemOrder: number;
+    label: string;
+  } | undefined,
+) {
+  return {
+    sectionKey: snapshot.sectionId ?? live?.sectionId ?? "general",
+    sectionName: snapshot.sectionName ?? live?.sectionName ?? "General",
+    sectionOrder: snapshot.sectionOrder ?? live?.sectionOrder ?? 999,
+    itemOrder: snapshot.itemOrder ?? live?.itemOrder ?? 999,
+    label: snapshot.itemLabel ?? live?.label ?? "Item",
+  };
+}
+
 type BuildChecklistReportsSnapshotParams = {
   supabase: SupabaseClient;
   organizationId: string;
@@ -178,7 +203,7 @@ export async function buildChecklistReportsSnapshot({
       : { data: [] as Array<{ id: string; name: string; city: string | null; state: string | null }> })
     : await branchesQuery;
 
-  let scopedTemplateIds: string[] | null = null;
+  let scopedTemplateIds: string[] = [];
   if (templateCreatorUserId) {
     const { data: ownedTemplates } = await supabase
       .from("checklist_templates")
@@ -192,7 +217,7 @@ export async function buildChecklistReportsSnapshot({
 
   let submissionsQuery = supabase
     .from("checklist_submissions")
-    .select("id, branch_id, template_id, template_name, submitted_by, status, submitted_at, created_at")
+    .select("id, branch_id, template_id, template_id_snapshot, template_name, template_created_by, submitted_by, status, submitted_at, created_at")
     .eq("organization_id", organizationId)
     .gte("created_at", lookbackStart.toISOString())
     .order("created_at", { ascending: false })
@@ -208,7 +233,9 @@ export async function buildChecklistReportsSnapshot({
     // Queda en null cuando la plantilla se elimino; el nombre lo aporta
     // template_name, copiado al responder.
     template_id: string | null;
+    template_id_snapshot: string | null;
     template_name: string | null;
+    template_created_by: string | null;
     submitted_by: string;
     status: string;
     submitted_at: string | null;
@@ -217,10 +244,15 @@ export async function buildChecklistReportsSnapshot({
 
   if (branchScopeProvided && scopedBranchIds.length === 0) {
     submissions = [];
-  } else if (!scopedTemplateIds || scopedTemplateIds.length > 0) {
-    const { data } = scopedTemplateIds
-      ? await submissionsQuery.in("template_id", scopedTemplateIds)
-      : await submissionsQuery;
+  } else {
+    if (templateCreatorUserId) {
+      submissionsQuery = scopedTemplateIds.length
+        ? submissionsQuery.or(
+            `template_created_by.eq.${templateCreatorUserId},and(template_created_by.is.null,template_id.in.(${scopedTemplateIds.join(",")}))`,
+          )
+        : submissionsQuery.eq("template_created_by", templateCreatorUserId);
+    }
+    const { data } = await submissionsQuery;
     submissions = (data ?? []) as typeof submissions;
   }
 
@@ -253,7 +285,7 @@ export async function buildChecklistReportsSnapshot({
     submissionIds.length
       ? supabase
           .from("checklist_submission_items")
-          .select("id, submission_id, template_item_id, item_label, is_checked, is_flagged")
+          .select("id, submission_id, template_item_id, item_label, section_id_snapshot, section_name, section_sort_order, item_sort_order, is_checked, is_flagged")
           .eq("organization_id", organizationId)
           .in("submission_id", submissionIds)
       : Promise.resolve({ data: null }),
@@ -368,6 +400,7 @@ export async function buildChecklistReportsSnapshot({
         item.id,
         {
           label: item.label,
+          sectionId: item.section_id,
           sectionName: section?.name ?? "General",
           sectionOrder: section?.sortOrder ?? 999,
           itemOrder: item.sort_order,
@@ -376,11 +409,31 @@ export async function buildChecklistReportsSnapshot({
     }),
   );
 
-  const itemsBySubmissionId = new Map<string, Array<{ id: string; templateItemId: string; itemLabel: string | null; checked: boolean; flagged: boolean }>>();
+  const itemsBySubmissionId = new Map<string, Array<{
+    id: string;
+    templateItemId: string | null;
+    itemLabel: string | null;
+    sectionId: string | null;
+    sectionName: string | null;
+    sectionOrder: number | null;
+    itemOrder: number | null;
+    checked: boolean;
+    flagged: boolean;
+  }>>();
   const metricsBySubmissionId = new Map<string, { total: number; done: number; flagged: number; photos: number; comments: number }>();
   for (const row of submissionItems ?? []) {
     const list = itemsBySubmissionId.get(row.submission_id) ?? [];
-    list.push({ id: row.id, templateItemId: row.template_item_id, itemLabel: row.item_label ?? null, checked: row.is_checked, flagged: row.is_flagged });
+    list.push({
+      id: row.id,
+      templateItemId: row.template_item_id,
+      itemLabel: row.item_label ?? null,
+      sectionId: row.section_id_snapshot ?? null,
+      sectionName: row.section_name ?? null,
+      sectionOrder: row.section_sort_order ?? null,
+      itemOrder: row.item_sort_order ?? null,
+      checked: row.is_checked,
+      flagged: row.is_flagged,
+    });
     itemsBySubmissionId.set(row.submission_id, list);
     const metrics = metricsBySubmissionId.get(row.submission_id) ?? { total: 0, done: 0, flagged: 0, photos: 0, comments: 0 };
     metrics.total += 1;
@@ -399,13 +452,23 @@ export async function buildChecklistReportsSnapshot({
     const sectionMap = new Map<string, { id: string; name: string; order: number; items: Array<{ id: string; text: string; ok: boolean; flag: boolean; note?: string; photosCount: number; photos?: string[]; itemOrder: number }> }>();
 
     for (const submissionItem of itemsBySubmissionId.get(submission.id) ?? []) {
-      const itemMeta = itemMetaById.get(submissionItem.templateItemId);
-      const sectionName = itemMeta?.sectionName ?? "General";
-      const sectionOrder = itemMeta?.sectionOrder ?? 999;
-      const section = sectionMap.get(sectionName) ?? {
-        id: sectionName.toLowerCase().replace(/\s+/g, "-"),
-        name: sectionName,
-        order: sectionOrder,
+      const itemMeta = submissionItem.templateItemId
+        ? itemMetaById.get(submissionItem.templateItemId)
+        : undefined;
+      const historyMeta = resolveChecklistHistoryItemMeta(
+        {
+          sectionId: submissionItem.sectionId,
+          sectionName: submissionItem.sectionName,
+          sectionOrder: submissionItem.sectionOrder,
+          itemOrder: submissionItem.itemOrder,
+          itemLabel: submissionItem.itemLabel,
+        },
+        itemMeta,
+      );
+      const section = sectionMap.get(historyMeta.sectionKey) ?? {
+        id: historyMeta.sectionKey,
+        name: historyMeta.sectionName,
+        order: historyMeta.sectionOrder,
         items: [] as Array<{
           id: string;
           text: string;
@@ -425,15 +488,15 @@ export async function buildChecklistReportsSnapshot({
         // no debe cambiar si despues se renombra o se borra el item de la
         // plantilla. La plantilla queda solo como respaldo para las respuestas
         // anteriores a la migracion 20260730000001, que no tienen la copia.
-        text: submissionItem.itemLabel ?? itemMeta?.label ?? "Item",
+        text: historyMeta.label,
         ok: submissionItem.checked,
         flag: submissionItem.flagged,
         note: flag?.reason ?? comment,
         photosCount: attachmentCountBySubmissionItemId.get(submissionItem.id) ?? 0,
         photos: attachmentUrlsBySubmissionItemId.get(submissionItem.id) ?? [],
-        itemOrder: itemMeta?.itemOrder ?? 999,
+        itemOrder: historyMeta.itemOrder,
       });
-      sectionMap.set(sectionName, section);
+      sectionMap.set(historyMeta.sectionKey, section);
     }
 
     const categories = [...sectionMap.values()]

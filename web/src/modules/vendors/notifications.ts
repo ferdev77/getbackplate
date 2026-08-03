@@ -11,24 +11,42 @@ import {
 
 const MODULO = "vendors";
 
+export type VendorLocationScope = {
+  branchIds: string[];
+  isGlobal: boolean;
+};
+
 /**
  * Las sucursales de un proveedor, tal como las guarda vendor_locations.
  *
  * Una fila con branch_id null significa "global": el proveedor vale para toda
- * la empresa. Se devuelve [] en ese caso, que es como se representa aca.
+ * la empresa. El booleano explicito evita confundirlo con una consulta fallida
+ * o con un proveedor sin filas de alcance.
  */
 export async function sucursalesDelProveedor(
   supabase: SupabaseClient,
   organizationId: string,
   vendorId: string,
-): Promise<string[]> {
-  const { data } = await supabase
+): Promise<VendorLocationScope> {
+  const { data, error } = await supabase
     .from("vendor_locations")
     .select("branch_id")
     .eq("organization_id", organizationId)
     .eq("vendor_id", vendorId);
 
-  return (data ?? []).map((fila) => fila.branch_id).filter((id): id is string => Boolean(id));
+  if (error) {
+    throw new Error(`No se pudo resolver el alcance del proveedor: ${error.message}`);
+  }
+
+  const rows = data ?? [];
+  const isGlobal = rows.some((row) => row.branch_id === null);
+  const branchIds = rows.map((row) => row.branch_id).filter((id): id is string => Boolean(id));
+
+  if (rows.length === 0 || (isGlobal && branchIds.length > 0)) {
+    throw new Error("El proveedor tiene un alcance de locaciones inválido");
+  }
+
+  return { branchIds, isGlobal };
 }
 
 /**
@@ -54,11 +72,7 @@ export async function notifyVendorEvent(params: {
   /** El nombre del proveedor: es un dato, no se traduce. */
   body: string;
   source: string;
-  /**
-   * Sucursales del proveedor. Vacio significa global (vale para toda la
-   * empresa), asi que en ese caso no se filtra a nadie.
-   */
-  branchIds: string[];
+  locationScope: VendorLocationScope;
 }): Promise<void> {
   const [admins, operativos, locale] = await Promise.all([
     companyAdminUserIds(params.supabase, params.organizationId),
@@ -67,13 +81,12 @@ export async function notifyVendorEvent(params: {
   ]);
   const t = createNotificationsTranslator(locale);
 
-  const esGlobal = params.branchIds.length === 0;
-  const delProveedor = new Set(params.branchIds);
+  const delProveedor = new Set(params.locationScope.branchIds);
 
   const operativosEnAlcance = operativos
     .filter(
       (persona) =>
-        esGlobal ||
+        params.locationScope.isGlobal ||
         persona.alcanzaTodas ||
         persona.locationIds.some((locationId) => delProveedor.has(locationId)),
     )

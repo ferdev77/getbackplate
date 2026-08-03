@@ -23,6 +23,7 @@ import { DocumentViewModeToggle } from "@/shared/ui/document-view-mode-toggle";
 import { FilterBar } from "@/shared/ui/filter-bar";
 import { OperationHeaderCard } from "@/shared/ui/operation-header-card";
 import { useDndSafetyNet, markDndActive, markDndInactive } from "@/modules/documents/hooks/use-dnd-safety-net";
+import { parseScope, hasAnyScopeValue } from "@/modules/documents/lib/documents-tree-utils";
 import { toast } from "sonner";
 
 type FolderRow = {
@@ -46,25 +47,6 @@ type DocumentRow = {
   branch_id?: string | null;
   access_scope?: unknown;
 };
-
-function parseScope(scope: unknown) {
-  if (!scope || typeof scope !== "object") {
-    return { departments: [] as string[], users: [] as string[] };
-  }
-  const value = scope as Record<string, unknown>;
-  return {
-    departments: Array.isArray(value.department_ids)
-      ? value.department_ids.filter((x): x is string => typeof x === "string")
-      : [],
-    users: Array.isArray(value.users)
-      ? value.users.filter((x): x is string => typeof x === "string")
-      : [],
-  };
-}
-
-function hasAnyScopeValue(scope: ReturnType<typeof parseScope>) {
-  return scope.departments.length > 0 || scope.users.length > 0;
-}
 
 type Props = {
   organizationId: string;

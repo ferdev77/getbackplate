@@ -24,6 +24,10 @@ type AnnouncementRow = {
   target_scope: unknown;
   created_by: string | null;
   created_by_name?: string;
+  is_recurring?: boolean;
+  recurrence_type?: string;
+  custom_days?: number[];
+  notification_channels?: string[];
 };
 
 type Props = {
@@ -163,6 +167,10 @@ export function EmployeeAnnouncementsWorkspace({
       };
       created_by: string | null;
       created_by_name?: string;
+      is_recurring?: boolean;
+      recurrence_type?: string;
+      custom_days?: number[];
+      notification_channels?: string[];
     };
   }) {
     const nextRow: AnnouncementRow = {
@@ -177,6 +185,10 @@ export function EmployeeAnnouncementsWorkspace({
       target_scope: payload.announcement.target_scope,
       created_by: payload.announcement.created_by ?? viewerUserId,
       created_by_name: payload.announcement.created_by_name ?? publisherName,
+      is_recurring: payload.announcement.is_recurring,
+      recurrence_type: payload.announcement.recurrence_type,
+      custom_days: payload.announcement.custom_days,
+      notification_channels: payload.announcement.notification_channels,
     };
 
     setFeed((prev) => {
@@ -255,6 +267,10 @@ export function EmployeeAnnouncementsWorkspace({
                           department_scope: target.department_ids,
                           position_scope: target.position_ids,
                           user_scope: target.users,
+                          is_recurring: ann.is_recurring,
+                          recurrence_type: ann.recurrence_type,
+                          custom_days: ann.custom_days,
+                          notification_channels: ann.notification_channels,
                         }}
                       >
                         <Pencil className="h-3.5 w-3.5" />

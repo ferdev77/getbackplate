@@ -6,6 +6,7 @@ import { ScopeSelector } from "@/shared/ui/scope-selector";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import {
   ScopeModalContent,
+  ScopeModalDialog,
   ScopeModalHeader,
   ScopeModalField,
   ScopeModalNote,
@@ -65,8 +66,11 @@ export function DocumentEditModal({ document, folders, branches, departments, po
   const [scopeValid, setScopeValid] = useState(true);
 
   return (
-    <div className="fixed inset-0 z-[1020] flex items-center justify-center bg-black/45 p-5">
-      <div className={SCOPE_MODAL_PANEL}>
+    <ScopeModalDialog
+      onClose={onCancel}
+      overlayClassName="fixed inset-0 z-[1020] flex items-center justify-center bg-black/45 p-5"
+      panelClassName={SCOPE_MODAL_PANEL}
+    >
         <ScopeModalHeader
           title="Editar documento"
           subtitle={document.title}
@@ -101,6 +105,7 @@ export function DocumentEditModal({ document, folders, branches, departments, po
                   onChange={(event) => setTitle(event.target.value)}
                   className={SCOPE_MODAL_INPUT}
                   required
+                  data-modal-initial-focus
                 />
               </ScopeModalField>
 
@@ -161,7 +166,6 @@ export function DocumentEditModal({ document, folders, branches, departments, po
             />
           </div>
         </form>
-      </div>
-    </div>
+    </ScopeModalDialog>
   );
 }

@@ -55,10 +55,11 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
   const positionScopes = scope.position_ids;
   const userScopes = scope.users;
   const notifyChannels = formData.getAll("notify_channel").map(String);
-  const normalizedNotifyChannels = [...new Set([...notifyChannels, "push"])].filter((channel) =>
+  const selectedNotifyChannels = [...new Set(notifyChannels)].filter((channel) =>
     ["sms", "email", "in_app", "push"].includes(channel),
   );
-  const channelsForDelivery = normalizedNotifyChannels;
+  const normalizedNotifyChannels = [...new Set([...selectedNotifyChannels, "push"])];
+  const channelsForDelivery = announcementId ? [] : normalizedNotifyChannels;
 
   const isRecurring = String(formData.get("is_recurring") ?? "") === "on";
   const recurrenceType = String(formData.get("recurrence_type") ?? "daily");
@@ -123,7 +124,7 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
       isRecurring,
       recurrenceType,
       customDays,
-      channels: normalizedNotifyChannels,
+      channels: announcementId ? selectedNotifyChannels : normalizedNotifyChannels,
     },
   });
 

@@ -53,63 +53,62 @@ export async function upsertAnnouncement(
   input: UpsertAnnouncementInput,
 ): Promise<UpsertAnnouncementResult> {
   const { supabase, organizationId, announcementId } = input;
+  const now = new Date();
+  const normalizedExpiresAt = input.expiresAt ? new Date(input.expiresAt).toISOString() : null;
+  const nextRun = input.recurrence?.isRecurring
+    ? calculateNextRunAt(
+        input.recurrence.recurrenceType as RecurrenceType,
+        null,
+        input.recurrence.customDays,
+        now,
+      )
+    : null;
+  const expiresAt = normalizedExpiresAt ? new Date(normalizedExpiresAt) : null;
+  const shouldRun = Boolean(
+    input.recurrence?.isRecurring
+    && nextRun
+    && (!expiresAt || (expiresAt.getTime() > now.getTime() && nextRun.getTime() < expiresAt.getTime())),
+  );
+  const { data: savedAnnouncementId, error } = await supabase.rpc("save_announcement_transaction", {
+    p_organization_id: organizationId,
+    p_announcement_id: announcementId,
+    p_created_by: input.createdBy,
+    p_title: input.title,
+    p_body: input.body,
+    p_kind: input.kind,
+    p_is_featured: input.isFeatured,
+    p_expires_at: normalizedExpiresAt,
+    p_publish_at: now.toISOString(),
+    // La unica fuente de verdad del alcance es target_scope.
+    p_target_scope: input.scope,
+    p_should_run: shouldRun,
+    p_recurrence_type: input.recurrence?.recurrenceType ?? "none",
+    p_custom_days: input.recurrence?.customDays ?? [],
+    p_next_run_at: shouldRun && nextRun ? nextRun.toISOString() : null,
+    p_schedule_metadata: { channels: input.recurrence?.channels ?? [] },
+  });
 
-  if (announcementId) {
-    const { data: existing } = await supabase
-      .from("announcements")
-      .select("id")
-      .eq("organization_id", organizationId)
-      .eq("id", announcementId)
-      .maybeSingle();
-
-    if (!existing) {
+  if (error || typeof savedAnnouncementId !== "string") {
+    if (error?.message === "announcement_not_found") {
       return { ok: false, message: "No se encontró el aviso que se quiere editar" };
     }
-  }
-
-  const payload = {
-    branch_id: null,
-    title: input.title,
-    body: input.body,
-    kind: input.kind,
-    is_featured: input.isFeatured,
-    expires_at: input.expiresAt ? new Date(input.expiresAt).toISOString() : null,
-    // La unica fuente de verdad del alcance es target_scope (ver
-    // README_SCOPE_GOLDEN_RULE.md).
-    target_scope: input.scope,
-  };
-
-  const mutation = announcementId
-    ? await supabase
-        .from("announcements")
-        .update(payload)
-        .eq("organization_id", organizationId)
-        .eq("id", announcementId)
-        .select("id")
-        .single()
-    : await supabase
-        .from("announcements")
-        .insert({
-          organization_id: organizationId,
-          created_by: input.createdBy,
-          publish_at: new Date().toISOString(),
-          ...payload,
-        })
-        .select("id")
-        .single();
-
-  const { data: announcement, error } = mutation;
-  if (error || !announcement) {
+    if (error?.code === "40001") {
+      return { ok: false, message: "El aviso se está repartiendo en este momento. Volvé a intentar en unos minutos." };
+    }
     return { ok: false, message: `No se pudo guardar el aviso: ${error?.message ?? "error"}` };
   }
 
   let sentContactsCount = 0;
 
-  if (input.deliveryChannels.length > 0) {
+  const isActive = !normalizedExpiresAt || new Date(normalizedExpiresAt).getTime() > now.getTime();
+
+  // La notificacion inmediata pertenece a la publicacion. Una edicion solo
+  // cambia lo que se ve y, si corresponde, la configuracion futura.
+  if (!announcementId && isActive && input.deliveryChannels.length > 0) {
     const { error: deliveriesError } = await supabase.from("announcement_deliveries").insert(
       input.deliveryChannels.map((channel) => ({
         organization_id: organizationId,
-        announcement_id: announcement.id,
+        announcement_id: savedAnnouncementId,
         channel,
         status: "queued",
       })),
@@ -128,70 +127,14 @@ export async function upsertAnnouncement(
     }
   }
 
-  await syncAnnouncementScheduledJob({
-    supabase,
-    organizationId,
-    announcementId: announcement.id,
-    recurrence: input.recurrence,
-  });
-
-  return { ok: true, announcementId: announcement.id, sentContactsCount };
-}
-
-/** Deja el reparto periodico del aviso en sincronia con lo elegido. */
-async function syncAnnouncementScheduledJob(params: {
-  supabase: SupabaseClient;
-  organizationId: string;
-  announcementId: string;
-  recurrence?: UpsertAnnouncementInput["recurrence"];
-}) {
-  const { supabase, organizationId, announcementId, recurrence } = params;
-
-  if (!recurrence?.isRecurring) {
-    // Si le sacaron la periodicidad, el reparto no debe seguir existiendo.
+  if (announcementId && !isActive) {
     await supabase
-      .from("scheduled_jobs")
-      .delete()
+      .from("announcement_deliveries")
+      .update({ status: "expired" })
       .eq("organization_id", organizationId)
-      .eq("job_type", "announcement_delivery")
-      .eq("target_id", announcementId);
-    return;
+      .eq("announcement_id", savedAnnouncementId)
+      .eq("status", "queued");
   }
 
-  const nextRun = calculateNextRunAt(
-    recurrence.recurrenceType as RecurrenceType,
-    null,
-    recurrence.customDays,
-  );
-
-  const { data: existingJob } = await supabase
-    .from("scheduled_jobs")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .eq("job_type", "announcement_delivery")
-    .eq("target_id", announcementId)
-    .maybeSingle();
-
-  if (existingJob) {
-    await supabase
-      .from("scheduled_jobs")
-      .update({
-        recurrence_type: recurrence.recurrenceType,
-        custom_days: recurrence.customDays,
-        next_run_at: nextRun.toISOString(),
-        metadata: { channels: recurrence.channels },
-      })
-      .eq("id", existingJob.id);
-    return;
-  }
-
-  await supabase.from("scheduled_jobs").insert({
-    organization_id: organizationId,
-    job_type: "announcement_delivery",
-    target_id: announcementId,
-    recurrence_type: recurrence.recurrenceType,
-    custom_days: recurrence.customDays,
-    next_run_at: nextRun.toISOString(),
-    metadata: { channels: recurrence.channels },
-  });
+  return { ok: true, announcementId: savedAnnouncementId, sentContactsCount };
 }

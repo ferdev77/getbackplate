@@ -53,6 +53,7 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
     adminUserIds,
     scopeUsers,
     publisherName,
+    recurrenceByAnnouncementId,
   } = await getAnnouncementPageData(tenant.organizationId);
 
   const announcementTimestamp = (row: { publish_at: string | null; created_at: string }) => {
@@ -180,6 +181,7 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
           <div className="space-y-3">
             {filteredAnnouncements.map((ann) => {
               const targetForEdit = parseAnnouncementScope(ann.target_scope);
+              const recurrence = recurrenceByAnnouncementId[ann.id];
               return (
                 <div key={ann.id}>
                   <AnnouncementCard
@@ -215,6 +217,10 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
                               department_scope: targetForEdit.department_ids,
                               position_scope: targetForEdit.position_ids,
                               user_scope: targetForEdit.users,
+                              is_recurring: recurrence?.is_recurring ?? false,
+                              recurrence_type: recurrence?.recurrence_type,
+                              custom_days: recurrence?.custom_days,
+                              notification_channels: recurrence?.notification_channels,
                             }}
                           >
                             <Pencil className="h-3.5 w-3.5" />
@@ -257,6 +263,7 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
             editingAnnouncement
               ? (() => {
                   const target = parseAnnouncementScope(editingAnnouncement.target_scope);
+                  const recurrence = recurrenceByAnnouncementId[editingAnnouncement.id];
                   return {
                     id: editingAnnouncement.id,
                     kind: editingAnnouncement.kind,
@@ -268,6 +275,10 @@ export default async function CompanyAnnouncementsPage({ searchParams }: Company
                     department_scope: target.department_ids,
                     position_scope: target.position_ids,
                     user_scope: target.users,
+                    is_recurring: recurrence?.is_recurring ?? false,
+                    recurrence_type: recurrence?.recurrence_type,
+                    custom_days: recurrence?.custom_days,
+                    notification_channels: recurrence?.notification_channels,
                   };
                 })()
               : undefined

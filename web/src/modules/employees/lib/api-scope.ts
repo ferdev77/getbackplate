@@ -49,7 +49,7 @@ export async function resolveEmployeeAllowedLocationIds(
 ): Promise<string[]> {
   const admin = createSupabaseAdminClient();
 
-  const [{ data: employeeRow }, { data: membershipRows }] = await Promise.all([
+  const [employeeResult, membershipResult] = await Promise.all([
     admin
       .from("employees")
       .select("branch_id, all_locations, location_scope_ids")
@@ -65,12 +65,26 @@ export async function resolveEmployeeAllowedLocationIds(
       .limit(20),
   ]);
 
-  const { data: branches } = await admin
+  if (employeeResult.error) {
+    throw new Error(`No se pudo resolver el alcance del empleado: ${employeeResult.error.message}`);
+  }
+  if (membershipResult.error) {
+    throw new Error(`No se pudo resolver el alcance de membresías: ${membershipResult.error.message}`);
+  }
+
+  const employeeRow = employeeResult.data;
+  const membershipRows = membershipResult.data;
+
+  const { data: branches, error: branchesError } = await admin
     .from("branches")
     .select("id")
     .eq("organization_id", organizationId)
     .eq("is_active", true)
     .order("name", { ascending: true });
+
+  if (branchesError) {
+    throw new Error(`No se pudieron resolver las locaciones activas: ${branchesError.message}`);
+  }
 
   // La regla vive en combinarLocaciones: aca solo se traen las fuentes.
   return combinarLocaciones({

@@ -6,6 +6,7 @@ import { ScopeSelector } from "@/shared/ui/scope-selector";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import {
   ScopeModalContent,
+  ScopeModalDialog,
   ScopeModalHeader,
   ScopeModalField,
   ScopeModalNote,
@@ -60,8 +61,11 @@ export function FolderEditModal({ folder, folders, branches, departments, positi
   const [scopeValid, setScopeValid] = useState(true);
 
   return (
-    <div className="fixed inset-0 z-[1020] flex items-center justify-center bg-black/45 p-5">
-      <div className={SCOPE_MODAL_PANEL}>
+    <ScopeModalDialog
+      onClose={onCancel}
+      overlayClassName="fixed inset-0 z-[1020] flex items-center justify-center bg-black/45 p-5"
+      panelClassName={SCOPE_MODAL_PANEL}
+    >
         <ScopeModalHeader
           title="Editar carpeta"
           subtitle="Lo que guardes adentro hereda este alcance si no tiene uno propio"
@@ -93,6 +97,7 @@ export function FolderEditModal({ folder, folders, branches, departments, positi
                   onChange={(event) => setName(event.target.value)}
                   className={SCOPE_MODAL_INPUT}
                   required
+                  data-modal-initial-focus
                 />
               </ScopeModalField>
 
@@ -151,7 +156,6 @@ export function FolderEditModal({ folder, folders, branches, departments, positi
             />
           </div>
         </form>
-      </div>
-    </div>
+    </ScopeModalDialog>
   );
 }

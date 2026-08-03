@@ -8,6 +8,10 @@ import { canUseChecklistTemplateInTenant } from "@/shared/lib/checklist-access";
 import { assertTenantModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { resolveEmployeeAllowedLocationIds } from "@/shared/lib/employee-api-scope";
+import {
+  resolveChecklistSubmissionBranch,
+  validateExactChecklistItemSet,
+} from "@/modules/checklists/lib/submission-integrity";
 
 const EVIDENCE_BUCKET = "checklist-evidence";
 const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024;
@@ -220,15 +224,26 @@ export async function POST(request: Request) {
     }
   }
 
-  const itemIds = Array.from(new Set(items.map((item) => item.template_item_id).filter(Boolean)));
-  const { data: validItems } = await supabase
-    .from("checklist_template_items")
+  const submittedItemIds = items.map((item) => item.template_item_id).filter(Boolean);
+  const { data: templateSections } = await supabase
+    .from("checklist_template_sections")
     .select("id")
     .eq("organization_id", tenant.organizationId)
-    .in("id", itemIds);
+    .eq("template_id", templateId);
+  const sectionIds = (templateSections ?? []).map((section) => section.id);
+  const { data: expectedItems } = sectionIds.length
+    ? await supabase
+        .from("checklist_template_items")
+        .select("id")
+        .eq("organization_id", tenant.organizationId)
+        .in("section_id", sectionIds)
+    : { data: [] as Array<{ id: string }> };
 
-  const validSet = new Set((validItems ?? []).map((row) => row.id));
-  if (itemIds.some((id) => !validSet.has(id))) {
+  const itemSetValidation = validateExactChecklistItemSet(
+    submittedItemIds,
+    (expectedItems ?? []).map((row) => row.id),
+  );
+  if (!itemSetValidation.ok) {
     return fail("Ítems inválidos para esta plantilla", 400, { template_id: templateId });
   }
 
@@ -243,7 +258,11 @@ export async function POST(request: Request) {
   await ensureBucket();
 
   const submissionId = crypto.randomUUID();
-  const branchId = tenant.branchId ?? template.branch_id;
+  const branchId = resolveChecklistSubmissionBranch({
+    templateBranchId: template.branch_id,
+    tenantBranchId: tenant.branchId ?? null,
+    employeeBranchId: employeeRow?.branch_id ?? null,
+  });
   
   const uploadedEvidencePaths: string[] = [];
   const rpcItemsPayload: SubmissionItemPayload[] = [];

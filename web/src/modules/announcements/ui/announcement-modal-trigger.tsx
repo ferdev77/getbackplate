@@ -17,6 +17,10 @@ type AnnouncementInitial = {
   department_scope: string[];
   position_scope: string[];
   user_scope: string[];
+  is_recurring?: boolean;
+  recurrence_type?: string;
+  custom_days?: number[];
+  notification_channels?: string[];
 };
 
 type AnnouncementModalTriggerProps = {
@@ -53,6 +57,10 @@ type AnnouncementModalTriggerProps = {
       };
       created_by: string | null;
       created_by_name?: string;
+      is_recurring?: boolean;
+      recurrence_type?: string;
+      custom_days?: number[];
+      notification_channels?: string[];
     };
   }) => void;
 };

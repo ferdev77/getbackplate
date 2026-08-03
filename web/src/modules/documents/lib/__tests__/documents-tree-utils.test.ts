@@ -116,6 +116,10 @@ describe("hasAnyScopeValue", () => {
     expect(hasAnyScopeValue({ ...empty, departments: ["d1"] })).toBe(true);
   });
 
+  it("returns true when positions has values", () => {
+    expect(hasAnyScopeValue({ ...empty, positions: ["p1"] })).toBe(true);
+  });
+
   it("returns true when users has values", () => {
     expect(hasAnyScopeValue({ ...empty, users: ["u1"] })).toBe(true);
   });

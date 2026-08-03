@@ -37,6 +37,7 @@ function supabaseFalso(opciones: {
   sucursales?: string[];
   /** Locaciones asignadas a un proveedor, para sucursalesDelProveedor. */
   locacionesDelProveedor?: Array<string | null>;
+  errorLocaciones?: string;
 } = {}) {
   const admins = opciones.admins ?? [];
   const operativos = opciones.operativos ?? [];
@@ -90,7 +91,11 @@ function supabaseFalso(opciones: {
           }
           return filas;
         },
-        error: null,
+        get error() {
+          return tabla === "vendor_locations" && opciones.errorLocaciones
+            ? { message: opciones.errorLocaciones }
+            : null;
+        },
       };
 
       return cadena;
@@ -117,7 +122,7 @@ describe("el idioma del aviso", () => {
       title: "Nuevo proveedor",
       body: "Acme Supplies",
       source: "vendor_created",
-      branchIds: [],
+      locationScope: { branchIds: [], isGlobal: true },
     });
 
     expect(sendPushToUsers.mock.calls[0]![1].title).toBe("Nuevo proveedor");
@@ -133,7 +138,7 @@ describe("el idioma del aviso", () => {
       title: "Nuevo proveedor",
       body: "Acme Supplies",
       source: "vendor_created",
-      branchIds: [],
+      locationScope: { branchIds: [], isGlobal: true },
     });
 
     expect(sendPushToUsers.mock.calls[0]![1].title).toBe("New vendor added");
@@ -151,7 +156,7 @@ describe("notifyVendorEvent", () => {
       title: "New vendor added",
       body: "Acme Supplies",
       source: "vendor_created",
-      branchIds: [],
+      locationScope: { branchIds: [], isGlobal: true },
     });
 
     expect(sendPushToUsers).toHaveBeenCalledWith(
@@ -174,7 +179,7 @@ describe("notifyVendorEvent", () => {
       title: "Vendor updated",
       body: "Acme Supplies",
       source: "vendor_updated",
-      branchIds: [],
+      locationScope: { branchIds: [], isGlobal: true },
     });
 
     expect(sendPushToUsers).toHaveBeenCalledTimes(1);
@@ -189,7 +194,7 @@ describe("notifyVendorEvent", () => {
       title: "Vendor deleted",
       body: "Acme Supplies",
       source: "vendor_deleted",
-      branchIds: [],
+      locationScope: { branchIds: [], isGlobal: true },
     });
 
     expect(sendPushToUsers).not.toHaveBeenCalled();
@@ -210,7 +215,7 @@ describe("el alcance por sucursal", () => {
       title: "Vendor updated",
       body: "Acme Supplies",
       source: "vendor_updated",
-      branchIds: ["loc-a"],
+      locationScope: { branchIds: ["loc-a"], isGlobal: false },
     });
 
     expect(avisados()).toEqual(["de-la-a"]);
@@ -229,7 +234,7 @@ describe("el alcance por sucursal", () => {
       title: "New vendor added",
       body: "Acme Supplies",
       source: "vendor_created",
-      branchIds: [],
+      locationScope: { branchIds: [], isGlobal: true },
     });
 
     expect(avisados().sort()).toEqual(["de-la-a", "de-la-b"]);
@@ -248,7 +253,7 @@ describe("el alcance por sucursal", () => {
       title: "Vendor updated",
       body: "Acme Supplies",
       source: "vendor_updated",
-      branchIds: ["loc-a"],
+      locationScope: { branchIds: ["loc-a"], isGlobal: false },
     });
 
     expect(avisados()).toEqual(["regional"]);
@@ -265,7 +270,7 @@ describe("el alcance por sucursal", () => {
       title: "Vendor updated",
       body: "Acme Supplies",
       source: "vendor_updated",
-      branchIds: ["loc-a"],
+      locationScope: { branchIds: ["loc-a"], isGlobal: false },
     });
 
     expect(avisados()).toEqual(["admin-1"]);
@@ -280,16 +285,32 @@ describe("sucursalesDelProveedor", () => {
       "vendor-1",
     );
 
-    expect(filas).toEqual(["loc-a", "loc-b"]);
+    expect(filas).toEqual({ branchIds: ["loc-a", "loc-b"], isGlobal: false });
   });
 
-  it("un proveedor global se guarda con branch_id null: devuelve vacio, que es como se representa", async () => {
+  it("devuelve alcance global explícito para una fila con branch_id null", async () => {
     const filas = await sucursalesDelProveedor(
       supabaseFalso({ locacionesDelProveedor: [null] }),
       "org-1",
       "vendor-1",
     );
 
-    expect(filas).toEqual([]);
+    expect(filas).toEqual({ branchIds: [], isGlobal: true });
+  });
+
+  it("falla cerrado si no hay una fila de alcance", async () => {
+    await expect(
+      sucursalesDelProveedor(supabaseFalso(), "org-1", "vendor-1"),
+    ).rejects.toThrow("alcance de locaciones inválido");
+  });
+
+  it("falla cerrado si la consulta de locaciones falla", async () => {
+    await expect(
+      sucursalesDelProveedor(
+        supabaseFalso({ errorLocaciones: "database unavailable" }),
+        "org-1",
+        "vendor-1",
+      ),
+    ).rejects.toThrow("No se pudo resolver el alcance del proveedor");
   });
 });

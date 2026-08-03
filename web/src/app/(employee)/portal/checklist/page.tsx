@@ -12,6 +12,7 @@ import { getEnabledModulesCached } from "@/modules/organizations/cached-queries"
 import { getBranchDisplayName } from "@/shared/lib/branch-display";
 import { OperationHeaderCard } from "@/shared/ui/operation-header-card";
 import { resolveEmployeeLocationScope } from "@/shared/lib/employee-location-scope";
+import { scopeSubjectOverlapsLocations } from "@/shared/lib/scope-selector-model";
 
 type EmployeeChecklistPageProps = {
   searchParams: Promise<{ preview?: string | string[] }>;
@@ -298,7 +299,7 @@ export default async function EmployeeChecklistPage({ searchParams }: EmployeeCh
   ]);
 
   const scopeUsersInAllowedLocations = scopeUsers.filter(
-    (user) => Boolean(user.user_id) && Boolean(user.branch_id) && allowedLocationIds.includes(user.branch_id as string),
+    (user) => Boolean(user.user_id) && scopeSubjectOverlapsLocations(user, allowedLocationIds),
   );
 
   return (

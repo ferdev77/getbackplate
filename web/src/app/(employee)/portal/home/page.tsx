@@ -222,7 +222,7 @@ export default async function EmployeeHomePage() {
       const publishAt = item.publish_at ? new Date(item.publish_at) : null;
       const expiresAt = item.expires_at ? new Date(item.expires_at) : null;
       const published = !publishAt || publishAt <= now;
-      const notExpired = !expiresAt || expiresAt >= now;
+      const notExpired = !expiresAt || expiresAt > now;
       if (!published || !notExpired) return false;
 
       return canReadAnnouncementInTenant({

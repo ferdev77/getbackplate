@@ -20,7 +20,7 @@
 
 import { createChecklistsTranslator } from "@/modules/checklists/checklists.i18n";
 
-export type TipoDeFrecuencia = "none" | "daily" | "weekly" | "monthly";
+export type TipoDeFrecuencia = "none" | "daily" | "weekly" | "monthly" | "yearly" | "custom_days";
 
 /** Lo que se le muestra a la persona, igual que en el selector de recurrencia. */
 export const ETIQUETA_DE_FRECUENCIA: Record<TipoDeFrecuencia, string> = {
@@ -28,9 +28,11 @@ export const ETIQUETA_DE_FRECUENCIA: Record<TipoDeFrecuencia, string> = {
   daily: "Diaria",
   weekly: "Semanal",
   monthly: "Mensual",
+  yearly: "Anual",
+  custom_days: "Días específicos",
 };
 
-const TIPOS: TipoDeFrecuencia[] = ["none", "daily", "weekly", "monthly"];
+const TIPOS: TipoDeFrecuencia[] = ["none", "daily", "weekly", "monthly", "yearly", "custom_days"];
 
 /**
  * La frecuencia real de un checklist.

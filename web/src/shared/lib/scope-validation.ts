@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { combinarLocaciones, type FuenteDeLocaciones } from "@/modules/employees/lib/location-sources";
+
 export type ScopeValidationField = "locations" | "departments" | "positions" | "users";
 
 type ValidateTenantScopeReferencesInput = {
@@ -161,24 +163,64 @@ export async function validateEmployeeUserScopeWithinLocations(input: {
   }
 
   const allowedLocationIds = unique(input.allowedLocationIds ?? []);
-  const { data: rows, error } = await input.supabase
-    .from("employees")
-    .select("user_id, branch_id")
-    .eq("organization_id", input.organizationId)
-    .in("user_id", userIds);
+  const [employeesResult, membershipsResult, profilesResult, branchesResult] = await Promise.all([
+    input.supabase
+      .from("employees")
+      .select("user_id, branch_id, all_locations, location_scope_ids")
+      .eq("organization_id", input.organizationId)
+      .in("user_id", userIds),
+    input.supabase
+      .from("memberships")
+      .select("user_id, branch_id, all_locations, location_scope_ids")
+      .eq("organization_id", input.organizationId)
+      .eq("status", "active")
+      .in("user_id", userIds),
+    input.supabase
+      .from("organization_user_profiles")
+      .select("user_id, branch_id, all_locations, location_scope_ids")
+      .eq("organization_id", input.organizationId)
+      .eq("status", "active")
+      .in("user_id", userIds),
+    input.supabase
+      .from("branches")
+      .select("id")
+      .eq("organization_id", input.organizationId)
+      .eq("is_active", true),
+  ]);
 
-  if (error) {
-    return { ok: false, field: "users" };
+  for (const [source, error] of [
+    ["employees", employeesResult.error],
+    ["memberships", membershipsResult.error],
+    ["organization_user_profiles", profilesResult.error],
+    ["branches", branchesResult.error],
+  ] as const) {
+    if (error) throw new Error(`No se pudo validar el alcance de usuarios en ${source}: ${error.message}`);
   }
 
+  const sourcesByUserId = new Map<string, FuenteDeLocaciones[]>();
+  const addSources = (rows: Array<{ user_id: string | null } & FuenteDeLocaciones>) => {
+    for (const row of rows) {
+      if (!row.user_id) continue;
+      const sources = sourcesByUserId.get(row.user_id) ?? [];
+      sources.push(row);
+      sourcesByUserId.set(row.user_id, sources);
+    }
+  };
+
+  addSources(employeesResult.data ?? []);
+  addSources(membershipsResult.data ?? []);
+  addSources(profilesResult.data ?? []);
+
+  const allowed = new Set(allowedLocationIds);
+  const allLocationIds = (branchesResult.data ?? []).map((row) => row.id).filter(Boolean);
   const validUserIds = new Set(
-    (rows ?? [])
-      .filter((row) => {
-        if (!row.user_id) return false;
-        if (allowedLocationIds.length === 0) return false;
-        return Boolean(row.branch_id && allowedLocationIds.includes(row.branch_id));
-      })
-      .map((row) => row.user_id as string),
+    userIds.filter((userId) => {
+      const { locationIds } = combinarLocaciones({
+        fuentes: sourcesByUserId.get(userId) ?? [],
+        todasLasLocaciones: allLocationIds,
+      });
+      return locationIds.some((locationId) => allowed.has(locationId));
+    }),
   );
 
   if (validUserIds.size !== userIds.length) {

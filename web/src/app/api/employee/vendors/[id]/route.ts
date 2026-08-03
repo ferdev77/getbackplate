@@ -7,7 +7,12 @@ import {
   resolveEmployeeVendorScope,
 } from "@/modules/vendors/lib/employee-scope";
 import { logAuditEvent } from "@/shared/lib/audit";
-import { notifyVendorEvent, sucursalesDelProveedor } from "@/modules/vendors/notifications";
+import { notifyVendorEvent } from "@/modules/vendors/notifications";
+import {
+  deleteEmployeeVendorTransaction,
+  mapVendorMutationError,
+  saveEmployeeVendorTransaction,
+} from "@/modules/vendors/mutation";
 
 const nullableStr = (max: number) =>
   z.preprocess(
@@ -59,44 +64,40 @@ export async function PUT(request: Request, { params }: RouteParams) {
   const admin = createSupabaseAdminClient();
 
   // Un empleado solo toca proveedores de sus locaciones.
-  const alcance = await resolveEmployeeVendorScope(admin, organizationId, access.userId);
+  let alcance;
+  try {
+    alcance = await resolveEmployeeVendorScope(admin, organizationId, access.userId);
+  } catch (error) {
+    console.error("[employee vendors PUT] scope error:", error);
+    return NextResponse.json({ error: "No se pudo resolver el alcance de locaciones" }, { status: 500 });
+  }
+  if (alcance.allowedLocationIds.length === 0) {
+    return NextResponse.json(
+      { error: "No tienes locaciones habilitadas para gestionar proveedores", code: "vendor_employee_scope_empty" },
+      { status: 403 },
+    );
+  }
   if (!alcance.visibleVendorIds.has(id)) {
     return NextResponse.json({ error: "Este proveedor no pertenece a tus locaciones" }, { status: 403 });
   }
 
 
-  if (parsed.data.category) {
-    const { data: category } = await admin
-      .from("vendor_categories")
-      .select("id")
-      .eq("organization_id", organizationId)
-      .eq("code", parsed.data.category)
-      .maybeSingle();
+  const { data: existing, error: existingError } = await admin
+    .from("vendors")
+    .select("*")
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
 
-    if (!category) {
-      return NextResponse.json({ error: "Categoría inválida" }, { status: 422 });
-    }
+  if (existingError) {
+    console.error("[employee vendors PUT] existing vendor error:", existingError);
+    return NextResponse.json({ error: "No se pudo consultar el proveedor" }, { status: 500 });
   }
-
-  const [{ data: existing }, { data: existingLocations }] = await Promise.all([
-    admin
-      .from("vendors")
-      .select("*")
-      .eq("id", id)
-      .eq("organization_id", organizationId)
-      .maybeSingle(),
-    admin
-      .from("vendor_locations")
-      .select("branch_id")
-      .eq("vendor_id", id)
-      .eq("organization_id", organizationId),
-  ]);
 
   if (!existing) {
     return NextResponse.json({ error: "Proveedor no encontrado" }, { status: 404 });
   }
 
-  const existingBranchIds = (existingLocations ?? []).map((l) => l.branch_id).filter(Boolean).sort();
   const { branch_ids, ...updateFields } = parsed.data;
 
   if (branch_ids !== undefined) {
@@ -121,48 +122,23 @@ export async function PUT(request: Request, { params }: RouteParams) {
   if ("notes" in updateFields) updatePayload.notes = updateFields.notes || null;
   if (updateFields.is_active !== undefined) updatePayload.is_active = updateFields.is_active;
 
-  if (Object.keys(updatePayload).length > 0) {
-    const { error: updateError } = await admin
-      .from("vendors")
-      .update(updatePayload)
-      .eq("id", id)
-      .eq("organization_id", organizationId);
+  const requestedBranchIds = branch_ids === undefined
+    ? null
+    : branch_ids.length > 0 ? branch_ids : alcance.allowedLocationIds;
+  const { data: savedVendor, error: saveError } = await saveEmployeeVendorTransaction(admin, {
+    organizationId,
+    vendorId: id,
+    actorId: access.userId,
+    patch: updatePayload,
+    replaceLocations: branch_ids !== undefined,
+    branchIds: requestedBranchIds,
+    employeeScopeIds: alcance.allowedLocationIds,
+  });
 
-    if (updateError) {
-      return NextResponse.json({ error: "Error al actualizar proveedor" }, { status: 500 });
-    }
-  }
-
-  let branchesChanged = false;
-  if (branch_ids !== undefined) {
-    const sortedNew = [...branch_ids].sort();
-    if (JSON.stringify(existingBranchIds) !== JSON.stringify(sortedNew)) {
-      branchesChanged = true;
-    }
-
-    if (branchesChanged) {
-      await admin
-        .from("vendor_locations")
-        .delete()
-        .eq("vendor_id", id)
-        .eq("organization_id", organizationId);
-
-      if (branch_ids.length > 0) {
-        await admin.from("vendor_locations").insert(
-          branch_ids.map((bid) => ({
-            vendor_id: id,
-            organization_id: organizationId,
-            branch_id: bid,
-          })),
-        );
-      } else {
-        await admin.from("vendor_locations").insert({
-          vendor_id: id,
-          organization_id: organizationId,
-          branch_id: null,
-        });
-      }
-    }
+  if (saveError || !savedVendor) {
+    console.error("[employee vendors PUT] save_vendor_transaction error:", saveError);
+    const mapped = mapVendorMutationError(saveError ?? { message: "invalid_vendor_rpc_result" });
+    return NextResponse.json(mapped.body, { status: mapped.status });
   }
 
   const changedFields: Record<string, { old: unknown; new: unknown }> = {};
@@ -175,33 +151,37 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
   const isDeactivation = updatePayload.is_active === false && existing.is_active !== false;
 
-  await logAuditEvent({
-    action: isDeactivation ? "vendor.deactivate" : "vendor.update",
-    entityType: "vendor",
-    entityId: id,
-    organizationId,
-    actorId: access.userId,
-    eventDomain: "settings",
-    outcome: "success",
-    severity: isDeactivation ? "medium" : "low",
-    metadata: {
-      source: "employee",
-      name: existing.name,
-      changes: Object.keys(changedFields).length > 0 ? changedFields : null,
-      ...(branchesChanged ? { branch_ids } : {}),
-    },
-  });
+  try {
+    await logAuditEvent({
+      action: isDeactivation ? "vendor.deactivate" : "vendor.update",
+      entityType: "vendor",
+      entityId: id,
+      organizationId,
+      actorId: access.userId,
+      eventDomain: "settings",
+      outcome: "success",
+      severity: isDeactivation ? "medium" : "low",
+      metadata: {
+        source: "employee",
+        name: existing.name,
+        changes: Object.keys(changedFields).length > 0 ? changedFields : null,
+        ...(savedVendor.branchesChanged
+          ? { branch_ids: savedVendor.branchIds, is_global: savedVendor.isGlobal }
+          : {}),
+      },
+    });
+  } catch (error) {
+    console.error("[employee vendors PUT] logAuditEvent error after commit:", error);
+  }
 
   void notifyVendorEvent({
     supabase: admin,
     organizationId,
     actorId: access.userId,
     title: isDeactivation ? "Proveedor desactivado" : "Proveedor actualizado",
-    body: existing.name,
+    body: savedVendor.vendorName,
     source: isDeactivation ? "vendor_deactivated" : "vendor_updated",
-    // Las locaciones que quedan despues de este cambio: si se reasigno el
-    // proveedor, el aviso va a quienes lo tienen ahora.
-    branchIds: branch_ids ?? existingBranchIds,
+    locationScope: { branchIds: savedVendor.branchIds, isGlobal: savedVendor.isGlobal },
   });
 
   return NextResponse.json({ ok: true });
@@ -222,35 +202,33 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
   const admin = createSupabaseAdminClient();
 
   // Un empleado solo toca proveedores de sus locaciones.
-  const alcance = await resolveEmployeeVendorScope(admin, organizationId, access.userId);
+  let alcance;
+  try {
+    alcance = await resolveEmployeeVendorScope(admin, organizationId, access.userId);
+  } catch (error) {
+    console.error("[employee vendors DELETE] scope error:", error);
+    return NextResponse.json({ error: "No se pudo resolver el alcance de locaciones" }, { status: 500 });
+  }
+  if (alcance.allowedLocationIds.length === 0) {
+    return NextResponse.json(
+      { error: "No tienes locaciones habilitadas para gestionar proveedores", code: "vendor_employee_scope_empty" },
+      { status: 403 },
+    );
+  }
   if (!alcance.visibleVendorIds.has(id)) {
     return NextResponse.json({ error: "Este proveedor no pertenece a tus locaciones" }, { status: 403 });
   }
 
 
-  const { data: existing } = await admin
-    .from("vendors")
-    .select("id, name")
-    .eq("id", id)
-    .eq("organization_id", organizationId)
-    .maybeSingle();
-
-  if (!existing) {
-    return NextResponse.json({ error: "Proveedor no encontrado" }, { status: 404 });
-  }
-
-  // Las locaciones se leen antes del delete: el cascade se las lleva, y sin
-  // ellas el aviso no sabria a quien le importaba este proveedor.
-  const branchIds = await sucursalesDelProveedor(admin, organizationId, id);
-
-  const { error: deleteError } = await admin
-    .from("vendors")
-    .delete()
-    .eq("id", id)
-    .eq("organization_id", organizationId);
-
-  if (deleteError) {
-    return NextResponse.json({ error: "Error al eliminar proveedor" }, { status: 500 });
+  const { data: deletedVendor, error: deleteError } = await deleteEmployeeVendorTransaction(admin, {
+    organizationId,
+    vendorId: id,
+    actorId: access.userId,
+    employeeScopeIds: alcance.allowedLocationIds,
+  });
+  if (deleteError || !deletedVendor) {
+    const mapped = mapVendorMutationError(deleteError ?? { message: "invalid_vendor_rpc_result" });
+    return NextResponse.json(mapped.body, { status: mapped.status });
   }
 
   await logAuditEvent({
@@ -262,7 +240,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     eventDomain: "settings",
     outcome: "success",
     severity: "high",
-    metadata: { source: "employee", name: existing.name },
+    metadata: { source: "employee", name: deletedVendor.vendorName },
   });
 
   void notifyVendorEvent({
@@ -270,9 +248,9 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     organizationId,
     actorId: access.userId,
     title: "Proveedor eliminado",
-    body: existing.name,
+    body: deletedVendor.vendorName,
     source: "vendor_deleted",
-    branchIds,
+    locationScope: { branchIds: deletedVendor.branchIds, isGlobal: deletedVendor.isGlobal },
   });
 
   return NextResponse.json({ ok: true });

@@ -51,8 +51,8 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
 
   // --- Parse notify channels ---
   const notifyChannels = [...new Set(formData.getAll("notify_channel").map(String))];
-  const notifyVia = notifyChannels.filter(
-    (channel): channel is "sms" => channel === "sms",
+  const persistedNotifyChannels = notifyChannels.filter(
+    (channel): channel is "email" | "sms" => channel === "email" || channel === "sms",
   );
   const notifyByEmail = notifyChannels.includes("email");
 
@@ -131,7 +131,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     positionScopes: parsed.data.position_scope,
     userScopes: parsed.data.user_scope,
     normalizedSections,
-    notifyVia,
+    notifyChannels: persistedNotifyChannels,
     scopeMode: parsed.data.scope_mode,
   });
 
@@ -159,8 +159,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
       recurrenceType: parsed.data.recurrence_type,
       customDays: parsedCustomDays,
       templateStatus: parsed.data.template_status,
-      notifyVia,
-      notifyChannels,
+      notifyChannels: persistedNotifyChannels,
       checklistTypeOther: parsed.data.checklist_type_other,
       itemsCount: result.totalItems,
       sectionsCount: normalizedSections.length,
@@ -209,7 +208,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     templateBranchId: parsed.data.branch_id,
   });
 
-  if (notifyVia.includes("sms")) {
+  if (persistedNotifyChannels.includes("sms")) {
     checklistAudienceSmsCount = await sendChecklistAudienceTwilio({
       supabase,
       organizationId: tenant.organizationId,
@@ -229,7 +228,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     notificationsSummary.push(`Emails sent: ${checklistAudienceEmailCount}`);
   }
   notificationsSummary.push(`Push notifications sent: ${checklistAudiencePushCount}`);
-  if (notifyVia.includes("sms")) {
+  if (persistedNotifyChannels.includes("sms")) {
     notificationsSummary.push(`SMS messages sent: ${checklistAudienceSmsCount}`);
   }
 

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import {
   ScopeModalContent,
+  ScopeModalDialog,
   ScopeModalHeader,
   ScopeModalDivider,
   ScopeModalField,
@@ -15,7 +16,6 @@ import {
   ScopeModalSection,
   SCOPE_MODAL_INPUT,
   SCOPE_MODAL_SELECT,
-  SCOPE_MODAL_TEXTAREA,
   ScopeModalZones,
   SCOPE_MODAL_FOOTER,
   SCOPE_MODAL_FORM,
@@ -164,18 +164,20 @@ export function UploadDocumentModal({
   }
 
   return (
-    <div className={`fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5 transition-opacity duration-300 ${isClosing ? "pointer-events-none opacity-0" : "opacity-100"}`}>
-      <div
-        className={`relative ${SCOPE_MODAL_PANEL} transition duration-300 ${
-          isClosing ? "scale-[0.985] opacity-0" : "scale-100 opacity-100"
-        }`}
-      >
-        <ScopeModalHeader
+    <ScopeModalDialog
+      onClose={closeModal}
+      canClose={!isClosing && !showSuccessOverlay}
+      overlayClassName={`fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5 transition-opacity duration-300 ${isClosing ? "pointer-events-none opacity-0" : "opacity-100"}`}
+      panelClassName={`relative ${SCOPE_MODAL_PANEL} transition duration-300 ${
+        isClosing ? "scale-[0.985] opacity-0" : "scale-100 opacity-100"
+      }`}
+    >
+      <ScopeModalHeader
           title="Subir archivo"
           subtitle="Queda visible para quien esté en el alcance"
           onClose={closeModal}
-        />
-        <form onSubmit={handleSubmit} className={SCOPE_MODAL_FORM}>
+      />
+      <form onSubmit={handleSubmit} className={SCOPE_MODAL_FORM}>
           <ScopeModalZones withScope={showScopeSelector}>
             <ScopeModalContent withScope={showScopeSelector}>
               <ScopeModalSection label="Archivo" />
@@ -204,13 +206,6 @@ export function UploadDocumentModal({
                   name="title"
                   placeholder="Se usa el nombre del archivo si lo dejás vacío"
                   className={SCOPE_MODAL_INPUT}
-                />
-              </ScopeModalField>
-
-              <ScopeModalField label="Descripción (opcional)">
-                <textarea
-                  className={SCOPE_MODAL_TEXTAREA}
-                  placeholder="Describí brevemente el contenido del documento…"
                 />
               </ScopeModalField>
 
@@ -299,7 +294,7 @@ export function UploadDocumentModal({
           </ScopeModalZones>
 
           <div className={SCOPE_MODAL_FOOTER}>
-            <button type="button" onClick={closeModal} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)]">
+            <button type="button" onClick={closeModal} disabled={isClosing || showSuccessOverlay} className="rounded-lg border-[1.5px] border-[var(--gbp-border2)] bg-[var(--gbp-bg)] px-4 py-2 text-sm font-semibold text-[var(--gbp-text2)] hover:bg-[var(--gbp-surface2)] hover:text-[var(--gbp-text)] disabled:cursor-not-allowed disabled:opacity-50">
               Cancelar
             </button>
             <SubmitButton 
@@ -310,18 +305,17 @@ export function UploadDocumentModal({
               className="px-5 py-2 text-sm font-bold"
             />
           </div>
-        </form>
+      </form>
 
-        {showSuccessOverlay ? (
-          <div className="pointer-events-none absolute inset-0 grid place-items-center bg-white/78 backdrop-blur-[1px]">
+      {showSuccessOverlay ? (
+          <div className="absolute inset-0 z-10 grid place-items-center bg-white/78 backdrop-blur-[1px]">
             <div className="rounded-2xl border border-emerald-200 bg-white px-6 py-5 text-center shadow-[0_16px_40px_rgba(16,185,129,.15)]">
               <CheckCircle2 className="mx-auto h-10 w-10 animate-pulse text-emerald-600" />
               <p className="mt-2 text-sm font-bold text-emerald-700">Archivo subido con éxito</p>
               <p className="mt-1 text-xs text-emerald-700/90">Actualizando vista en tiempo real...</p>
             </div>
           </div>
-        ) : null}
-      </div>
-    </div>
+      ) : null}
+    </ScopeModalDialog>
   );
 }

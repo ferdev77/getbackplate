@@ -28,10 +28,14 @@ export async function resolveEmployeeVendorScope(
 ): Promise<EmployeeVendorScope> {
   const allowedLocationIds = await resolveEmployeeAllowedLocationIds(organizationId, userId);
 
-  const { data: asignaciones } = await admin
+  const { data: asignaciones, error } = await admin
     .from("vendor_locations")
     .select("vendor_id, branch_id")
     .eq("organization_id", organizationId);
+
+  if (error) {
+    throw new Error(`No se pudo resolver el alcance de proveedores: ${error.message}`);
+  }
 
   const permitidas = new Set(allowedLocationIds);
   const visibleVendorIds = new Set<string>();

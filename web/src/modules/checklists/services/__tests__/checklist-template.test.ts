@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizePriority } from "../checklist-template.service";
+import { decideChecklistSectionUpdate, normalizePriority } from "../checklist-template.service";
 
 describe("normalizePriority", () => {
   it("accepts low", () => {
@@ -27,5 +27,51 @@ describe("normalizePriority", () => {
     expect(normalizePriority("urgent")).toBe("medium");
     expect(normalizePriority("")).toBe("medium");
     expect(normalizePriority("critical")).toBe("medium");
+  });
+});
+
+describe("decideChecklistSectionUpdate", () => {
+  it("defers a structural edit when the current cycle has responses and a future run", () => {
+    expect(decideChecklistSectionUpdate({
+      isEdit: true,
+      onlyTextEdits: false,
+      responsesInCurrentCycle: 2,
+      recurrenceType: "daily",
+      isActive: true,
+    })).toBe("defer");
+  });
+
+  it("rejects a structural edit when there is no future cycle", () => {
+    expect(decideChecklistSectionUpdate({
+      isEdit: true,
+      onlyTextEdits: false,
+      responsesInCurrentCycle: 1,
+      recurrenceType: "none",
+      isActive: true,
+    })).toBe("reject");
+    expect(decideChecklistSectionUpdate({
+      isEdit: true,
+      onlyTextEdits: false,
+      responsesInCurrentCycle: 1,
+      recurrenceType: "daily",
+      isActive: false,
+    })).toBe("reject");
+  });
+
+  it("applies text edits and structural edits without current responses immediately", () => {
+    expect(decideChecklistSectionUpdate({
+      isEdit: true,
+      onlyTextEdits: true,
+      responsesInCurrentCycle: 3,
+      recurrenceType: "daily",
+      isActive: true,
+    })).toBe("immediate");
+    expect(decideChecklistSectionUpdate({
+      isEdit: true,
+      onlyTextEdits: false,
+      responsesInCurrentCycle: 0,
+      recurrenceType: "daily",
+      isActive: true,
+    })).toBe("immediate");
   });
 });

@@ -188,7 +188,7 @@ export async function POST(request: Request) {
     positionScopes: positionScope,
     userScopes: userScope,
     normalizedSections: sectionsToPersist,
-    notifyVia: [],
+    notifyChannels: [],
     scopeMode,
   });
 
@@ -391,7 +391,9 @@ export async function PATCH(request: Request) {
     positionScopes: positionScope,
     userScopes: userScope,
     normalizedSections: sectionsToPersist,
-    notifyVia: [],
+    // Publication controls are not exposed in the employee editor. Preserve
+    // whatever was selected when the checklist was created.
+    notifyChannels: undefined,
     scopeMode,
   });
 

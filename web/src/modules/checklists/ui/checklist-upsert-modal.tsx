@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ScopeSelector } from "@/shared/ui/scope-selector";
 import {
   ScopeModalContent,
+  ScopeModalDialog,
   ScopeModalHeader,
   ScopeModalDivider,
   ScopeModalField,
@@ -25,6 +26,7 @@ import { createChecklistTemplateAction } from "@/modules/checklists/actions";
 import type { BranchOption, DepartmentOption, PositionOption, ScopedUserOption } from "@/shared/contracts/scope-options";
 import { flattenChecklistSectionTexts, parseChecklistSections } from "@/modules/checklists/lib/sections";
 import { frecuenciaDelChecklist } from "@/modules/checklists/lib/recurrence";
+import { normalizeChecklistNotificationChannels } from "@/modules/checklists/lib/notification-channels";
 
 // SMS sigue funcionando en el backend; se oculta de la UI por ahora.
 const SHOW_SMS_CHANNEL = false;
@@ -76,8 +78,9 @@ export function ChecklistUpsertModal({
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(createChecklistTemplateAction, { success: false, message: "" });
   const [isApiPending, setIsApiPending] = useState(false);
-  const [notifySms, setNotifySms] = useState(false);
-  const [notifyEmail, setNotifyEmail] = useState(false);
+  const initialNotifyChannels = normalizeChecklistNotificationChannels(editingTemplate?.target_scope);
+  const [notifySms, setNotifySms] = useState(initialNotifyChannels.includes("sms"));
+  const [notifyEmail, setNotifyEmail] = useState(initialNotifyChannels.includes("email"));
   const [scopeValid, setScopeValid] = useState(true);
 
   useEffect(() => {
@@ -189,8 +192,11 @@ export function ChecklistUpsertModal({
   const pending = submitEndpoint ? isApiPending : isPending;
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5">
-      <div className={SCOPE_MODAL_PANEL}>
+    <ScopeModalDialog
+      onClose={handleClose}
+      overlayClassName="fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-5"
+      panelClassName={SCOPE_MODAL_PANEL}
+    >
         <ScopeModalHeader
           title={action === "edit" ? "Editar checklist" : "Nuevo checklist"}
           subtitle={
@@ -217,6 +223,7 @@ export function ChecklistUpsertModal({
                   defaultValue={editingTemplate?.name ?? ""}
                   placeholder="Ej: Apertura Cocina - Turno Mañana"
                   data-testid="checklist-title-input"
+                  data-modal-initial-focus
                   className={SCOPE_MODAL_INPUT}
                 />
               </ScopeModalField>
@@ -276,7 +283,7 @@ export function ChecklistUpsertModal({
                 }
               />
 
-              {!editingTemplate ? (
+              {!submitEndpoint ? (
                 <>
                   <ScopeModalDivider />
                   <ScopeModalSection label="Publicación" />
@@ -330,7 +337,6 @@ export function ChecklistUpsertModal({
             />
           </div>
         </form>
-      </div>
-    </div>
+    </ScopeModalDialog>
   );
 }

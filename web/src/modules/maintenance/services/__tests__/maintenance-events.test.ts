@@ -132,6 +132,11 @@ function cuerpoPara(userId: string) {
   return llamada?.[1].body;
 }
 
+function urlPara(userId: string) {
+  const llamada = sendPushToUsers.mock.calls.find((c) => c[0].includes(userId));
+  return llamada?.[1].url;
+}
+
 beforeEach(() => {
   sendPushToUsers.mockClear();
   sendEmail.mockClear();
@@ -155,6 +160,8 @@ describe("a quien le llega", () => {
     });
 
     expect(avisados()).toEqual(["admin-1", "encargado"]);
+    expect(urlPara("admin-1")).toBe("/app/maintenance");
+    expect(urlPara("encargado")).toBe("/portal/maintenance");
   });
 
   it("no le avisa a quien acaba de reportar, aunque sea admin", async () => {
@@ -240,6 +247,7 @@ describe("solo a quien tiene esa locación", () => {
     });
 
     expect(avisados()).toContain("de-wiggins");
+    expect(urlPara("de-wiggins")).toBe("/portal/maintenance");
   });
 });
 
@@ -440,6 +448,7 @@ describe("no se manda nada al vacío", () => {
     });
 
     expect(sendPushToUsers.mock.calls.flatMap((c) => c[0])).toEqual(["dos-sombreros"]);
+    expect(urlPara("dos-sombreros")).toBe("/app/maintenance");
   });
 });
 

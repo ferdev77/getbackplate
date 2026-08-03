@@ -22,11 +22,15 @@ type DeliveryRow = {
         title: string;
         body: string;
         target_scope: unknown;
+        publish_at: string | null;
+        expires_at: string | null;
       }
     | {
         title: string;
         body: string;
         target_scope: unknown;
+        publish_at: string | null;
+        expires_at: string | null;
       }[]
     | null;
 };
@@ -153,7 +157,9 @@ export async function processAnnouncementDeliveries() {
       announcement:announcements (
         title,
         body,
-        target_scope
+        target_scope,
+        publish_at,
+        expires_at
       )
     `);
 
@@ -211,6 +217,11 @@ export async function processAnnouncementDeliveries() {
         return;
       }
 
+      if (!isAnnouncementDeliverable(announcement, new Date())) {
+        await markDeliveryStatuses(supabase, rows.map((row) => row.id), "expired");
+        return;
+      }
+
       const scope = parseAnnouncementScope(announcement.target_scope);
 
       const audience = await resolveAudienceContacts({
@@ -223,6 +234,24 @@ export async function processAnnouncementDeliveries() {
           users: scope.users,
         },
       });
+
+      // Releer justo antes de cruzar el limite externo. El aviso pudo vencer o
+      // ser editado mientras se resolvia una audiencia grande.
+      const eligibility = await readAnnouncementEligibility(
+        supabase,
+        primary.organization_id,
+        primary.announcement_id,
+      );
+      if (eligibility === "missing") {
+        await markDeliveryStatuses(supabase, rows.map((row) => row.id), "failed");
+        failCount += rows.length;
+        return;
+      }
+      if (!isAnnouncementDeliverable(eligibility, new Date())) {
+        await markDeliveryStatuses(supabase, rows.map((row) => row.id), "expired");
+        return;
+      }
+
       // Canal push: acotado a los usuarios resueltos por el alcance del aviso
       if (primary.channel === "push") {
         try {
@@ -263,6 +292,10 @@ export async function processAnnouncementDeliveries() {
 
       const sendResults = await mapWithConcurrency(targetContacts, sendConcurrency, async (contact) => {
         return withRetries(async () => {
+          // Cada reintento vuelve a respetar el limite exacto de expiracion.
+          if (!isAnnouncementDeliverable(eligibility, new Date())) {
+            return { success: false as const, expired: true as const };
+          }
           if (primary.channel === "email") {
             let branding = brandingByOrganizationId.get(primary.organization_id);
             if (!branding) {
@@ -299,11 +332,14 @@ export async function processAnnouncementDeliveries() {
       });
 
       const sentCount = sendResults.filter((result) => result.success).length;
+      const allExpired = sendResults.length > 0 && sendResults.every((result) => "expired" in result);
 
       if (sentCount > 0) {
         await markDeliveryStatuses(supabase, rows.map((row) => row.id), "sent");
         successCount += rows.length;
         sentContactsCount += sentCount;
+      } else if (allExpired) {
+        await markDeliveryStatuses(supabase, rows.map((row) => row.id), "expired");
       } else {
         await markDeliveryStatuses(supabase, rows.map((row) => row.id), "failed");
         failCount += rows.length;
@@ -325,6 +361,34 @@ export async function processAnnouncementDeliveries() {
     batchSize,
     sendConcurrency,
   };
+}
+
+type AnnouncementEligibility = {
+  publish_at: string | null;
+  expires_at: string | null;
+};
+
+function isAnnouncementDeliverable(announcement: AnnouncementEligibility, now: Date) {
+  const nowTime = now.getTime();
+  const publishAt = announcement.publish_at ? new Date(announcement.publish_at).getTime() : null;
+  const expiresAt = announcement.expires_at ? new Date(announcement.expires_at).getTime() : null;
+  return (publishAt === null || publishAt <= nowTime) && (expiresAt === null || expiresAt > nowTime);
+}
+
+async function readAnnouncementEligibility(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  organizationId: string,
+  announcementId: string,
+): Promise<AnnouncementEligibility | "missing"> {
+  const { data, error } = await supabase
+    .from("announcements")
+    .select("publish_at, expires_at")
+    .eq("organization_id", organizationId)
+    .eq("id", announcementId)
+    .maybeSingle();
+
+  if (error) throw new Error(`Failed to recheck announcement lifecycle: ${error.message}`);
+  return data ?? "missing";
 }
 
 async function sendAnnouncementEmail(
@@ -363,7 +427,7 @@ async function sendAnnouncementEmail(
 async function markDeliveryStatuses(
   supabase: ReturnType<typeof createSupabaseAdminClient>,
   deliveryIds: string[],
-  status: "sent" | "failed",
+  status: "sent" | "failed" | "expired",
 ) {
   if (!deliveryIds.length) return;
 

@@ -12,6 +12,8 @@ import { getBranchDisplayName } from "@/shared/lib/branch-display";
 import { AnnouncementModalTrigger } from "@/modules/announcements/ui/announcement-modal-trigger";
 import { OperationHeaderCard } from "@/shared/ui/operation-header-card";
 import { resolveEmployeeLocationScope } from "@/shared/lib/employee-location-scope";
+import { scopeSubjectOverlapsLocations } from "@/shared/lib/scope-selector-model";
+import { announcementRecurrenceByTarget } from "@/modules/announcements/queries";
 
 type AnnouncementRow = {
   id: string;
@@ -25,6 +27,10 @@ type AnnouncementRow = {
   target_scope: unknown;
   created_by: string | null;
   created_by_name?: string;
+  is_recurring?: boolean;
+  recurrence_type?: string;
+  custom_days?: number[];
+  notification_channels?: string[];
 };
 
 export default async function EmployeeAnnouncementsPage() {
@@ -116,7 +122,7 @@ export default async function EmployeeAnnouncementsPage() {
       const publishAt = item.publish_at ? new Date(item.publish_at) : null;
       const expiresAt = item.expires_at ? new Date(item.expires_at) : null;
       const published = !publishAt || publishAt <= now;
-      const notExpired = !expiresAt || expiresAt >= now;
+      const notExpired = !expiresAt || expiresAt > now;
       if (!published || !notExpired) return false;
 
       return canReadAnnouncementInTenant({
@@ -151,6 +157,24 @@ export default async function EmployeeAnnouncementsPage() {
         return announcementTimestamp(b) - announcementTimestamp(a);
       });
     }
+
+    const { data: announcementJobs } = await supabase
+      .from("scheduled_jobs")
+      .select("target_id, recurrence_type, custom_days, metadata")
+      .eq("organization_id", tenant.organizationId)
+      .eq("job_type", "announcement_delivery")
+      .eq("is_active", true);
+    const recurrenceByAnnouncementId = announcementRecurrenceByTarget(announcementJobs ?? []);
+    const withRecurrence = (row: AnnouncementRow): AnnouncementRow => ({
+      ...row,
+      ...(recurrenceByAnnouncementId[row.id] ?? {
+        is_recurring: false,
+        custom_days: [],
+        notification_channels: [],
+      }),
+    });
+    announcements = announcements.map(withRecurrence);
+    myAnnouncements = myAnnouncements.map(withRecurrence);
 
     const authorIds = Array.from(
       new Set(
@@ -204,7 +228,7 @@ export default async function EmployeeAnnouncementsPage() {
   }));
   const allowedLocationIds = locationScope.locationIds;
   const scopeUsersInAllowedLocations = scopeUsers.filter(
-    (user) => Boolean(user.user_id) && Boolean(user.branch_id) && allowedLocationIds.includes(user.branch_id as string),
+    (user) => Boolean(user.user_id) && scopeSubjectOverlapsLocations(user, allowedLocationIds),
   );
   const locationHelperText =
     "Tu alcance base queda limitado a tus locaciones asignadas. Departamento y puesto filtran dentro de ese alcance.";

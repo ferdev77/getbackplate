@@ -5,6 +5,7 @@ import { useState } from "react";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import {
   ScopeModalField,
+  ScopeModalDialog,
   ScopeModalHeader,
   SCOPE_MODAL_CANCEL,
   SCOPE_MODAL_FOOTER,
@@ -35,23 +36,22 @@ export function DocumentShareByEmailModal({ document, busy, onCancel, onSubmit }
   const [message, setMessage] = useState("");
 
   return (
-    <div
-      className="fixed inset-0 z-[1060] flex items-center justify-center bg-black/45 p-5"
-      onClick={() => !busy && onCancel()}
+    <ScopeModalDialog
+      onClose={onCancel}
+      closeOnBackdrop
+      canClose={!busy}
+      overlayClassName="fixed inset-0 z-[1060] flex items-center justify-center bg-black/45 p-5"
+      panelClassName={`w-[460px] max-w-full ${SCOPE_MODAL_PANEL_COMPACT}`}
     >
-      <div
-        className={`w-[460px] max-w-full ${SCOPE_MODAL_PANEL_COMPACT}`}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <ScopeModalHeader title="Compartir por email" subtitle={document.title} onClose={onCancel} />
+      <ScopeModalHeader title="Compartir por email" subtitle={document.title} onClose={onCancel} />
 
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (busy) return;
-            onSubmit({ documentId: document.id, email: email.trim(), message: message.trim() });
-          }}
-        >
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (busy) return;
+          onSubmit({ documentId: document.id, email: email.trim(), message: message.trim() });
+        }}
+      >
           <div className="flex flex-col gap-3 px-6 py-5">
             <ScopeModalField label="Email destino">
               <input
@@ -61,6 +61,7 @@ export function DocumentShareByEmailModal({ document, busy, onCancel, onSubmit }
                 required
                 placeholder="usuario@empresa.com"
                 className={SCOPE_MODAL_INPUT}
+                data-modal-initial-focus
               />
             </ScopeModalField>
 
@@ -75,7 +76,7 @@ export function DocumentShareByEmailModal({ document, busy, onCancel, onSubmit }
           </div>
 
           <div className={SCOPE_MODAL_FOOTER}>
-            <button type="button" onClick={onCancel} className={SCOPE_MODAL_CANCEL}>
+            <button type="button" onClick={onCancel} disabled={busy} className={`${SCOPE_MODAL_CANCEL} disabled:cursor-not-allowed disabled:opacity-50`}>
               Cancelar
             </button>
             <SubmitButton
@@ -86,8 +87,7 @@ export function DocumentShareByEmailModal({ document, busy, onCancel, onSubmit }
               className="px-5 py-2 text-sm font-bold"
             />
           </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </ScopeModalDialog>
   );
 }

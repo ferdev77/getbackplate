@@ -6,6 +6,7 @@ import { ScopeSelector } from "@/shared/ui/scope-selector";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import {
   ScopeModalContent,
+  ScopeModalDialog,
   ScopeModalHeader,
   ScopeModalNote,
   ScopeModalSection,
@@ -81,8 +82,11 @@ export function DocumentShareAccessModal({
   }, [users.length, positions.length]);
 
   return (
-    <div className="fixed inset-0 z-[1060] flex items-center justify-center bg-black/45 p-5">
-      <div className={SCOPE_MODAL_PANEL}>
+    <ScopeModalDialog
+      onClose={onCancel}
+      overlayClassName="fixed inset-0 z-[1060] flex items-center justify-center bg-black/45 p-5"
+      panelClassName={SCOPE_MODAL_PANEL}
+    >
         <ScopeModalHeader title={title} subtitle={itemName} onClose={onCancel} />
         <form
           id={scopeFormId}
@@ -151,7 +155,6 @@ export function DocumentShareAccessModal({
             />
           </div>
         </form>
-      </div>
-    </div>
+    </ScopeModalDialog>
   );
 }

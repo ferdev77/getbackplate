@@ -1,4 +1,5 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
+import { combinarLocaciones, type FuenteDeLocaciones } from "@/modules/employees/lib/location-sources";
 
 export type ScopeCatalogUser = {
   id: string;
@@ -50,7 +51,7 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
       .order("first_name"),
     admin
       .from("organization_user_profiles")
-      .select("id, user_id, first_name, last_name")
+      .select("id, user_id, first_name, last_name, branch_id, all_locations, location_scope_ids, department_id, position_id")
       .eq("organization_id", organizationId)
       .order("first_name"),
     admin
@@ -95,11 +96,10 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
   const todasLasLocaciones = (branches ?? []).map((row) => row.id).filter(Boolean);
 
   /**
-   * Las locaciones de una persona viven en dos tablas: `employees` y
-   * `memberships`. Se combinan igual que en resolveEmployeeAllowedLocationIds,
-   * que es lo que usa el servidor para decidir. Si aca se leyera solo una,
-   * alguien con locaciones asignadas por membresia no apareceria en la vista
-   * previa aunque el servidor si le mandara el aviso.
+   * Las locaciones se combinan desde la ficha disponible y las membresias,
+   * igual que en los resolvedores del servidor. La ficha puede ser `employees`
+   * o `organization_user_profiles`; esta ultima es la unica para usuarios sin
+   * legajo.
    */
   type MembresiaConAlcance = {
     branch_id: string | null;
@@ -115,25 +115,11 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
     membresiasPorUsuario.set(membership.user_id, previas);
   }
 
-  function locacionesDe(employee: {
-    user_id: string | null;
-    branch_id: string | null;
-    all_locations: boolean | null;
-    location_scope_ids: string[] | null;
-  }) {
-    const suyas = employee.user_id ? membresiasPorUsuario.get(employee.user_id) ?? [] : [];
-
-    if (employee.all_locations || suyas.some((m) => m.all_locations === true)) {
-      return todasLasLocaciones;
-    }
-
-    const propias = [
-      employee.branch_id,
-      ...(Array.isArray(employee.location_scope_ids) ? employee.location_scope_ids : []),
-      ...suyas.map((m) => m.branch_id),
-      ...suyas.flatMap((m) => (Array.isArray(m.location_scope_ids) ? m.location_scope_ids : [])),
-    ];
-    return [...new Set(propias.filter((id): id is string => Boolean(id)))];
+  function locacionesDe(persona: FuenteDeLocaciones & { user_id: string | null }) {
+    return combinarLocaciones({
+      fuentes: [persona, ...(persona.user_id ? membresiasPorUsuario.get(persona.user_id) ?? [] : [])],
+      todasLasLocaciones,
+    }).locationIds;
   }
 
   const catalog: ScopeCatalogUser[] = [];
@@ -173,11 +159,20 @@ export async function buildScopeUsersCatalog(organizationId: string): Promise<Sc
     catalog.push({
       id: `up-${profile.id}`,
       user_id: profile.user_id,
-      branch_id: null,
+      branch_id: profile.branch_id,
+      location_ids: locacionesDe(profile),
+      department_id: profile.department_id,
+      position_id: profile.position_id,
       first_name: profile.first_name ?? "Usuario",
       last_name: profile.last_name ?? "",
       role_label: roleLabel,
-      position_label: isEmployee ? undefined : "Admin Company",
+      location_label: profile.branch_id ? branchNameById.get(profile.branch_id) ?? undefined : undefined,
+      department_label: profile.department_id
+        ? departmentNameById.get(profile.department_id) ?? undefined
+        : undefined,
+      position_label:
+        (profile.position_id ? positionNameById.get(profile.position_id) : undefined) ??
+        (isEmployee ? undefined : "Admin Company"),
     });
     if (profile.user_id) {
       userIdsInCatalog.add(profile.user_id);

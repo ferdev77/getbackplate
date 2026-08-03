@@ -74,7 +74,13 @@ type Entrega = {
   organization_id: string;
   announcement_id: string;
   channel: string;
-  announcement: { title: string; body: string; target_scope: unknown } | null;
+  announcement: {
+    title: string;
+    body: string;
+    target_scope: unknown;
+    publish_at?: string | null;
+    expires_at?: string | null;
+  } | null;
 };
 
 /** Lo que se le marco a cada entrega al terminar. */
@@ -85,6 +91,7 @@ function supabaseFalso(opciones: {
   /** El claim no toma nada: otro proceso se adelanto. */
   claimVacio?: boolean;
   errorAlBuscar?: string;
+  announcementAlReleer?: { publish_at: string | null; expires_at: string | null };
 } = {}) {
   const encoladas = opciones.encoladas ?? [];
   const marcas: Marca[] = [];
@@ -96,6 +103,7 @@ function supabaseFalso(opciones: {
       let estadoDelUpdate = "";
       let filtroDeEstado: string | null = null;
       let filtroDeCanal: string | null = null;
+      const filtros: Record<string, string> = {};
 
       const cadena: Record<string, unknown> = {
         select: () => cadena,
@@ -111,9 +119,27 @@ function supabaseFalso(opciones: {
           return cadena;
         },
         eq: (columna: string, valor: string) => {
+          filtros[columna] = valor;
           if (columna === "status") filtroDeEstado = valor;
           if (columna === "channel") filtroDeCanal = valor;
           return cadena;
+        },
+        maybeSingle: async () => {
+          if (tabla !== "announcements") return { data: null, error: null };
+          if (opciones.announcementAlReleer) {
+            return { data: opciones.announcementAlReleer, error: null };
+          }
+          const row = encoladas.find(
+            (item) => item.announcement_id === filtros.id && item.organization_id === filtros.organization_id,
+          );
+          if (!row?.announcement) return { data: null, error: null };
+          return {
+            data: {
+              publish_at: row.announcement.publish_at ?? null,
+              expires_at: row.announcement.expires_at ?? null,
+            },
+            error: null,
+          };
         },
         then(resolver: (r: unknown) => void) {
           if (tabla !== "announcement_deliveries") return resolver({ data: [], error: null });
@@ -164,7 +190,13 @@ function entrega(extra: Partial<Entrega> = {}): Entrega {
     organization_id: "org-1",
     announcement_id: "av-1",
     channel: "email",
-    announcement: { title: "Reunión", body: "Mañana a las 9", target_scope: {} },
+    announcement: {
+      title: "Reunión",
+      body: "Mañana a las 9",
+      target_scope: {},
+      publish_at: null,
+      expires_at: null,
+    },
     ...extra,
   };
 }
@@ -206,6 +238,78 @@ describe("cuando no hay nada encolado", () => {
 
     expect(r.success).toBe(false);
     expect(sendTransactionalEmail).not.toHaveBeenCalled();
+  });
+});
+
+describe("vigencia del aviso", () => {
+  it("no resuelve audiencia ni envia una entrega vencida", async () => {
+    const mock = usar(supabaseFalso({
+      encoladas: [entrega({ announcement: {
+        title: "Vencido",
+        body: "No debe salir",
+        target_scope: {},
+        publish_at: null,
+        expires_at: "2020-01-01T00:00:00.000Z",
+      } })],
+    }));
+
+    await processAnnouncementDeliveries();
+
+    expect(resolveAudienceContacts).not.toHaveBeenCalled();
+    expect(sendTransactionalEmail).not.toHaveBeenCalled();
+    expect(sendPushToUsers).not.toHaveBeenCalled();
+    expect(mock.marcas).toEqual([{ ids: ["ent-1"], status: "expired" }]);
+  });
+
+  it("no envia una entrega de un aviso aun no publicado", async () => {
+    const mock = usar(supabaseFalso({
+      encoladas: [entrega({ announcement: {
+        title: "Futuro",
+        body: "Todavia no",
+        target_scope: {},
+        publish_at: "2999-01-01T00:00:00.000Z",
+        expires_at: null,
+      } })],
+    }));
+
+    await processAnnouncementDeliveries();
+
+    expect(resolveAudienceContacts).not.toHaveBeenCalled();
+    expect(mock.marcas).toEqual([{ ids: ["ent-1"], status: "expired" }]);
+  });
+
+  it("considera vencido el limite exacto", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-02T12:00:00.000Z"));
+    const mock = usar(supabaseFalso({
+      encoladas: [entrega({ announcement: {
+        title: "Limite",
+        body: "No debe salir",
+        target_scope: {},
+        publish_at: null,
+        expires_at: "2026-08-02T12:00:00.000Z",
+      } })],
+    }));
+
+    await processAnnouncementDeliveries();
+
+    expect(mock.marcas).toEqual([{ ids: ["ent-1"], status: "expired" }]);
+    expect(sendTransactionalEmail).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  it("frena una entrega que vence mientras se resuelve la audiencia", async () => {
+    prepararAudiencia({ emails: ["ana@x.com"] });
+    const mock = usar(supabaseFalso({
+      encoladas: [entrega()],
+      announcementAlReleer: { publish_at: null, expires_at: "2020-01-01T00:00:00.000Z" },
+    }));
+
+    await processAnnouncementDeliveries();
+
+    expect(resolveAudienceContacts).toHaveBeenCalledTimes(1);
+    expect(sendTransactionalEmail).not.toHaveBeenCalled();
+    expect(mock.marcas).toEqual([{ ids: ["ent-1"], status: "expired" }]);
   });
 });
 

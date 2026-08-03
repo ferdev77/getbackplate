@@ -60,7 +60,7 @@ export async function POST(request: Request) {
 
   const { data: submission } = await admin
     .from("checklist_submissions")
-    .select("id, status, template_id, branch_id, submitted_by")
+    .select("id, status, template_id, template_name, template_created_by, branch_id, submitted_by")
     .eq("organization_id", organizationId)
     .eq("id", submissionId)
     .maybeSingle();
@@ -73,24 +73,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No puedes operar reportes fuera de tus locaciones activas" }, { status: 403 });
   }
 
-  // Sin plantilla no hay autoria que verificar: el permiso de este endpoint es
-  // "soy quien creo el checklist", y la plantilla pudo haber sido eliminada.
-  if (!submission.template_id) {
-    return NextResponse.json(
-      { error: "El checklist de este reporte fue eliminado" },
-      { status: 409 },
-    );
-  }
+  const { data: template } = submission.template_id
+    ? await admin
+        .from("checklist_templates")
+        .select("id, name, created_by")
+        .eq("organization_id", organizationId)
+        .eq("id", submission.template_id)
+        .maybeSingle()
+    : { data: null };
+  const templateCreator = submission.template_created_by ?? template?.created_by ?? null;
 
-  const { data: template } = await admin
-    .from("checklist_templates")
-    .select("id, name, created_by")
-    .eq("organization_id", organizationId)
-    .eq("id", submission.template_id)
-    .eq("created_by", moduleAccess.userId)
-    .maybeSingle();
-
-  if (!template) {
+  if (templateCreator !== moduleAccess.userId) {
     return NextResponse.json({ error: "No puedes operar este reporte" }, { status: 403 });
   }
 
@@ -144,8 +137,8 @@ export async function POST(request: Request) {
     await notifyChecklistReviewed({
       supabase: admin,
       organizationId,
-      templateName: template.name ?? "Checklist",
-      templateCreatedBy: template.created_by ?? null,
+      templateName: submission.template_name ?? template?.name ?? "Checklist",
+      templateCreatedBy: templateCreator,
       submittedByUserId: submission.submitted_by ?? null,
       reviewedByUserId: moduleAccess.userId,
     });

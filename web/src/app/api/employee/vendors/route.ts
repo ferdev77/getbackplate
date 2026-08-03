@@ -8,6 +8,7 @@ import {
 } from "@/modules/vendors/lib/employee-scope";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { notifyVendorEvent } from "@/modules/vendors/notifications";
+import { mapVendorMutationError, saveVendorTransaction } from "@/modules/vendors/mutation";
 
 const nullableStr = (max: number) =>
   z.preprocess(
@@ -41,7 +42,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   }
 
-  const { organizationId, branchId } = access.tenant;
+  const { organizationId } = access.tenant;
   const url = new URL(request.url);
   const search = url.searchParams.get("search")?.trim() ?? "";
   const category = url.searchParams.get("category")?.trim() ?? "";
@@ -75,7 +76,13 @@ export async function GET(request: Request) {
   ]);
 
   // Un empleado solo ve los proveedores de sus locaciones.
-  const alcance = await resolveEmployeeVendorScope(admin, organizationId, access.userId);
+  let alcance;
+  try {
+    alcance = await resolveEmployeeVendorScope(admin, organizationId, access.userId);
+  } catch (error) {
+    console.error("[employee vendors GET] scope error:", error);
+    return NextResponse.json({ error: "No se pudo resolver el alcance de locaciones" }, { status: 500 });
+  }
   const vendorsVisibles = (vendors ?? []).filter((v) => alcance.visibleVendorIds.has(v.id));
 
   // Build vendor → branch_ids map
@@ -89,8 +96,7 @@ export async function GET(request: Request) {
 
   const branchById = new Map((branches ?? []).map((b) => [b.id, customBrandingEnabled && b.city ? b.city : b.name]));
 
-  let result = vendorsVisibles
-    .map((v) => {
+  let result = vendorsVisibles.map((v) => {
       const locs = locationsByVendor.get(v.id) ?? [];
       const branchIds = locs.filter(Boolean) as string[];
       return {
@@ -99,12 +105,6 @@ export async function GET(request: Request) {
         branchNames: branchIds.map((id) => branchById.get(id)).filter(Boolean),
         isGlobal: locs.some((l) => l === null) || locs.length === 0,
       };
-    })
-    // Filter by employee branch
-    .filter((v) => {
-      if (v.isGlobal) return true;
-      if (!branchId) return true;
-      return v.branchIds.includes(branchId);
     });
 
   // Additional filters from query
@@ -159,7 +159,21 @@ export async function POST(request: Request) {
 
   const admin = createSupabaseAdminClient();
 
-  const alcanceAlta = await resolveEmployeeVendorScope(admin, organizationId, access.userId);
+  let alcanceAlta;
+  try {
+    alcanceAlta = await resolveEmployeeVendorScope(admin, organizationId, access.userId);
+  } catch (error) {
+    console.error("[employee vendors POST] scope error:", error);
+    return NextResponse.json({ error: "No se pudo resolver el alcance de locaciones" }, { status: 500 });
+  }
+
+  if (alcanceAlta.allowedLocationIds.length === 0) {
+    return NextResponse.json(
+      { error: "No tienes locaciones habilitadas para gestionar proveedores", code: "vendor_employee_scope_empty" },
+      { status: 403 },
+    );
+  }
+
   const fuera = locacionesFueraDeAlcance(branch_ids, alcanceAlta.allowedLocationIds);
   if (fuera.length > 0) {
     return NextResponse.json(
@@ -172,21 +186,11 @@ export async function POST(request: Request) {
   // de toda la empresa.
   const locacionesDelProveedor = branch_ids.length > 0 ? branch_ids : alcanceAlta.allowedLocationIds;
 
-  const { data: category } = await admin
-    .from("vendor_categories")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .eq("code", vendorData.category)
-    .maybeSingle();
-
-  if (!category) {
-    return NextResponse.json({ error: "Categoría inválida" }, { status: 422 });
-  }
-
-  const { data: newVendor, error: insertError } = await admin
-    .from("vendors")
-    .insert({
-      organization_id: organizationId,
+  const { data: savedVendor, error: saveError } = await saveVendorTransaction(admin, {
+    organizationId,
+    vendorId: null,
+    actorId,
+    patch: {
       name: vendorData.name,
       category: vendorData.category,
       contact_name: vendorData.contact_name ?? null,
@@ -197,48 +201,39 @@ export async function POST(request: Request) {
       address: vendorData.address ?? null,
       notes: vendorData.notes ?? null,
       is_active: vendorData.is_active ?? true,
-      created_by: actorId,
-    })
-    .select("id")
-    .single();
-
-  if (insertError || !newVendor) {
-    return NextResponse.json({ error: "Error al crear proveedor", detail: insertError?.message }, { status: 500 });
-  }
-
-  if (locacionesDelProveedor.length > 0) {
-    const { error: locError } = await admin.from("vendor_locations").insert(
-      locacionesDelProveedor.map((bid) => ({
-        vendor_id: newVendor.id,
-        organization_id: organizationId,
-        branch_id: bid,
-      })),
-    );
-    if (locError) {
-      return NextResponse.json({ error: "No se pudieron asignar locaciones" }, { status: 500 });
-    }
-  } else {
-    const { error: locError } = await admin.from("vendor_locations").insert({
-      vendor_id: newVendor.id,
-      organization_id: organizationId,
-      branch_id: null,
-    });
-    if (locError) {
-      return NextResponse.json({ error: "No se pudo asignar alcance global" }, { status: 500 });
-    }
-  }
-
-  await logAuditEvent({
-    action: "vendor.create",
-    entityType: "vendor",
-    entityId: newVendor.id,
-    organizationId,
-    actorId,
-    eventDomain: "settings",
-    outcome: "success",
-    severity: "medium",
-    metadata: { source: "employee", name: vendorData.name, category: vendorData.category, branch_ids },
+    },
+    replaceLocations: true,
+    branchIds: locacionesDelProveedor,
+    employeeScopeIds: alcanceAlta.allowedLocationIds,
   });
+
+  if (saveError || !savedVendor) {
+    console.error("[employee vendors POST] save_vendor_transaction error:", saveError);
+    const mapped = mapVendorMutationError(saveError ?? { message: "invalid_vendor_rpc_result" });
+    return NextResponse.json(mapped.body, { status: mapped.status });
+  }
+
+  try {
+    await logAuditEvent({
+      action: "vendor.create",
+      entityType: "vendor",
+      entityId: savedVendor.vendorId,
+      organizationId,
+      actorId,
+      eventDomain: "settings",
+      outcome: "success",
+      severity: "medium",
+      metadata: {
+        source: "employee",
+        name: savedVendor.vendorName,
+        category: vendorData.category,
+        branch_ids: savedVendor.branchIds,
+        is_global: savedVendor.isGlobal,
+      },
+    });
+  } catch (error) {
+    console.error("[employee vendors POST] logAuditEvent error after commit:", error);
+  }
 
   void notifyVendorEvent({
     supabase: admin,
@@ -247,8 +242,8 @@ export async function POST(request: Request) {
     title: "Nuevo proveedor",
     body: vendorData.name,
     source: "vendor_created",
-    branchIds: locacionesDelProveedor,
+    locationScope: { branchIds: savedVendor.branchIds, isGlobal: savedVendor.isGlobal },
   });
 
-  return NextResponse.json({ vendor: { id: newVendor.id } }, { status: 201 });
+  return NextResponse.json({ vendor: { id: savedVendor.vendorId } }, { status: 201 });
 }

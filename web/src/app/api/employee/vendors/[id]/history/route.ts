@@ -19,41 +19,31 @@ export async function GET(_req: Request, { params }: RouteParams) {
   }
 
   const { id } = await params;
-  const { organizationId, branchId } = access.tenant;
+  const { organizationId } = access.tenant;
   const admin = createSupabaseAdminClient();
 
   // Un empleado solo toca proveedores de sus locaciones.
-  const alcance = await resolveEmployeeVendorScope(admin, organizationId, access.userId);
+  let alcance;
+  try {
+    alcance = await resolveEmployeeVendorScope(admin, organizationId, access.userId);
+  } catch (error) {
+    console.error("[employee vendor history] scope error:", error);
+    return NextResponse.json({ error: "No se pudo resolver el alcance de locaciones" }, { status: 500 });
+  }
   if (!alcance.visibleVendorIds.has(id)) {
     return NextResponse.json({ error: "Este proveedor no pertenece a tus locaciones" }, { status: 403 });
   }
 
 
-  const [{ data: vendor }, { data: locations }] = await Promise.all([
-    admin
-      .from("vendors")
-      .select("id, name, is_active")
-      .eq("id", id)
-      .eq("organization_id", organizationId)
-      .maybeSingle(),
-    admin
-      .from("vendor_locations")
-      .select("branch_id")
-      .eq("organization_id", organizationId)
-      .eq("vendor_id", id),
-  ]);
+  const { data: vendor } = await admin
+    .from("vendors")
+    .select("id, name, is_active")
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
 
   if (!vendor || !vendor.is_active) {
     return NextResponse.json({ error: "Proveedor no encontrado" }, { status: 404 });
-  }
-
-  const locationRows = locations ?? [];
-  const hasGlobal = locationRows.some((row) => row.branch_id === null);
-  const branchIds = locationRows.map((row) => row.branch_id).filter((value): value is string => Boolean(value));
-  const isVisibleByScope = hasGlobal || !branchId || branchIds.includes(branchId);
-
-  if (!isVisibleByScope) {
-    return NextResponse.json({ error: "Sin acceso a este proveedor" }, { status: 403 });
   }
 
   const { data: logs } = await admin

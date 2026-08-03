@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { notifyVendorEvent } from "@/modules/vendors/notifications";
+import { mapVendorMutationError, saveVendorTransaction } from "@/modules/vendors/mutation";
 
 // Coerce empty string / null → null before further validation
 const nullableStr = (max: number) =>
@@ -153,21 +154,11 @@ export async function POST(request: Request) {
   const { branch_ids, ...vendorData } = parsed.data;
   const admin = createSupabaseAdminClient();
 
-  const { data: category } = await admin
-    .from("vendor_categories")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .eq("code", vendorData.category)
-    .maybeSingle();
-
-  if (!category) {
-    return NextResponse.json({ error: "Categoría inválida" }, { status: 422 });
-  }
-
-  const { data: newVendor, error: insertError } = await admin
-    .from("vendors")
-    .insert({
-      organization_id: organizationId,
+  const { data: savedVendor, error: saveError } = await saveVendorTransaction(admin, {
+    organizationId,
+    vendorId: null,
+    actorId,
+    patch: {
       name: vendorData.name,
       category: vendorData.category,
       contact_name: vendorData.contact_name ?? null,
@@ -178,47 +169,34 @@ export async function POST(request: Request) {
       address: vendorData.address ?? null,
       notes: vendorData.notes ?? null,
       is_active: vendorData.is_active ?? true,
-      created_by: actorId,
-    })
-    .select("id")
-    .single();
+    },
+    replaceLocations: true,
+    branchIds: branch_ids,
+    employeeScopeIds: null,
+  });
 
-  if (insertError || !newVendor) {
-    console.error("[vendors POST] Insert error:", insertError?.message, insertError?.details);
-    return NextResponse.json({ error: "Error al crear proveedor", detail: insertError?.message }, { status: 500 });
-  }
-
-  // Insert vendor_locations
-  if (branch_ids && branch_ids.length > 0) {
-    const { error: locError } = await admin.from("vendor_locations").insert(
-      branch_ids.map((bid) => ({
-        vendor_id: newVendor.id,
-        organization_id: organizationId,
-        branch_id: bid,
-      }))
-    );
-    if (locError) console.error("[vendors POST] vendor_locations insert error:", locError.message, locError.details);
-  } else {
-    // Global vendor — branch_id NULL means visible to all branches
-    const { error: locError } = await admin.from("vendor_locations").insert({
-      vendor_id: newVendor.id,
-      organization_id: organizationId,
-      branch_id: null,
-    });
-    if (locError) console.error("[vendors POST] vendor_locations global insert error:", locError.message, locError.details);
+  if (saveError || !savedVendor) {
+    console.error("[vendors POST] save_vendor_transaction error:", saveError);
+    const mapped = mapVendorMutationError(saveError ?? { message: "invalid_vendor_rpc_result" });
+    return NextResponse.json(mapped.body, { status: mapped.status });
   }
 
   try {
     await logAuditEvent({
       action: "vendor.create",
       entityType: "vendor",
-      entityId: newVendor.id,
+      entityId: savedVendor.vendorId,
       organizationId,
       actorId,
       eventDomain: "settings",
       outcome: "success",
       severity: "medium",
-      metadata: { name: vendorData.name, category: vendorData.category, branch_ids },
+      metadata: {
+        name: savedVendor.vendorName,
+        category: vendorData.category,
+        branch_ids: savedVendor.branchIds,
+        is_global: savedVendor.isGlobal,
+      },
     });
   } catch (auditErr) {
     console.error("[vendors POST] logAuditEvent error:", auditErr);
@@ -232,8 +210,8 @@ export async function POST(request: Request) {
     title: "Nuevo proveedor",
     body: vendorData.name,
     source: "vendor_created",
-    branchIds: branch_ids ?? [],
+    locationScope: { branchIds: savedVendor.branchIds, isGlobal: savedVendor.isGlobal },
   });
 
-  return NextResponse.json({ vendor: { id: newVendor.id } }, { status: 201 });
+  return NextResponse.json({ vendor: { id: savedVendor.vendorId } }, { status: 201 });
 }
