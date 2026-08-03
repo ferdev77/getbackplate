@@ -54,7 +54,19 @@ async function retryComplianceWrite(
     lastError = result.error;
     if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 100));
   }
-  console.error(`[Webhook] Unable to archive ${label} after retries:`, lastError);
+  throw new Error(`Unable to archive ${label}: ${lastError?.message ?? 'unknown database error'}`);
+}
+
+function requireDatabaseSuccess(label: string, error: { message: string } | null) {
+  if (error) throw new Error(`${label}: ${error.message}`);
+}
+
+async function runNotification(label: string, notification: () => Promise<unknown>) {
+  try {
+    await notification();
+  } catch (error) {
+    console.error(`[Webhook] ${label} notification failed:`, error);
+  }
 }
 
 async function recordBillingPayment(
@@ -125,82 +137,6 @@ function computePeriodEnd(
   return start.toISOString();
 }
 
-async function executeManualAction(
-  orgId: string,
-  actionType: string,
-  actionPayload: Record<string, unknown>,
-  supabase: ReturnType<typeof createSupabaseAdminClient>,
-) {
-  if (actionType === 'activate_module') {
-    const moduleCode = String(actionPayload.moduleCode ?? '');
-    if (!moduleCode) return;
-    const { data: moduleRow } = await supabase
-      .from('module_catalog')
-      .select('id')
-      .eq('code', moduleCode)
-      .maybeSingle();
-    if (moduleRow) {
-      const { error: modErr } = await supabase
-        .from('organization_modules')
-        .upsert(
-          { organization_id: orgId, module_id: moduleRow.id, is_enabled: true, enabled_at: new Date().toISOString() },
-          { onConflict: 'organization_id,module_id' },
-        );
-      if (modErr) console.error(`[Webhook][manual] Error enabling module ${moduleCode}:`, modErr);
-      else console.info(`[Webhook][manual] Module "${moduleCode}" enabled for org ${orgId}`);
-    } else {
-      console.error(`[Webhook][manual] Module code "${moduleCode}" not found in catalog`);
-    }
-  } else if (actionType === 'add_invoices') {
-    const count = Number(actionPayload.invoiceCount ?? 0);
-    if (count <= 0) return;
-    const { error: invErr } = await supabase.rpc('increment_invoice_balance', {
-      p_organization_id: orgId,
-      p_amount: count,
-    });
-    if (invErr) {
-      console.warn('[Webhook][manual] RPC increment_invoice_balance failed, trying direct update:', invErr);
-      const { data: addonRow } = await supabase
-        .from('organization_addons')
-        .select('id, invoice_balance')
-        .eq('organization_id', orgId)
-        .eq('status', 'active')
-        .maybeSingle();
-      if (addonRow) {
-        await supabase
-          .from('organization_addons')
-          .update({ invoice_balance: (addonRow.invoice_balance ?? 0) + count })
-          .eq('id', addonRow.id);
-      }
-    }
-    console.info(`[Webhook][manual] invoice_balance +${count} for org ${orgId}`);
-  } else if (actionType === 'add_slot') {
-    const count = Number(actionPayload.slotCount ?? 1);
-    if (count <= 0) return;
-    const { error: slotErr } = await supabase.rpc('increment_r365_slots', {
-      p_organization_id: orgId,
-      p_amount: count,
-    });
-    if (slotErr) {
-      console.warn('[Webhook][manual] RPC increment_r365_slots failed, trying direct update:', slotErr);
-      const { data: addonRow } = await supabase
-        .from('organization_addons')
-        .select('id, extra_r365_connections')
-        .eq('organization_id', orgId)
-        .eq('status', 'active')
-        .maybeSingle();
-      if (addonRow) {
-        await supabase
-          .from('organization_addons')
-          .update({ extra_r365_connections: ((addonRow.extra_r365_connections as number) ?? 0) + count })
-          .eq('id', addonRow.id);
-      }
-    }
-    console.info(`[Webhook][manual] extra_r365_connections +${count} for org ${orgId}`);
-  }
-  // 'custom': payment recorded, no automatic side-effect
-}
-
 export async function POST(req: Request) {
   const body = await req.text();
   const signature = req.headers.get('stripe-signature') as string;
@@ -225,34 +161,49 @@ export async function POST(req: Request) {
 
   console.info(`[Webhook] Received event: ${event.type} (id: ${event.id})`);
 
-  // Deduplication + lock (atomic): reserve event_id before any processing.
-  // If another instance already reserved/processed it, Postgres unique key blocks duplicates.
-  const { data: reservation, error: reservationError } = await supabase
-    .from('stripe_processed_events')
-    .insert({
-      event_id: event.id,
-      event_type: event.type,
-      stripe_created_at: event.created ? new Date(event.created * 1000).toISOString() : null,
-      status: 'processing',
-      started_at: new Date().toISOString(),
-    })
-    .select('event_id')
-    .maybeSingle();
+  const { data: claimRows, error: reservationError } = await supabase.rpc('claim_stripe_event', {
+    p_event_id: event.id,
+    p_event_type: event.type,
+    p_stripe_created_at: event.created ? new Date(event.created * 1000).toISOString() : null,
+    p_lease_seconds: 1800,
+    p_max_attempts: 8,
+  });
 
   if (reservationError) {
-    if (reservationError.code === '23505') {
-      console.info(`[Webhook] Duplicate event ignored: ${event.id}`);
-      return NextResponse.json({ received: true, duplicate: true });
-    }
-
     console.error(`[Webhook] Failed to reserve event ${event.id}:`, reservationError);
     return NextResponse.json({ error: 'Failed to reserve webhook event' }, { status: 500 });
   }
 
-  if (!reservation) {
-    console.info(`[Webhook] Duplicate event ignored (no reservation): ${event.id}`);
+  const claim = Array.isArray(claimRows) ? claimRows[0] : claimRows;
+  if (!claim) {
+    console.error(`[Webhook] Claim RPC returned no result for event ${event.id}`);
+    return NextResponse.json({ error: 'Failed to claim webhook event' }, { status: 500 });
+  }
+  if (claim.outcome === 'processed') {
+    console.info(`[Webhook] Processed duplicate event ignored: ${event.id}`);
     return NextResponse.json({ received: true, duplicate: true });
   }
+  if (claim.outcome === 'legacy_blocked' || claim.outcome === 'dead_lettered') {
+    console.error(`[Webhook] Event ${event.id} requires manual reconciliation (${claim.outcome})`);
+    const { error: reconciliationError } = await supabase.rpc('queue_stripe_event_reconciliation', {
+      p_event_id: event.id,
+      p_reason: claim.outcome,
+    });
+    if (reconciliationError) {
+      console.error(`[Webhook] Failed to queue reconciliation for event ${event.id}:`, reconciliationError);
+      return NextResponse.json({ error: 'Failed to queue webhook reconciliation' }, { status: 500 });
+    }
+    return NextResponse.json({ received: true, reconciliationRequired: true });
+  }
+  if (claim.outcome === 'busy') {
+    console.warn(`[Webhook] Event ${event.id} is already processing or waiting for retry`);
+    return NextResponse.json({ error: 'Webhook event is temporarily unavailable' }, { status: 503 });
+  }
+  if (claim.outcome !== 'claimed' || !claim.processing_token) {
+    console.error(`[Webhook] Unexpected claim outcome for event ${event.id}:`, claim);
+    return NextResponse.json({ error: 'Failed to claim webhook event' }, { status: 500 });
+  }
+  const processingToken = claim.processing_token;
 
   try {
     switch (event.type) {
@@ -262,7 +213,8 @@ export async function POST(req: Request) {
       // This is more reliable than subscription.created because
       // we have full context (session metadata, customer, etc.)
       // -------------------------------------------------------
-      case 'checkout.session.completed': {
+      case 'checkout.session.completed':
+      case 'checkout.session.async_payment_succeeded': {
         const session = event.data.object as Stripe.Checkout.Session;
 
         console.info(`[Webhook] checkout.session.completed - customer: ${session.customer}, subscription: ${session.subscription}`);
@@ -281,19 +233,19 @@ export async function POST(req: Request) {
             accepted_at: new Date().toISOString(),
           }, { onConflict: 'stripe_checkout_session_id', ignoreDuplicates: true }));
 
-          await logAuditEvent({
-            action: 'organization.billing.terms_accepted',
-            entityType: 'stripe_checkout',
-            organizationId: session.metadata?.organizationId ?? null,
-            eventDomain: 'settings',
-            outcome: 'success',
-            severity: 'low',
-            metadata: {
-              customer_email: session.customer_details?.email ?? null,
-              legal_version: session.metadata?.legalVersion ?? null,
-              stripe_session_id: session.id,
-            },
-          });
+          await runNotification('Terms acceptance audit', () => logAuditEvent({
+              action: 'organization.billing.terms_accepted',
+              entityType: 'stripe_checkout',
+              organizationId: session.metadata?.organizationId ?? null,
+              eventDomain: 'settings',
+              outcome: 'success',
+              severity: 'low',
+              metadata: {
+                customer_email: session.customer_details?.email ?? null,
+                legal_version: session.metadata?.legalVersion ?? null,
+                stripe_session_id: session.id,
+              },
+            }));
         }
 
         // ── MANUAL SUBSCRIPTION ORDER (tracking only) ─────────────
@@ -303,12 +255,28 @@ export async function POST(req: Request) {
         const manualSubscriptionOrderId = session.metadata?.manualSubscriptionOrderId ?? null;
         const markManualSubscriptionOrderCompleted = async () => {
           if (!manualSubscriptionOrderId) return;
-          const { error } = await supabase
+          const { data: order, error: orderError } = await supabase
+            .from('manual_subscription_orders')
+            .select('id, status, stripe_session_id')
+            .eq('id', manualSubscriptionOrderId)
+            .maybeSingle();
+          requireDatabaseSuccess('Load manual subscription order', orderError);
+          if (!order || order.stripe_session_id !== session.id) {
+            throw new Error('Manual subscription order does not match Checkout Session');
+          }
+          if (order.status === 'completed') return;
+          if (order.status !== 'pending') {
+            throw new Error(`Manual subscription order cannot complete from status ${order.status}`);
+          }
+          const { data: completedOrder, error } = await supabase
             .from('manual_subscription_orders')
             .update({ status: 'completed', completed_at: new Date().toISOString() })
             .eq('id', manualSubscriptionOrderId)
-            .eq('status', 'pending');
-          if (error) console.error('[Webhook][manual-subscription] Error marking order completed:', error);
+            .eq('status', 'pending')
+            .select('id')
+            .maybeSingle();
+          requireDatabaseSuccess('Complete manual subscription order', error);
+          if (!completedOrder) throw new Error('Manual subscription order was not completed');
         };
 
         // ── MANUAL PAYMENT ORDER ─────────────────────────────────
@@ -320,75 +288,38 @@ export async function POST(req: Request) {
 
           console.info(`[Webhook][manual] orderId=${orderId} orgId=${orgId}`);
 
-          // Mark order as paid
           const paymentIntentId =
             typeof session.payment_intent === 'string'
               ? session.payment_intent
               : (session.payment_intent as { id: string } | null)?.id ?? null;
           const customerEmail = session.customer_details?.email ?? null;
-
-          if (orgId && session.amount_total != null && session.currency) {
-            await recordBillingPayment(supabase, {
-              organizationId: orgId,
-              recordType: 'manual_payment',
-              sourceEventId: `checkout_session:${session.id}`,
-              amountCents: session.amount_total,
-              currency: session.currency,
-              paidAt: new Date().toISOString(),
-              stripePaymentIntentId: paymentIntentId,
-              stripeCheckoutSessionId: session.id,
-              description: 'Manual payment order',
-              metadata: { manualPaymentOrderId: orderId },
-            });
+          if (!orgId || session.amount_subtotal == null || session.amount_total == null || !session.currency) {
+            throw new Error('Manual payment Checkout Session is missing required payment data');
           }
-
-          const { data: paidOrder, error: paidErr } = await supabase
-            .from('manual_payment_orders')
-            .update({
-              status: 'paid',
-              paid_at: new Date().toISOString(),
-              stripe_payment_intent_id: paymentIntentId,
-              customer_email: customerEmail,
-            })
-            .eq('id', orderId)
-            .eq('status', 'pending')
-            .select('id')
-            .maybeSingle();
-          if (paidErr) console.error('[Webhook][manual] Error marking order paid:', paidErr);
-          if (!paidOrder) {
-            console.info(`[Webhook][manual] Ignoring non-pending or missing order ${orderId}`);
+          if (event.type === 'checkout.session.completed' && session.payment_status === 'unpaid') {
+            console.info(`[Webhook][manual] Session ${session.id} is awaiting asynchronous payment confirmation`);
             break;
           }
-
-          if (orgId) {
-            // Fetch order to get items[] (new orders) or fall back to metadata (legacy)
-            type StoredItem = { action_type: string; action_payload: Record<string, unknown> | null };
-            const { data: orderRecord } = await supabase
-              .from('manual_payment_orders')
-              .select('items, action_type, action_payload')
-              .eq('id', orderId)
-              .maybeSingle();
-
-            const storedItems = orderRecord?.items as StoredItem[] | null;
-
-            if (storedItems && storedItems.length > 0) {
-              for (const item of storedItems) {
-                await executeManualAction(orgId, item.action_type, item.action_payload ?? {}, supabase);
-              }
-            } else {
-              // Legacy single-item order: read action from session metadata
-              let legacyPayload: Record<string, unknown> = {};
-              try {
-                if (session.metadata.actionPayload) {
-                  legacyPayload = JSON.parse(session.metadata.actionPayload) as Record<string, unknown>;
-                }
-              } catch {
-                console.error('[Webhook][manual] Could not parse legacy actionPayload JSON');
-              }
-              const legacyActionType = session.metadata.actionType ?? 'custom';
-              await executeManualAction(orgId, legacyActionType, legacyPayload, supabase);
-            }
+          if (session.payment_status !== 'paid') {
+            throw new Error(`Manual payment order is not paid (status: ${session.payment_status})`);
           }
+          if (session.amount_total < session.amount_subtotal) {
+            throw new Error('Manual payment total is below the configured order amount');
+          }
+
+          const { error: manualPaymentError } = await supabase.rpc('apply_manual_payment_order_transaction_v2', {
+            p_order_id: orderId,
+            p_event_id: event.id,
+            p_checkout_session_id: session.id,
+            p_metadata_organization_id: orgId,
+            p_amount_subtotal: session.amount_subtotal,
+            p_amount_total: session.amount_total,
+            p_currency: session.currency,
+            p_payment_intent_id: paymentIntentId,
+            p_customer_email: customerEmail,
+            p_paid_at: new Date().toISOString(),
+          });
+          requireDatabaseSuccess('Apply manual payment order', manualPaymentError);
 
           break;
         }
@@ -402,16 +333,16 @@ export async function POST(req: Request) {
           const addonStripeCustomerId = session.customer as string;
           const addonStripeSubscriptionId = session.subscription as string;
 
-          if (!addonOrgId || !addonModuleId) {
-            console.error('[Webhook][addon] Missing organizationId or moduleId in session metadata');
-            break;
+          if (!addonOrgId || !addonModuleId || !addonStripeCustomerId || !addonStripeSubscriptionId) {
+            throw new Error('Add-on Checkout Session is missing organization, module, customer, or subscription');
           }
 
           // Ensure stripe_customers mapping exists
-          await supabase.from('stripe_customers').upsert(
+          const { error: addonCustomerError } = await supabase.from('stripe_customers').upsert(
             { organization_id: addonOrgId, stripe_customer_id: addonStripeCustomerId },
             { onConflict: 'organization_id' },
           );
+          requireDatabaseSuccess('Link add-on Stripe customer', addonCustomerError);
 
           const integrationPlanId = session.metadata?.integrationPlanId ?? null;
           const setupFeePaidMeta = session.metadata?.setupFeePaid === 'true';
@@ -423,17 +354,13 @@ export async function POST(req: Request) {
           // Without this, current_period_end stays NULL until the first
           // customer.subscription.updated event (next renewal), and the dashboard's
           // "this billing cycle" invoice count silently falls back to a lifetime total.
-          let addonCurrentPeriodEnd: string | null = null;
-          if (addonStripeSubscriptionId) {
-            try {
-              const addonSubscription = await stripe.subscriptions.retrieve(addonStripeSubscriptionId);
-              const addonPeriodStartRaw = addonSubscription.billing_cycle_anchor ?? addonSubscription.start_date;
-              const addonInterval = addonSubscription.items.data[0]?.price?.recurring?.interval ?? null;
-              addonCurrentPeriodEnd = computePeriodEnd(addonPeriodStartRaw, addonInterval, addonSubscription.trial_end);
-            } catch (err) {
-              console.error('[Webhook][addon] Error retrieving subscription for current_period_end:', err);
-            }
-          }
+          const addonSubscription = await stripe.subscriptions.retrieve(addonStripeSubscriptionId);
+          const addonPeriodStartRaw = addonSubscription.billing_cycle_anchor ?? addonSubscription.start_date;
+          const addonInterval = addonSubscription.items.data[0]?.price?.recurring?.interval ?? null;
+          const addonCurrentPeriodEnd = computePeriodEnd(addonPeriodStartRaw, addonInterval, addonSubscription.trial_end);
+          const isAddonActive = ['active', 'trialing'].includes(addonSubscription.status);
+          const isAddonCanceled = ['canceled', 'unpaid', 'incomplete_expired'].includes(addonSubscription.status);
+          const persistedAddonStatus = isAddonActive ? 'active' : (isAddonCanceled ? 'canceled' : addonSubscription.status);
 
           // Upsert the addon subscription record
           const { error: addonErr } = await supabase.from('organization_addons').upsert(
@@ -442,14 +369,14 @@ export async function POST(req: Request) {
               module_id: addonModuleId,
               stripe_subscription_id: addonStripeSubscriptionId,
               stripe_customer_id: addonStripeCustomerId,
-              status: 'active',
-              ...(addonCurrentPeriodEnd ? { current_period_end: addonCurrentPeriodEnd } : {}),
-              ...(integrationPlanId ? { integration_plan_id: integrationPlanId } : {}),
+              status: persistedAddonStatus,
+              current_period_end: addonCurrentPeriodEnd,
+              integration_plan_id: isAddonActive ? integrationPlanId : null,
               ...(setupFeePaidMeta ? { setup_fee_paid: true, setup_fee_amount: setupFeeAmountMeta } : {}),
             },
             { onConflict: 'organization_id,module_id' },
           );
-          if (addonErr) console.error('[Webhook][addon] Error upserting organization_addons:', addonErr);
+          requireDatabaseSuccess('Upsert organization add-on', addonErr);
 
           // ── EXTRA CONNECTION SLOTS (recurring, sumadas en el alta nueva) ─────
           // Mismo mecanismo que el slot de pago unico (actionType "add_slot"),
@@ -457,26 +384,16 @@ export async function POST(req: Request) {
           // checkout-manual-subscription. Ver web/src/app/legal/integration/msa
           // Schedule B ("Additional Connection Fee").
           const extraSlotCount = Number(session.metadata?.extraSlotCount ?? 0);
-          if (extraSlotCount > 0) {
-            const { error: slotErr } = await supabase.rpc('increment_r365_slots', {
+          if (isAddonActive && extraSlotCount > 0) {
+            const { error: slotErr } = await supabase.rpc('apply_stripe_increment_once', {
+              p_event_id: event.id,
+              p_effect_key: `checkout:${session.id}:extra-r365-slots`,
               p_organization_id: addonOrgId,
+              p_module_id: addonModuleId,
+              p_effect_type: 'r365_slots',
               p_amount: extraSlotCount,
             });
-            if (slotErr) {
-              console.warn('[Webhook][addon] RPC increment_r365_slots failed, trying direct update:', slotErr);
-              const { data: addonRow } = await supabase
-                .from('organization_addons')
-                .select('id, extra_r365_connections')
-                .eq('organization_id', addonOrgId)
-                .eq('module_id', addonModuleId)
-                .maybeSingle();
-              if (addonRow) {
-                await supabase
-                  .from('organization_addons')
-                  .update({ extra_r365_connections: ((addonRow.extra_r365_connections as number) ?? 0) + extraSlotCount })
-                  .eq('id', addonRow.id);
-              }
-            }
+            requireDatabaseSuccess('Apply recurring extra R365 slots', slotErr);
             console.info(`[Webhook][addon] extra_r365_connections +${extraSlotCount} for org ${addonOrgId}`);
           }
           // ── END EXTRA CONNECTION SLOTS ────────────────────────────────────────
@@ -484,24 +401,25 @@ export async function POST(req: Request) {
           // Enable the module for the organization.
           // Also fetch addon_companion_module_codes so we can provision companion
           // modules when the org has no active plan (see below).
-          const { data: moduleRow } = await supabase
+          const { data: moduleRow, error: moduleLookupError } = await supabase
             .from('module_catalog')
             .select('id, addon_companion_module_codes')
             .eq('id', addonModuleId)
             .maybeSingle();
+          requireDatabaseSuccess('Resolve add-on module', moduleLookupError);
 
           if (moduleRow) {
             const { error: modErr } = await supabase.from('organization_modules').upsert(
               {
                 organization_id: addonOrgId,
                 module_id: addonModuleId,
-                is_enabled: true,
-                enabled_at: new Date().toISOString(),
+                is_enabled: isAddonActive,
+                enabled_at: isAddonActive ? new Date().toISOString() : null,
               },
               { onConflict: 'organization_id,module_id' },
             );
-            if (modErr) console.error('[Webhook][addon] Error enabling module:', modErr);
-            else console.info(`[Webhook][addon] Module ${addonModuleCode} enabled for org ${addonOrgId}`);
+            requireDatabaseSuccess('Enable add-on module', modErr);
+            console.info(`[Webhook][addon] Module ${addonModuleCode} enabled for org ${addonOrgId}`);
 
             // ── COMPANION MODULES (sin plan activo) ───────────────────────────
             // Si la organización no tiene un plan asignado (plan_id IS NULL) y el
@@ -511,12 +429,13 @@ export async function POST(req: Request) {
             // sin necesidad de intervención del superadmin.
             const companionCodes: string[] = (moduleRow as { addon_companion_module_codes?: string[] }).addon_companion_module_codes ?? [];
 
-            if (companionCodes.length > 0) {
-              const { data: orgRow } = await supabase
+            if (isAddonActive && companionCodes.length > 0) {
+              const { data: orgRow, error: organizationLookupError } = await supabase
                 .from('organizations')
                 .select('plan_id')
                 .eq('id', addonOrgId)
                 .maybeSingle();
+              requireDatabaseSuccess('Load add-on organization', organizationLookupError);
 
               if (!orgRow?.plan_id) {
                 // Org without a plan: resolve companion module IDs and activate them
@@ -525,9 +444,8 @@ export async function POST(req: Request) {
                   .select('id, code')
                   .in('code', companionCodes);
 
-                if (companionLookupErr) {
-                  console.error('[Webhook][addon] Error looking up companion modules:', companionLookupErr);
-                } else if (companionModules && companionModules.length > 0) {
+                requireDatabaseSuccess('Resolve add-on companion modules', companionLookupErr);
+                if (companionModules && companionModules.length > 0) {
                   for (const companion of companionModules) {
                     const { error: companionErr } = await supabase.from('organization_modules').upsert(
                       {
@@ -538,44 +456,49 @@ export async function POST(req: Request) {
                       },
                       { onConflict: 'organization_id,module_id' },
                     );
-                    if (companionErr) {
-                      console.error(`[Webhook][addon] Error enabling companion module ${companion.code}:`, companionErr);
-                    } else {
-                      console.info(`[Webhook][addon] Companion module "${companion.code}" enabled for org ${addonOrgId} (no active plan)`);
-                    }
+                    requireDatabaseSuccess(`Enable companion module ${companion.code}`, companionErr);
+                    console.info(`[Webhook][addon] Companion module "${companion.code}" enabled for org ${addonOrgId} (no active plan)`);
                   }
                 }
               }
             }
             // ── END COMPANION MODULES ─────────────────────────────────────────
-          }
+          } else throw new Error(`Add-on module ${addonModuleId} was not found`);
 
           // ── SYNC integration_plan_id en organizations ────────────────────────
-          if (integrationPlanId) {
-            await supabase
+          if (isAddonActive && integrationPlanId) {
+            const { error: integrationPlanError } = await supabase
               .from('organizations')
               .update({ integration_plan_id: integrationPlanId })
               .eq('id', addonOrgId);
+            requireDatabaseSuccess('Set organization integration plan', integrationPlanError);
             console.info(`[Webhook][addon] organizations.integration_plan_id set to ${integrationPlanId} for org ${addonOrgId}`);
+          } else if (!isAddonActive) {
+            const { error: integrationPlanError } = await supabase
+              .from('organizations')
+              .update({ integration_plan_id: null })
+              .eq('id', addonOrgId);
+            requireDatabaseSuccess('Clear stale organization integration plan', integrationPlanError);
           }
           // ── END SYNC ──────────────────────────────────────────────────────────
 
-          if (integrationPlanId) {
-            const { data: orgRow } = await supabase
+          if (integrationPlanId || !isAddonActive) {
+            const { data: orgRow, error: organizationLookupError } = await supabase
               .from('organizations')
               .select('plan_id')
               .eq('id', addonOrgId)
               .maybeSingle();
+            requireDatabaseSuccess('Load organization platform plan', organizationLookupError);
 
             const syncResult = await syncOrganizationPlan({
               organizationId: addonOrgId,
               planId: orgRow?.plan_id ?? null,
-              integrationPlanId,
+              integrationPlanId: isAddonActive ? integrationPlanId : null,
               skipPlanLimitCheck: true,
             });
 
             if (!syncResult.ok) {
-              console.error(`[Webhook][addon] Failed to sync dual-plan modules for org ${addonOrgId}: ${syncResult.message}`);
+              throw new Error(`Sync dual-plan modules for org ${addonOrgId}: ${syncResult.message}`);
             }
           }
 
@@ -585,12 +508,15 @@ export async function POST(req: Request) {
           // plan would always get isBlocked=true (reason: subscription_missing).
           // Clearing billing_onboarding_required ensures the gate returns
           // reason="not_required" and never blocks the dashboard.
-          await supabase
-            .from('organizations')
-            .update({ billing_onboarding_required: false })
-            .eq('id', addonOrgId)
-            .is('plan_id', null); // only if they have no platform plan — don't touch platform customers
-          console.info(`[Webhook][addon] billing_onboarding_required cleared for integration-only org ${addonOrgId}`);
+          if (isAddonActive) {
+            const { error: billingGateError } = await supabase
+              .from('organizations')
+              .update({ billing_onboarding_required: false })
+              .eq('id', addonOrgId)
+              .is('plan_id', null); // only if they have no platform plan — don't touch platform customers
+            requireDatabaseSuccess('Clear integration-only billing gate', billingGateError);
+            console.info(`[Webhook][addon] billing_onboarding_required cleared for integration-only org ${addonOrgId}`);
+          }
           // ── END BILLING GATE FIX ─────────────────────────────────────────────
 
           await markManualSubscriptionOrderCompleted();
@@ -603,20 +529,20 @@ export async function POST(req: Request) {
         let planId = session.metadata?.planId || null;
 
         if (!organizationId) {
-            console.error('[Webhook] No organizationId found in checkout session metadata or client_reference_id. Aborting.');
-            break;
+            throw new Error('Platform Checkout Session is missing organizationId');
         }
 
         const stripeCustomerId = session.customer as string;
         const stripeSubscriptionId = session.subscription as string;
         const trialDaysFromMetadata = Number.parseInt(session.metadata?.trialDays || '0', 10);
 
-        const { data: existingActiveBefore } = await supabase
+        const { data: existingActiveBefore, error: activeSubscriptionLookupError } = await supabase
           .from('subscriptions')
           .select('id')
           .eq('organization_id', organizationId)
           .in('status', ['active', 'trialing'])
           .limit(1);
+        requireDatabaseSuccess('Load existing active subscription', activeSubscriptionLookupError);
         const hadActiveSubscriptionBefore = Array.isArray(existingActiveBefore) && existingActiveBefore.length > 0;
 
         // 1. Map the stripe customer to our organization
@@ -626,13 +552,12 @@ export async function POST(req: Request) {
             { organization_id: organizationId, stripe_customer_id: stripeCustomerId },
             { onConflict: 'organization_id' }
           );
-        if (custErr) console.error('[Webhook] Error linking stripe customer:', custErr);
-        else console.info('[Webhook] stripe_customers upserted OK');
+        requireDatabaseSuccess('Link Stripe customer', custErr);
+        console.info('[Webhook] stripe_customers upserted OK');
 
         // 2. Fetch the full subscription object from Stripe to get pricing and status
         if (!stripeSubscriptionId) {
-            console.info('[Webhook] No subscription in session (maybe one-time payment). Skipping subscription sync.');
-            break;
+            throw new Error('Platform Checkout Session is missing subscription');
         }
 
         const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
@@ -654,19 +579,21 @@ export async function POST(req: Request) {
 
         // 3. Look up the internal plan via price_id (or use the one from metadata)
         if (!planId) {
-            const { data: planData } = await supabase
+            const { data: planData, error: planLookupError } = await supabase
                 .from('plans')
                 .select('id, name, max_branches, max_users, max_storage_mb, max_employees')
                 .eq('stripe_price_id', priceId)
                 .maybeSingle();
+            requireDatabaseSuccess('Resolve platform plan by Stripe price', planLookupError);
             if (planData) planId = planData.id;
         }
 
         const isActive = ['active', 'trialing'].includes(status);
+        if (isActive && !planId) throw new Error(`No platform plan matches Stripe price ${priceId}`);
 
         if (planId && isActive) {
             // 4. Fetch full plan data for limits
-            const [{ data: planData }, { data: currentOrg }] = await Promise.all([
+            const [planResult, organizationResult] = await Promise.all([
                 supabase
                     .from('plans')
                     .select('id, name, max_branches, max_users, max_storage_mb, max_employees')
@@ -678,6 +605,11 @@ export async function POST(req: Request) {
                     .eq('id', organizationId)
                     .maybeSingle(),
             ]);
+            requireDatabaseSuccess('Load platform plan', planResult.error);
+            requireDatabaseSuccess('Load organization integration plan', organizationResult.error);
+            const planData = planResult.data;
+            const currentOrg = organizationResult.data;
+            if (!planData) throw new Error(`Platform plan ${planId} was not found`);
 
             // 5. Update organization plan
             const { error: orgErr } = await supabase
@@ -688,8 +620,8 @@ export async function POST(req: Request) {
                 billing_activated_at: new Date().toISOString(),
               })
               .eq('id', organizationId);
-            if (orgErr) console.error('[Webhook] Error updating org plan:', orgErr);
-            else console.info('[Webhook] Organization plan updated OK');
+            requireDatabaseSuccess('Activate organization plan', orgErr);
+            console.info('[Webhook] Organization plan updated OK');
 
             if (planData) {
                 const syncResult = await syncOrganizationPlan({
@@ -698,15 +630,16 @@ export async function POST(req: Request) {
                     integrationPlanId: currentOrg?.integration_plan_id ?? null,
                     skipPlanLimitCheck: true,
                 });
-                if (!syncResult.ok) console.error('[Webhook] Error syncing organization plan:', syncResult.message);
+                if (!syncResult.ok) throw new Error(`Sync organization plan: ${syncResult.message}`);
 
-                await supabase.from('organization_settings').upsert(
+                const { error: settingsError } = await supabase.from('organization_settings').upsert(
                     {
                         organization_id: organizationId,
                         billing_period: billingPeriod,
                     },
                     { onConflict: 'organization_id' },
                 );
+                requireDatabaseSuccess('Set organization billing period', settingsError);
             }
 
             if (!hadActiveSubscriptionBefore) {
@@ -717,17 +650,18 @@ export async function POST(req: Request) {
                 ? trialDaysFromMetadata
                 : (status === 'trialing' ? 30 : 0);
 
-              await sendSubscriptionActivatedEmail({
-                organizationId,
-                planName,
-                trialDays,
-              });
+              await runNotification('Subscription activation', () => sendSubscriptionActivatedEmail({
+                  organizationId,
+                  planName,
+                  trialDays,
+                }));
             }
         } else {
-            await supabase
+            const { error: blockOrganizationError } = await supabase
               .from('organizations')
               .update({ billing_activation_status: 'blocked' })
               .eq('id', organizationId);
+            requireDatabaseSuccess('Block inactive organization subscription', blockOrganizationError);
         }
 
         // 8. Upsert subscription record
@@ -745,8 +679,8 @@ export async function POST(req: Request) {
                 current_period_end: currentPeriodEnd
             }, { onConflict: 'stripe_subscription_id' });
 
-        if (subError) console.error('[Webhook] Error upserting subscription:', subError);
-        else console.info('[Webhook] subscriptions upserted OK');
+        requireDatabaseSuccess('Upsert subscription', subError);
+        console.info('[Webhook] subscriptions upserted OK');
 
         await markManualSubscriptionOrderCompleted();
 
@@ -759,7 +693,10 @@ export async function POST(req: Request) {
       // -------------------------------------------------------
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
-        const subscription = event.data.object as Stripe.Subscription;
+        const deliveredSubscription = event.data.object as Stripe.Subscription;
+        // Stripe does not guarantee delivery order. Always project the current
+        // object so retrying an old event cannot reactivate a canceled plan.
+        const subscription = await stripe.subscriptions.retrieve(deliveredSubscription.id);
         const stripeCustomerId = subscription.customer as string;
 
         // ── ADD-ON SUBSCRIPTION LIFECYCLE ───────────────────────
@@ -772,8 +709,7 @@ export async function POST(req: Request) {
           const isAddonCanceled = ['canceled', 'unpaid', 'incomplete_expired'].includes(addonStatus);
 
           if (!addonOrgId || !addonModuleId) {
-            console.error('[Webhook][addon] Missing metadata on subscription lifecycle event');
-            break;
+            throw new Error('Add-on subscription event is missing organizationId or moduleId');
           }
 
           const periodStartRaw: number = subscription.billing_cycle_anchor ?? subscription.start_date;
@@ -784,16 +720,17 @@ export async function POST(req: Request) {
           const updatedPriceId = subscription.items.data[0]?.price?.id ?? null;
           let updatedIntegrationPlanId: string | null = subscription.metadata?.integrationPlanId ?? null;
           if (!updatedIntegrationPlanId && updatedPriceId) {
-            const { data: matchedPlan } = await supabase
+            const { data: matchedPlan, error: matchedPlanError } = await supabase
               .from('plans')
               .select('id')
               .eq('stripe_price_id', updatedPriceId)
               .eq('plan_type', 'qbo_r365')
               .maybeSingle();
+            requireDatabaseSuccess('Resolve integration plan by Stripe price', matchedPlanError);
             if (matchedPlan) updatedIntegrationPlanId = matchedPlan.id;
           }
 
-          await supabase.from('organization_addons').upsert(
+          const { error: addonLifecycleError } = await supabase.from('organization_addons').upsert(
             {
               organization_id: addonOrgId,
               module_id: addonModuleId,
@@ -801,20 +738,22 @@ export async function POST(req: Request) {
               stripe_customer_id: stripeCustomerId,
               status: isAddonActive ? 'active' : (isAddonCanceled ? 'canceled' : addonStatus),
               current_period_end: currentPeriodEnd,
-              ...(updatedIntegrationPlanId ? { integration_plan_id: updatedIntegrationPlanId } : {}),
+              integration_plan_id: isAddonActive ? updatedIntegrationPlanId : null,
             },
             { onConflict: 'organization_id,module_id' },
           );
+          requireDatabaseSuccess('Update add-on subscription lifecycle', addonLifecycleError);
 
           // Sync module enablement
-          const { data: moduleRow } = await supabase
+          const { data: moduleRow, error: moduleLookupError } = await supabase
             .from('module_catalog')
             .select('id')
             .eq('id', addonModuleId)
             .maybeSingle();
+          requireDatabaseSuccess('Resolve add-on lifecycle module', moduleLookupError);
 
           if (moduleRow) {
-            await supabase.from('organization_modules').upsert(
+            const { error: addonModuleError } = await supabase.from('organization_modules').upsert(
               {
                 organization_id: addonOrgId,
                 module_id: addonModuleId,
@@ -823,31 +762,35 @@ export async function POST(req: Request) {
               },
               { onConflict: 'organization_id,module_id' },
             );
+            requireDatabaseSuccess('Update add-on module lifecycle', addonModuleError);
             console.info(`[Webhook][addon] Module ${addonModuleCode} set enabled=${isAddonActive} for org ${addonOrgId}`);
           }
 
           // ── SYNC integration_plan_id en organizations ────────────────────────
           if (isAddonActive && updatedIntegrationPlanId) {
-            await supabase
+            const { error: integrationPlanError } = await supabase
               .from('organizations')
               .update({ integration_plan_id: updatedIntegrationPlanId })
               .eq('id', addonOrgId);
+            requireDatabaseSuccess('Update organization integration plan', integrationPlanError);
             console.info(`[Webhook][addon] organizations.integration_plan_id updated to ${updatedIntegrationPlanId} for org ${addonOrgId}`);
           } else if (isAddonCanceled) {
-            await supabase
+            const { error: clearIntegrationPlanError } = await supabase
               .from('organizations')
               .update({ integration_plan_id: null })
               .eq('id', addonOrgId);
+            requireDatabaseSuccess('Clear organization integration plan', clearIntegrationPlanError);
             console.info(`[Webhook][addon] organizations.integration_plan_id cleared for org ${addonOrgId} (addon canceled)`);
           }
           // ── END SYNC ──────────────────────────────────────────────────────────
 
           if (addonModuleCode === 'qbo_r365' || updatedIntegrationPlanId || isAddonCanceled) {
-            const { data: orgRow } = await supabase
+            const { data: orgRow, error: organizationLookupError } = await supabase
               .from('organizations')
               .select('plan_id')
               .eq('id', addonOrgId)
               .maybeSingle();
+            requireDatabaseSuccess('Load add-on lifecycle organization', organizationLookupError);
 
             const syncResult = await syncOrganizationPlan({
               organizationId: addonOrgId,
@@ -857,7 +800,7 @@ export async function POST(req: Request) {
             });
 
             if (!syncResult.ok) {
-              console.error(`[Webhook][addon] Failed to sync organization after addon lifecycle change for org ${addonOrgId}: ${syncResult.message}`);
+              throw new Error(`Sync organization after add-on lifecycle change: ${syncResult.message}`);
             }
           }
 
@@ -868,17 +811,17 @@ export async function POST(req: Request) {
         let organizationId = subscription.metadata?.organizationId;
 
         if (!organizationId) {
-          const { data: customerMapping } = await supabase
+          const { data: customerMapping, error: customerMappingError } = await supabase
               .from('stripe_customers')
               .select('organization_id')
               .eq('stripe_customer_id', stripeCustomerId)
               .single();
+          requireDatabaseSuccess('Resolve subscription customer', customerMappingError);
           if (customerMapping) organizationId = customerMapping.organization_id;
         }
 
         if (!organizationId) {
-            console.error(`[Webhook] No organizationId for subscription event on customer ${stripeCustomerId}`);
-            break;
+            throw new Error(`No organizationId for subscription event on customer ${stripeCustomerId}`);
         }
 
         const status = subscription.status;
@@ -899,19 +842,21 @@ export async function POST(req: Request) {
         const targetPlanIdFromMeta = typeof subscription.metadata?.planId === 'string' ? subscription.metadata.planId : null;
 
         if (isCanceled) {
-            const { data: currentOrg } = await supabase
+            const { data: currentOrg, error: organizationLookupError } = await supabase
               .from('organizations')
               .select('integration_plan_id')
               .eq('id', organizationId)
               .maybeSingle();
+            requireDatabaseSuccess('Load canceled subscription organization', organizationLookupError);
 
-            await supabase
+            const { error: cancelOrganizationError } = await supabase
               .from('organizations')
               .update({
                 plan_id: null,
                 billing_activation_status: 'blocked',
               })
               .eq('id', organizationId);
+            requireDatabaseSuccess('Cancel organization platform plan', cancelOrganizationError);
 
             const syncResult = await syncOrganizationPlan({
               organizationId,
@@ -919,7 +864,7 @@ export async function POST(req: Request) {
               integrationPlanId: currentOrg?.integration_plan_id ?? null,
               skipPlanLimitCheck: true,
             });
-            if (!syncResult.ok) console.error('[Webhook] Error syncing organization plan after cancellation:', syncResult.message);
+            if (!syncResult.ok) throw new Error(`Sync organization plan after cancellation: ${syncResult.message}`);
         } else if (isActive) {
             let planData: {
               id: string;
@@ -930,32 +875,35 @@ export async function POST(req: Request) {
             } | null = null;
 
             if (targetPlanIdFromMeta) {
-                const { data: byId } = await supabase
+                const { data: byId, error: planByIdError } = await supabase
                     .from('plans')
                     .select('id, max_branches, max_users, max_storage_mb, max_employees')
                     .eq('id', targetPlanIdFromMeta)
                     .maybeSingle();
+                requireDatabaseSuccess('Resolve updated platform plan by ID', planByIdError);
                 planData = byId;
             }
 
             if (!planData) {
-                const { data: byPrice } = await supabase
+                const { data: byPrice, error: planByPriceError } = await supabase
                     .from('plans')
                     .select('id, max_branches, max_users, max_storage_mb, max_employees')
                     .eq('stripe_price_id', priceId)
                     .maybeSingle();
+                requireDatabaseSuccess('Resolve updated platform plan by price', planByPriceError);
                 planData = byPrice;
             }
 
             if (planData) {
-                const { data: currentOrg } = await supabase
+                const { data: currentOrg, error: organizationLookupError } = await supabase
                   .from('organizations')
                   .select('integration_plan_id')
                   .eq('id', organizationId)
                   .maybeSingle();
+                requireDatabaseSuccess('Load updated subscription organization', organizationLookupError);
 
                 // Update org plan
-                await supabase
+                const { error: activateOrganizationError } = await supabase
                   .from('organizations')
                   .update({
                     plan_id: planData.id,
@@ -963,6 +911,7 @@ export async function POST(req: Request) {
                     billing_activated_at: new Date().toISOString(),
                   })
                   .eq('id', organizationId);
+                requireDatabaseSuccess('Activate updated organization plan', activateOrganizationError);
 
                 const syncResult = await syncOrganizationPlan({
                     organizationId,
@@ -970,21 +919,22 @@ export async function POST(req: Request) {
                     integrationPlanId: currentOrg?.integration_plan_id ?? null,
                     skipPlanLimitCheck: true,
                 });
-                if (!syncResult.ok) console.error('[Webhook] Error syncing organization plan on subscription update:', syncResult.message);
+                if (!syncResult.ok) throw new Error(`Sync organization plan on subscription update: ${syncResult.message}`);
 
-                await supabase.from('organization_settings').upsert(
+                const { error: settingsError } = await supabase.from('organization_settings').upsert(
                     {
                         organization_id: organizationId,
                         billing_period: billingPeriod,
                     },
                     { onConflict: 'organization_id' },
                 );
+                requireDatabaseSuccess('Update subscription billing period', settingsError);
 
-            }
+            } else throw new Error(`No platform plan matches updated Stripe price ${priceId}`);
         }
 
 
-        await supabase.from('subscriptions').upsert({
+        const { error: subscriptionLifecycleError } = await supabase.from('subscriptions').upsert({
             organization_id: organizationId,
             stripe_subscription_id: subscription.id,
             stripe_customer_id: stripeCustomerId,
@@ -995,6 +945,7 @@ export async function POST(req: Request) {
             current_period_start: currentPeriodStart,
             current_period_end: currentPeriodEnd,
         }, { onConflict: 'stripe_subscription_id' });
+        requireDatabaseSuccess('Update subscription lifecycle', subscriptionLifecycleError);
 
         if (event.type === 'customer.subscription.updated' && isActive) {
             const prevAttributes = event.data.previous_attributes as Partial<Stripe.Subscription> | undefined;
@@ -1029,11 +980,12 @@ export async function POST(req: Request) {
         const invoice = event.data.object as Stripe.Invoice;
         const billingStripeCustomerId = getStripeObjectId(invoice.customer);
         if (billingStripeCustomerId) {
-          const { data: billingCustomerMapping } = await supabase
+          const { data: billingCustomerMapping, error: billingMappingError } = await supabase
             .from('stripe_customers')
             .select('organization_id')
             .eq('stripe_customer_id', billingStripeCustomerId)
             .maybeSingle();
+          requireDatabaseSuccess('Resolve paid invoice customer', billingMappingError);
           let billingOrganizationId = billingCustomerMapping?.organization_id ?? null;
           if (!billingOrganizationId) {
             const invoiceSubscription = invoice.parent?.subscription_details?.subscription;
@@ -1060,15 +1012,16 @@ export async function POST(req: Request) {
               metadata: { billingReason: invoice.billing_reason },
             });
           } else {
-            console.error(`[Webhook][billing-record] No organization mapping for paid invoice ${invoice.id}`);
+            throw new Error(`No organization mapping for paid invoice ${invoice.id}`);
           }
-        }
+        } else throw new Error(`Paid invoice ${invoice.id} has no Stripe customer`);
 
-        const { data: purchase } = await supabase
+        const { data: purchase, error: purchaseLookupError } = await supabase
           .from('r365_connection_purchases')
           .select('id, stripe_subscription_id, extra_price_id, target_quantity, delta_quantity, status')
           .eq('stripe_invoice_id', invoice.id)
           .maybeSingle();
+        requireDatabaseSuccess('Resolve R365 connection purchase', purchaseLookupError);
 
         let appliedR365Purchase = purchase?.status === 'paid_applied';
         if (purchase) {
@@ -1096,19 +1049,18 @@ export async function POST(req: Request) {
 
         const stripeCustomerId = getStripeObjectId(invoice.customer);
         if (!stripeCustomerId) {
-          console.error(`[Webhook] No Stripe customer found for paid invoice ${invoice.id}`);
-          break;
+          throw new Error(`No Stripe customer found for paid invoice ${invoice.id}`);
         }
 
-        const { data: customerMapping } = await supabase
+        const { data: customerMapping, error: customerMappingError } = await supabase
           .from('stripe_customers')
           .select('organization_id')
           .eq('stripe_customer_id', stripeCustomerId)
           .maybeSingle();
+        requireDatabaseSuccess('Resolve paid invoice organization', customerMappingError);
         const organizationId = customerMapping?.organization_id;
         if (!organizationId) {
-          console.error(`[Webhook] No organizationId for paid invoice ${invoice.id} on customer ${stripeCustomerId}`);
-          break;
+          throw new Error(`No organizationId for paid invoice ${invoice.id} on customer ${stripeCustomerId}`);
         }
 
         const currency = invoice.currency.toUpperCase();
@@ -1159,17 +1111,17 @@ export async function POST(req: Request) {
         }
 
         // Find the organization from the customer ID mapping
-        const { data: customerMapping } = await supabase
+        const { data: customerMapping, error: customerMappingError } = await supabase
             .from('stripe_customers')
             .select('organization_id')
             .eq('stripe_customer_id', stripeCustomerId)
             .single();
+        requireDatabaseSuccess('Resolve invoice customer', customerMappingError);
 
         const organizationId = customerMapping?.organization_id;
 
         if (!organizationId) {
-            console.error(`[Webhook] No organizationId for invoice event on customer ${stripeCustomerId}`);
-            break;
+            throw new Error(`No organizationId for invoice event on customer ${stripeCustomerId}`);
         }
 
         if (event.type === 'invoice.upcoming') {
@@ -1182,14 +1134,15 @@ export async function POST(req: Request) {
               ? invoiceSubscription
               : invoiceSubscription?.id ?? null;
 
-            const { data: integrationAddon } = upcomingSubscriptionId
+            const { data: integrationAddon, error: integrationAddonError } = upcomingSubscriptionId
               ? await supabase
                 .from('organization_addons')
                 .select('id')
                 .eq('organization_id', organizationId)
                 .eq('stripe_subscription_id', upcomingSubscriptionId)
                 .maybeSingle()
-              : { data: null };
+              : { data: null, error: null };
+            requireDatabaseSuccess('Resolve integration renewal add-on', integrationAddonError);
 
             const reminderValues = integrationAddon
               ? formatIntegrationRenewalReminder(invoice.amount_due, invoice.currency, invoice.period_end)
@@ -1210,9 +1163,6 @@ export async function POST(req: Request) {
               ? "This total doesn't include usage charges yet — invoices delivered this billing period are added automatically before your billing cycle closes."
               : undefined;
 
-            await sendRenewalReminderEmail(organizationId, reminderValues.renewalDate, reminderValues.amount, reminderLineItems, usageNote);
-            console.info(`[Webhook] Sent renewal reminder for org ${organizationId}`);
-
             if (upcomingSubscriptionId && integrationAddon) {
                 const liveSubscription = await stripe.subscriptions.retrieve(upcomingSubscriptionId);
                 const item = liveSubscription.items.data[0] as unknown as {
@@ -1231,12 +1181,18 @@ export async function POST(req: Request) {
                   console.error(`[Webhook][usage-billing] No current_period_start/end on subscription item for org ${organizationId}`);
                 }
             }
+            await runNotification('Renewal reminder', () => sendRenewalReminderEmail(
+              organizationId,
+              reminderValues.renewalDate,
+              reminderValues.amount,
+              reminderLineItems,
+              usageNote,
+            ));
             // ── END USAGE BILLING ─────────────────────────────────────────────────────
         } else if (event.type === 'invoice.payment_failed') {
             const retryLink = invoice.hosted_invoice_url || `${process.env.APP_BASE_URL}/app/billing/portal-launch`;
-            
-            await sendPaymentFailedEmail(organizationId, retryLink);
-            console.info(`[Webhook] Sent payment failed email for org ${organizationId}`);
+
+            await runNotification('Payment failure', () => sendPaymentFailedEmail(organizationId, retryLink));
         }
         break;
       }
@@ -1248,14 +1204,13 @@ export async function POST(req: Request) {
     console.error(`[Webhook] Unhandled error processing event ${event.type}:`, err);
 
     const errorMessage = err instanceof Error ? err.message : String(err);
-    const { error: markFailedError } = await supabase
-      .from('stripe_processed_events')
-      .update({
-        status: 'failed',
-        completed_at: new Date().toISOString(),
-        last_error: errorMessage.slice(0, 2000),
-      })
-      .eq('event_id', event.id);
+    const { error: markFailedError } = await supabase.rpc('fail_stripe_event_v2', {
+      p_event_id: event.id,
+      p_processing_token: processingToken,
+      p_error: errorMessage,
+      p_retry_after_seconds: 30,
+      p_max_attempts: 8,
+    });
 
     if (markFailedError) {
       console.error(`[Webhook] Failed to mark event ${event.id} as failed:`, markFailedError);
@@ -1264,17 +1219,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 
-  const { error: markProcessedError } = await supabase
-    .from('stripe_processed_events')
-    .update({
-      status: 'processed',
-      completed_at: new Date().toISOString(),
-      last_error: null,
-    })
-    .eq('event_id', event.id)
-    .eq('status', 'processing');
+  const { data: finalized, error: markProcessedError } = await supabase.rpc('complete_stripe_event', {
+    p_event_id: event.id,
+    p_processing_token: processingToken,
+  });
 
-  if (markProcessedError) {
+  if (markProcessedError || finalized !== true) {
     console.error(`[Webhook] Failed to mark event ${event.id} as processed:`, markProcessedError);
     return NextResponse.json({ error: 'Failed to finalize webhook event' }, { status: 500 });
   }

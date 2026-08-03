@@ -126,6 +126,7 @@ export async function POST(req: NextRequest) {
 
   const sessionParams = (customerId: string | null) => ({
     mode: "payment" as const,
+    payment_method_types: ["card" as const],
     line_items: items.map(item => ({
       price_data: {
         currency,
@@ -172,10 +173,19 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Update order with Stripe session info ──────────────────
-  await supabase
+  const { error: sessionPersistenceError } = await supabase
     .from("manual_payment_orders")
     .update({ stripe_session_id: session.id, checkout_url: session.url })
     .eq("id", order.id);
+  if (sessionPersistenceError || !session.url) {
+    try {
+      await stripe.checkout.sessions.expire(session.id);
+    } catch (expirationError) {
+      console.error("[checkout-manual] Could not expire untracked Stripe session:", expirationError);
+    }
+    console.error("[checkout-manual] Could not persist Stripe session:", sessionPersistenceError);
+    return NextResponse.json({ error: "No se pudo guardar el enlace de pago" }, { status: 500 });
+  }
 
   return NextResponse.json({ url: session.url, orderId: order.id });
 }

@@ -5,7 +5,7 @@ import pg from "pg";
 const EXPECTED_PROJECT_REF = "mfhyemwypuzsqjqxtbjf";
 const DEVELOPMENT_PROJECT_REF = "uubdslmtfxwraszinpao";
 const EXPECTED_MISSING = [
-  "20260802000008",
+  "20260803000003",
 ];
 const databaseUrl = process.env.SUPABASE_DB_POOLER_URL ?? "";
 const apiUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -54,11 +54,15 @@ try {
       ('stripe_processed_events', 'started_at'),
       ('stripe_processed_events', 'completed_at'),
       ('stripe_processed_events', 'attempt_count'),
-      ('stripe_processed_events', 'last_error')
+      ('stripe_processed_events', 'last_error'),
+      ('stripe_processed_events', 'processing_token'),
+      ('stripe_processed_events', 'last_attempt_at'),
+      ('stripe_processed_events', 'next_attempt_at'),
+      ('stripe_processed_events', 'dead_lettered_at')
     )
   `);
-  if (requiredColumns.length !== 13) {
-    throw new Error(`Production schema is missing required columns (${requiredColumns.length}/13 found)`);
+  if (requiredColumns.length !== 17) {
+    throw new Error(`Production schema is missing required columns (${requiredColumns.length}/17 found)`);
   }
   const { rows: stripeStatusColumn } = await client.query(`
     select column_default
@@ -70,6 +74,14 @@ try {
   if (!String(stripeStatusColumn[0]?.column_default ?? "").includes("processed")) {
     throw new Error("Stripe event status default is not rolling-deploy compatible");
   }
+  const { rows: stripeEventHealthRows } = await client.query(`
+    select
+      count(*) filter (where status in ('processing', 'failed') and processing_token is null)::integer as legacy_tokenless,
+      count(*) filter (where status = 'processing' and processing_token is not null)::integer as processing_owned,
+      count(*) filter (where status = 'failed' and processing_token is not null)::integer as failed_retryable,
+      count(*) filter (where status = 'dead_lettered')::integer as dead_lettered
+    from public.stripe_processed_events
+  `);
 
   const { rows: stats } = await client.query(`
     select
@@ -107,13 +119,23 @@ try {
       'public.increment_invoice_balance(uuid,integer)',
       'public.increment_r365_slots(uuid,integer)',
       'public.apply_r365_connection_purchase(uuid)',
+      'public.claim_stripe_event(text,text,timestamp with time zone,integer,integer)',
+      'public.complete_stripe_event(text,uuid)',
+      'public.fail_stripe_event_v2(text,uuid,text,integer,integer)',
+      'public.apply_stripe_increment_once(text,text,uuid,uuid,text,integer)',
+      'public.queue_stripe_event_reconciliation(text,text)',
+      'public.apply_manual_payment_order_transaction_v2(uuid,text,text,uuid,integer,integer,text,text,text,timestamp with time zone)',
       'public.cleanup_ai_assistant_data(integer,integer,integer)',
       'public.get_user_id_by_email(text)',
       'public.create_employee_transaction(uuid,uuid,uuid,uuid,uuid,text,text,text,text,text,text,text,timestamp with time zone,date,text,text,text,text,text,text,text,text,text,text,text,boolean,uuid,text,text,text,date,date,numeric,text,text,text,text,timestamp with time zone,jsonb)',
       'public.submit_checklist_transaction(uuid,uuid,uuid,uuid,uuid,jsonb,timestamp with time zone)'
     ]) signature
   `);
+  let reconciliation = null;
   if (isPostDeploy) {
+    if (functions.some((fn) => !fn.present)) {
+      throw new Error("A required privileged function is missing after deployment");
+    }
     const privileged = functions.filter((fn) => fn.present && fn.signature !== "public.get_company_users(uuid)");
     if (privileged.some((fn) => fn.anon_execute || fn.authenticated_execute || !fn.service_execute)) {
       throw new Error("Unexpected post-deploy grants on privileged functions");
@@ -127,16 +149,26 @@ try {
     if (policies.length !== 3) {
       throw new Error(`Expected 3 hardened policies, found ${policies.length}`);
     }
+    const { rows: reconciliationRows } = await client.query(`
+      select
+        count(*) filter (where status = 'pending')::integer as pending,
+        count(*) filter (where status = 'resolved')::integer as resolved,
+        count(*) filter (where status = 'ignored')::integer as ignored
+      from public.stripe_event_reconciliation_queue
+    `);
+    reconciliation = reconciliationRows[0];
   }
 
   console.log(JSON.stringify({
     projectRef: EXPECTED_PROJECT_REF,
     migrations: { local: localVersions.length, production: migrationRows.length, missing },
-    requiredColumns: "13/13",
+    requiredColumns: "17/17",
     stripeStatusDefault: "processed",
+    stripeEventHealth: stripeEventHealthRows[0],
     rlsDisabledTables: rls[0].disabled,
     impactCounts: stats[0],
     privilegedFunctions: functions,
+    stripeReconciliation: reconciliation,
     stage: isPostDeploy ? "post-deploy" : "pre-deploy",
     readiness: "PASS",
   }, null, 2));

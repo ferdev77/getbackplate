@@ -79,15 +79,16 @@ export async function provisionOrganizationFromPlan(params: {
     );
   }
 
-  const { data: planLimits } = params.planId
+  const { data: planLimits, error: planLimitsError } = params.planId
     ? await supabase
         .from("plans")
         .select("max_branches, max_users, max_storage_mb, max_employees")
         .eq("id", params.planId)
         .maybeSingle()
-    : { data: null };
+    : { data: null, error: null };
+  if (planLimitsError) throw new Error(planLimitsError.message);
 
-  await supabase.from("organization_limits").upsert(
+  const { error: limitsError } = await supabase.from("organization_limits").upsert(
     {
       organization_id: params.organizationId,
       max_branches: planLimits?.max_branches ?? null,
@@ -97,6 +98,7 @@ export async function provisionOrganizationFromPlan(params: {
     },
     { onConflict: "organization_id" },
   );
+  if (limitsError) throw new Error(limitsError.message);
 }
 
 export async function provisionManualIntegrationEntitlement(params: {
@@ -154,15 +156,16 @@ export async function syncOrganizationPlan(params: {
   }
 
   // Update limits from platform plan only
-  const { data: planLimits } = params.planId
+  const { data: planLimits, error: planLimitsError } = params.planId
     ? await supabase
         .from("plans")
         .select("max_branches, max_users, max_storage_mb, max_employees")
         .eq("id", params.planId)
         .maybeSingle()
-    : { data: null };
+    : { data: null, error: null };
+  if (planLimitsError) return { ok: false, message: planLimitsError.message };
 
-  await supabase.from("organization_limits").upsert(
+  const { error: limitsError } = await supabase.from("organization_limits").upsert(
     {
       organization_id: params.organizationId,
       max_branches: planLimits?.max_branches ?? null,
@@ -172,11 +175,13 @@ export async function syncOrganizationPlan(params: {
     },
     { onConflict: "organization_id" },
   );
+  if (limitsError) return { ok: false, message: limitsError.message };
 
   // Sync modules — union de ambos planes
-  const { data: modules } = await supabase
+  const { data: modules, error: modulesError } = await supabase
     .from("module_catalog")
     .select("id, code, is_core");
+  if (modulesError) return { ok: false, message: modulesError.message };
 
   const platformPlanModuleIds = new Set<string>();
   const integrationPlanModuleIds = new Set<string>();
@@ -186,11 +191,12 @@ export async function syncOrganizationPlan(params: {
   ];
   for (const [planId, moduleIds] of selectedPlans) {
     if (!planId) continue;
-    const { data: planModules } = await supabase
+    const { data: planModules, error: planModulesError } = await supabase
       .from("plan_modules")
       .select("module_id")
       .eq("plan_id", planId)
       .eq("is_enabled", true);
+    if (planModulesError) return { ok: false, message: planModulesError.message };
     for (const row of planModules ?? []) moduleIds.add(row.module_id);
   }
 
@@ -202,7 +208,7 @@ export async function syncOrganizationPlan(params: {
       hasPlatformPlan: Boolean(params.planId),
       hasIntegrationPlan: Boolean(params.integrationPlanId),
     });
-    await supabase.from("organization_modules").upsert(
+    const { error: organizationModulesError } = await supabase.from("organization_modules").upsert(
       modules.map((mod) => {
         const shouldEnable = enabledModuleIds.has(mod.id);
         return {
@@ -214,6 +220,7 @@ export async function syncOrganizationPlan(params: {
       }),
       { onConflict: "organization_id,module_id" },
     );
+    if (organizationModulesError) return { ok: false, message: organizationModulesError.message };
   }
 
   return { ok: true };
