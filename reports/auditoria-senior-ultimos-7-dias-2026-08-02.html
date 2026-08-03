@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Informe final de mejoras | GetBackplate | 3 Ago 2026</title>
+  <style>
+    :root{--ink:#17212b;--muted:#5a6673;--paper:#f3f0e8;--card:#fffdf8;--line:#d9d3c6;--navy:#102d40;--blue:#1d607b;--green:#196348;--green-bg:#e6f3eb;--amber:#855807;--amber-bg:#fff1d3;--red:#982b2b;--red-bg:#fae5e3;--shadow:0 12px 34px rgba(16,45,64,.08)}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:var(--ink);background:radial-gradient(circle at 88% 0,rgba(29,96,123,.14),transparent 27rem),linear-gradient(#eae6dd,var(--paper) 27rem);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.55}
+    code{padding:.12rem .35rem;border:1px solid #e3ddd1;border-radius:.35rem;background:#f4f1ea;color:#244a5e;font:.88em ui-monospace,SFMono-Regular,Consolas,monospace}.wrap{width:min(1120px,calc(100% - 32px));margin:auto}
+    .hero{padding:58px 0 40px;color:#f8fbfc;background:linear-gradient(125deg,rgba(16,45,64,.99),rgba(24,77,98,.95));border-bottom:5px solid #c99c4d}.eyebrow{margin:0 0 10px;color:#f1ca82;font-size:.77rem;font-weight:850;letter-spacing:.16em;text-transform:uppercase}
+    h1,h2{font-family:Georgia,"Times New Roman",serif}h1{max-width:900px;margin:0;font-size:clamp(2.1rem,6vw,4.3rem);line-height:1.03;letter-spacing:-.035em}.lead{max-width:850px;margin:20px 0 0;color:#d9e6eb;font-size:1.08rem}.meta{display:flex;flex-wrap:wrap;gap:10px 24px;margin-top:25px;color:#c8d8df;font-size:.89rem}.hero strong{color:#fff}
+    main{padding:34px 0 70px}section{margin-top:42px}h2{margin:0 0 18px;color:var(--navy);font-size:clamp(1.65rem,3vw,2.3rem);line-height:1.1}h3{margin:0 0 8px;color:var(--navy);font-size:1.05rem}.sub{max-width:870px;margin:-8px 0 22px;color:var(--muted)}
+    .grid{display:grid;gap:16px}.metrics{grid-template-columns:repeat(4,1fr)}.two{grid-template-columns:repeat(2,1fr)}.metric,.card,.callout{border:1px solid var(--line);border-radius:14px;background:var(--card);box-shadow:var(--shadow)}.metric,.card,.callout{padding:20px}.metric strong{display:block;color:var(--navy);font-family:Georgia,serif;font-size:2rem;line-height:1}.metric span{display:block;margin-top:8px;color:var(--muted);font-size:.76rem;font-weight:800;text-transform:uppercase}
+    .callout{border-left:6px solid var(--blue)}.callout.good{border-left-color:var(--green);background:#f8fdf9}.callout.warn{border-left-color:var(--amber);background:#fffbf1}.badge{display:inline-flex;padding:.24rem .57rem;border-radius:999px;font-size:.71rem;font-weight:900;letter-spacing:.04em;text-transform:uppercase}.fixed{color:var(--green);background:var(--green-bg)}.pending{color:var(--amber);background:var(--amber-bg)}.priority{color:var(--red);background:var(--red-bg)}
+    .card p{margin:8px 0}.card ul,.callout ul{margin:10px 0 0;padding-left:20px}li{margin:7px 0}.plain{margin-top:12px;padding:11px 13px;border-left:4px solid #c99c4d;border-radius:8px;background:#f3f0e9;color:#394653}
+    .table{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--card);box-shadow:var(--shadow)}table{width:100%;min-width:720px;border-collapse:collapse}th,td{padding:13px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:#fff;background:var(--navy);font-size:.75rem;letter-spacing:.04em;text-transform:uppercase}td{font-size:.9rem}tr:last-child td{border-bottom:0}.dot{display:inline-block;width:9px;height:9px;margin-right:7px;border-radius:50%;background:var(--green)}
+    footer{margin-top:52px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:.83rem}@media(max-width:850px){.metrics,.two{grid-template-columns:1fr 1fr}}@media(max-width:560px){.wrap{width:min(100% - 20px,1120px)}.hero{padding:44px 0 30px}.metrics,.two{grid-template-columns:1fr}.metric{padding:14px}}
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <p class="eyebrow">GetBackplate · Informe final actualizado</p>
+      <h1>Las mejoras seguras ya están aplicadas y publicadas</h1>
+      <p class="lead">Este documento reemplaza el informe anterior. Explica en palabras simples qué se corrigió, cómo se comprobó y qué temas importantes todavía deben tratarse por separado.</p>
+      <div class="meta">
+        <span><strong>Fecha:</strong> 3 Ago 2026</span>
+        <span><strong>Commit publicado:</strong> <code>eac0767b</code></span>
+        <span><strong>Rama:</strong> <code>main</code></span>
+        <span><strong>Migraciones:</strong> 211/211</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section>
+      <h2>Resultado general</h2>
+      <div class="grid metrics">
+        <div class="metric"><strong>882/882</strong><span>pruebas aprobadas</span></div>
+        <div class="metric"><strong>165/165</strong><span>pruebas críticas</span></div>
+        <div class="metric"><strong>173</strong><span>páginas compiladas</span></div>
+        <div class="metric"><strong>211/211</strong><span>migraciones alineadas</span></div>
+      </div>
+      <div class="callout good" style="margin-top:18px">
+        <span class="badge fixed">Trabajo publicado</span>
+        <h3 style="margin-top:12px">Las áreas corregidas quedaron más seguras y consistentes.</h3>
+        <p class="plain"><strong>En palabras básicas:</strong> ahora es mucho más difícil que una lista, un anuncio, un proveedor o un permiso quede guardado a medias, se mezcle con otra empresa o se ejecute dos veces al mismo tiempo.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Qué quedó resuelto</h2>
+      <div class="grid two">
+        <article class="card"><span class="badge fixed">Resuelto</span><h3 style="margin-top:10px">Checklists</h3><p>Las respuestas se validan contra la lista correcta. Los cambios de estructura, el historial y las próximas rondas se guardan de forma coordinada.</p></article>
+        <article class="card"><span class="badge fixed">Resuelto</span><h3 style="margin-top:10px">Proveedores</h3><p>Un empleado no puede volver global un proveedor, borrar sucursales que no controla ni eliminar un proveedor compartido con otras sucursales.</p></article>
+        <article class="card"><span class="badge fixed">Resuelto</span><h3 style="margin-top:10px">Documentos y carpetas</h3><p>Los permisos heredados funcionan incluso con carpetas muy profundas. Una carpeta inexistente, cortada o de otra empresa ya no abre acceso por error.</p></article>
+        <article class="card"><span class="badge fixed">Resuelto</span><h3 style="margin-top:10px">Anuncios programados</h3><p>Un anuncio y su programación se guardan juntos. Una edición no puede pisar un envío que ya está en curso.</p></article>
+        <article class="card"><span class="badge fixed">Resuelto</span><h3 style="margin-top:10px">Alcance por sucursal</h3><p>Empleados con varias sucursales reciben y ven lo que corresponde. Las consultas importantes fallan de forma segura.</p></article>
+        <article class="card"><span class="badge fixed">Resuelto</span><h3 style="margin-top:10px">Pantallas y accesibilidad</h3><p>Los modales tienen mejor uso con teclado, foco correcto y protección para no cerrarse mientras están trabajando.</p></article>
+        <article class="card"><span class="badge fixed">Resuelto</span><h3 style="margin-top:10px">Pruebas automáticas</h3><p>GitHub ahora exige pruebas críticas y no permite que una rama interna saltee controles de base de datos por falta de configuración.</p></article>
+        <article class="card"><span class="badge fixed">Resuelto</span><h3 style="margin-top:10px">Migraciones</h3><p>Desarrollo, producción y los archivos locales cuentan la misma historia: 211 migraciones registradas en cada lugar.</p></article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Estado de Prodel</h2>
+      <p class="sub">Se verificó antes y después de cada cambio productivo, sin usar sus datos para pruebas.</p>
+      <div class="table"><table><thead><tr><th>Control</th><th>Estado final</th></tr></thead><tbody>
+        <tr><td>Plan</td><td><span class="dot"></span>Connect</td></tr>
+        <tr><td>QuickBooks</td><td><span class="dot"></span>Conectado</td></tr>
+        <tr><td>Módulo y complemento QBO</td><td><span class="dot"></span>Activos</td></tr>
+        <tr><td>Configuraciones automáticas</td><td><span class="dot"></span>2 activas</td></tr>
+        <tr><td>Datos de las áreas modificadas</td><td><span class="dot"></span>Sin cambios</td></tr>
+      </tbody></table></div>
+      <div class="callout good" style="margin-top:16px"><p><strong>No se tocaron</strong> los accesos OAuth, cobros Stripe, planes, sincronizaciones de QuickBooks ni reportes reales de Prodel.</p></div>
+    </section>
+
+    <section>
+      <h2>Qué queda por hacer</h2>
+      <p class="sub">No son fallas nuevas causadas por este trabajo. Son áreas sensibles que se dejaron separadas para no poner en riesgo clientes activos.</p>
+      <div class="grid two">
+        <article class="card"><span class="badge priority">Prioridad 1</span><h3 style="margin-top:10px">Login entre dominios</h3><p>Revisar y reforzar el traslado de sesiones entre el dominio principal y los dominios personalizados.</p><p class="plain"><strong>En básico:</strong> asegurar que una llave de acceso solo pueda entregarse al dominio y a la empresa correctos.</p></article>
+        <article class="card"><span class="badge priority">Prioridad 1</span><h3 style="margin-top:10px">Recuperación de cobros Stripe</h3><p>Preparar un mecanismo seguro para retomar cobros que quedaron a medias después de un error.</p><p class="plain"><strong>En básico:</strong> si el cliente paga y algo falla, el sistema debe completar el beneficio sin cobrar otra vez.</p></article>
+        <article class="card"><span class="badge priority">Prioridad 1</span><h3 style="margin-top:10px">Planes dobles</h3><p>Comprobar que editar el plan general nunca apague módulos incluidos en el plan de integración.</p><p class="plain"><strong>En básico:</strong> cambiar un paquete no debe romper otro paquete que el cliente también paga.</p></article>
+        <article class="card"><span class="badge pending">Prioridad 2</span><h3 style="margin-top:10px">Notificaciones totalmente recuperables</h3><p>Crear una cola permanente que recuerde cada envío y evite repeticiones incluso si el servidor se cae en el peor momento.</p><p class="plain"><strong>En básico:</strong> hoy el caso normal está protegido; falta blindar el segundo exacto entre “enviado” y “anotado como terminado”.</p></article>
+        <article class="card"><span class="badge pending">Prioridad 2</span><h3 style="margin-top:10px">Pruebas completas de usuario</h3><p>Agregar recorridos automáticos de navegador para login, cobros, móvil, teclado y los caminos principales de cada portal.</p></article>
+        <article class="card"><span class="badge pending">Revisión separada</span><h3 style="margin-top:10px">QuickBooks y reportes</h3><p>Revisarlos con datos de prueba y ambiente sandbox. No usar la conexión ni los documentos reales de Prodel.</p></article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Orden recomendado</h2>
+      <div class="callout warn">
+        <ol>
+          <li>Reforzar el login entre dominios.</li>
+          <li>Hacer recuperables los cobros de Stripe.</li>
+          <li>Proteger completamente la convivencia de los dos tipos de plan.</li>
+          <li>Crear la cola permanente de notificaciones.</li>
+          <li>Ampliar las pruebas de navegador y accesibilidad.</li>
+          <li>Revisar QBO y reportes únicamente en sandbox.</li>
+        </ol>
+      </div>
+    </section>
+
+    <section>
+      <h2>Conclusión</h2>
+      <div class="callout good"><h3>La parte segura del trabajo quedó terminada, aplicada y publicada.</h3><p>Checklists, proveedores, anuncios, documentos, permisos, migraciones y controles automáticos quedaron en un estado claramente mejor. Prodel continúa funcionando con la misma configuración.</p><p class="plain"><strong>En palabras básicas:</strong> cerramos las puertas que podían arreglarse sin tocar el motor de cobros, login o QuickBooks. Lo que falta está bien identificado y debe abordarse en ese orden, con pruebas aisladas antes de acercarse a datos reales.</p></div>
+    </section>
+
+    <footer><p><strong>Estado verificado:</strong> commit <code>eac0767b</code>, rama <code>main</code>, 211 migraciones en desarrollo y producción, 882 pruebas generales, 165 críticas y build de 173 páginas.</p><p>Este informe reemplaza por completo la versión anterior del mismo archivo.</p></footer>
+  </main>
+</body>
+</html>
