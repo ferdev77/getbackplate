@@ -22,6 +22,28 @@ const RELAY_HEADERS = {
   "X-Robots-Tag": "noindex, nofollow, noarchive",
 };
 
+function relayRequestMatchesExpectedOrigin(request: Request, expectedOrigin: string | null) {
+  if (!expectedOrigin) return false;
+
+  const origin = request.headers.get("origin");
+  if (origin && origin !== "null") {
+    try {
+      return new URL(origin).origin === expectedOrigin;
+    } catch {
+      return false;
+    }
+  }
+
+  // Some browsers serialize cross-origin form POSTs as Origin: null when the
+  // relay document uses a no-referrer policy. The one-time flow and 256-bit
+  // browser binding remain mandatory; Fetch Metadata additionally ensures this
+  // fallback is only used for a top-level cross-site form navigation.
+  return origin === "null"
+    && request.headers.get("sec-fetch-site") === "cross-site"
+    && request.headers.get("sec-fetch-mode") === "navigate"
+    && request.headers.get("sec-fetch-dest") === "document";
+}
+
 function loginError(origin: string, message: string, organizationId?: string | null) {
   const destination = new URL("/auth/login", origin);
   destination.searchParams.set("error", message);
@@ -143,14 +165,23 @@ export async function POST(request: Request) {
   const preview = /^[A-Za-z0-9_-]{43}$/.test(flowToken) ? await getGoogleLoginFlow(flowToken) : null;
   const requestOriginHeader = request.headers.get("origin");
   const expectedRelayOrigin = preview?.targetHost ? `https://${preview.targetHost}` : null;
+  const relayOriginMatches = relayRequestMatchesExpectedOrigin(request, expectedRelayOrigin);
+  const bindingMatches = browserBindingValueMatches(binding, preview?.browserBindingHash ?? null);
   if (
     !preview
     || preview.phase !== "custom_handoff"
     || preview.oauthBindingCookie !== null
     || preview.oauthBindingHash !== null
-    || !browserBindingValueMatches(binding, preview.browserBindingHash)
-    || requestOriginHeader !== expectedRelayOrigin
+    || !bindingMatches
+    || !relayOriginMatches
   ) {
+    console.warn("[Google sign-in] Secure relay validation failed", {
+      hasPreview: Boolean(preview),
+      phase: preview?.phase ?? null,
+      bindingMatches,
+      originKind: requestOriginHeader === "null" ? "opaque" : (requestOriginHeader ? "explicit" : "missing"),
+      relayOriginMatches,
+    });
     return loginError(appOrigin, "Your secure sign-in relay expired or is invalid.");
   }
 

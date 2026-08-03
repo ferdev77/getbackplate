@@ -189,4 +189,68 @@ describe("GET /api/auth/google/start", () => {
     expect(mocks.consumeFlow).not.toHaveBeenCalled();
     expect(mocks.signIn).not.toHaveBeenCalled();
   });
+
+  it("accepts the opaque origin emitted by a top-level cross-site form relay", async () => {
+    const customFlow = {
+      phase: "custom_handoff",
+      targetHost: "client.example.com",
+      targetOrganizationId: ORG_ID,
+      organizationIdHint: ORG_ID,
+      billingTrack: "platform",
+      browserBindingCookie: "gb_google_flow_0123456789abcdef",
+      browserBindingHash: "binding-hash",
+      oauthBindingCookie: null,
+      oauthBindingHash: null,
+      createdAt: new Date().toISOString(),
+    } as const;
+    mocks.getFlow.mockReset().mockResolvedValue(customFlow);
+    mocks.consumeFlow.mockReset().mockResolvedValue(customFlow);
+    const { POST } = await import("./route");
+    const response = await POST(new Request("https://app.example.com/api/auth/google/start", {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        origin: "null",
+        "sec-fetch-site": "cross-site",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-dest": "document",
+      },
+      body: new URLSearchParams({ flow: FLOW_TOKEN, binding: "browser-binding" }),
+    }));
+
+    expect(response.headers.get("location")).toBe("https://google.example/oauth");
+    expect(mocks.consumeFlow).toHaveBeenCalledWith(FLOW_TOKEN);
+    expect(mocks.signIn).toHaveBeenCalledOnce();
+  });
+
+  it("rejects an opaque origin that is not a top-level cross-site navigation", async () => {
+    mocks.getFlow.mockResolvedValueOnce({
+      phase: "custom_handoff",
+      targetHost: "client.example.com",
+      targetOrganizationId: ORG_ID,
+      organizationIdHint: ORG_ID,
+      billingTrack: "platform",
+      browserBindingCookie: "gb_google_flow_0123456789abcdef",
+      browserBindingHash: "binding-hash",
+      oauthBindingCookie: null,
+      oauthBindingHash: null,
+      createdAt: new Date().toISOString(),
+    });
+    const { POST } = await import("./route");
+    const response = await POST(new Request("https://app.example.com/api/auth/google/start", {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        origin: "null",
+        "sec-fetch-site": "cross-site",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-dest": "empty",
+      },
+      body: new URLSearchParams({ flow: FLOW_TOKEN, binding: "browser-binding" }),
+    }));
+
+    expect(response.headers.get("location")).toContain("/auth/login?error=");
+    expect(mocks.consumeFlow).not.toHaveBeenCalled();
+    expect(mocks.signIn).not.toHaveBeenCalled();
+  });
 });
