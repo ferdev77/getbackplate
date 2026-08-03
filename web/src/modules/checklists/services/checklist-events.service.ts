@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
+import { sendPushPorRol } from "@/shared/lib/notification-links";
 
 /**
  * Avisos de los dos momentos del ciclo de un checklist: cuando alguien lo
@@ -59,13 +59,17 @@ export async function notifyChecklistSubmitted(params: {
       ? `${params.itemsCount} ítems · ${params.flaggedCount} para atención`
       : `${params.itemsCount} ítems · sin novedades`;
 
-  const { sent } = await sendPushToUsers(
+  // Entre los destinatarios esta quien creo la plantilla, que puede ser un
+  // empleado del portal: no todos van al panel de empresa.
+  return sendPushPorRol({
+    supabase: params.supabase,
+    organizationId: params.organizationId,
     userIds,
-    { title: `Checklist completado: ${params.templateName}`, body: detalle, url: "/app/reports" },
-    { source: "checklist_submitted", organizationId: params.organizationId },
-  );
-
-  return sent;
+    payload: { title: `Checklist completado: ${params.templateName}`, body: detalle },
+    adminUrl: "/app/reports",
+    employeeUrl: "/portal/checklist",
+    options: { source: "checklist_submitted", organizationId: params.organizationId },
+  });
 }
 
 /**
@@ -88,15 +92,18 @@ export async function notifyChecklistReviewed(params: {
   );
   if (userIds.length === 0) return 0;
 
-  const { sent } = await sendPushToUsers(
+  // Quien completo el reporte es casi siempre gente del portal: sin partir el
+  // link, el aviso de "ya te lo revisaron" lo mandaba al panel de empresa.
+  return sendPushPorRol({
+    supabase: params.supabase,
+    organizationId: params.organizationId,
     userIds,
-    {
+    payload: {
       title: `Reporte revisado: ${params.templateName}`,
       body: "El reporte ya fue revisado.",
-      url: "/app/reports",
     },
-    { source: "checklist_reviewed", organizationId: params.organizationId },
-  );
-
-  return sent;
+    adminUrl: "/app/reports",
+    employeeUrl: "/portal/checklist",
+    options: { source: "checklist_reviewed", organizationId: params.organizationId },
+  });
 }

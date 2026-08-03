@@ -1,4 +1,4 @@
-import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
+import { sendPushPorRol } from "@/shared/lib/notification-links";
 import { resolveAudienceContacts } from "@/shared/lib/audience-resolver";
 
 /**
@@ -54,17 +54,20 @@ async function notify(input: DocumentAudienceInput & { kind: "document" | "folde
   const recipients = contacts.userIds.filter((userId) => userId && userId !== input.actorUserId);
   if (!recipients.length) return 0;
 
-  const result = await sendPushToUsers(
-    recipients,
-    {
+  // La audiencia de un documento puede incluir admins: el link no puede ser el
+  // del portal para todos.
+  return sendPushPorRol({
+    supabase: input.supabase,
+    organizationId: input.organizationId,
+    userIds: recipients,
+    payload: {
       title: input.kind === "document" ? "Nuevo documento" : "Nueva carpeta",
       body: input.title,
-      url: "/portal/documents",
     },
-    { source: "documents", organizationId: input.organizationId },
-  );
-
-  return result.sent;
+    adminUrl: "/app/documents",
+    employeeUrl: "/portal/documents",
+    options: { source: "documents", organizationId: input.organizationId },
+  });
 }
 
 export async function sendDocumentAudiencePush(input: DocumentAudienceInput) {
@@ -116,15 +119,16 @@ export async function notifyDocumentAccessGranted(input: {
 
   if (!nuevos.length) return 0;
 
-  const result = await sendPushToUsers(
-    nuevos,
-    {
+  return sendPushPorRol({
+    supabase: input.supabase,
+    organizationId: input.organizationId,
+    userIds: nuevos,
+    payload: {
       title: input.kind === "document" ? "Tenés acceso a un documento" : "Tenés acceso a una carpeta",
       body: input.title,
-      url: "/portal/documents",
     },
-    { source: "documents_access_granted", organizationId: input.organizationId },
-  );
-
-  return result.sent;
+    adminUrl: "/app/documents",
+    employeeUrl: "/portal/documents",
+    options: { source: "documents_access_granted", organizationId: input.organizationId },
+  });
 }

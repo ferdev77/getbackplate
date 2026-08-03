@@ -1,7 +1,6 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
-import { sendTwilioMessage } from "@/infrastructure/twilio/client";
-import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
+import { sendPushPorRol } from "@/shared/lib/notification-links";
 import {
   buildBrandedEmailSubject,
   getTenantEmailBranding,
@@ -252,23 +251,38 @@ export async function processAnnouncementDeliveries() {
         return;
       }
 
+      // Canal in_app: no se encola mas, porque la campanita la escribe el push
+      // (que ahora es obligatorio). Pueden quedar filas viejas de cuando in_app
+      // era un canal elegible aparte, y hasta hoy caian al camino de contactos
+      // y terminaban mandando un mensaje que no correspondia.
+      //
+      // Si el mismo aviso tiene su fila push, esa ya deja la campanita y esta
+      // se cierra sin hacer nada. Si no la tiene (aviso viejo que se creo solo
+      // con in_app), se manda por push: es lo unico que escribe la campanita, y
+      // al no haber gemela no puede duplicarla.
+      if (primary.channel === "in_app" && avisosQueTambienVanPorPush.has(primary.announcement_id)) {
+        await markDeliveryStatuses(supabase, rows.map((row) => row.id), "sent");
+        successCount += rows.length;
+        return;
+      }
+
       // Canal push: acotado a los usuarios resueltos por el alcance del aviso
-      if (primary.channel === "push") {
+      if (primary.channel === "push" || primary.channel === "in_app") {
         try {
           await withTimeout(
-            sendPushToUsers(
-              audience.userIds,
-              {
-                title: announcement.title,
-                body: announcement.body,
-                url: "/portal/announcements",
-              },
-              {
+            sendPushPorRol({
+              supabase,
+              organizationId: primary.organization_id,
+              userIds: audience.userIds,
+              payload: { title: announcement.title, body: announcement.body },
+              adminUrl: "/app/announcements",
+              employeeUrl: "/portal/announcements",
+              options: {
                 source: "announcement",
                 sourceId: primary.announcement_id,
                 organizationId: primary.organization_id,
               },
-            ),
+            }),
             DELIVERY_SEND_TIMEOUT_MS,
             `announcement push to org ${primary.organization_id}`,
           );
@@ -282,7 +296,16 @@ export async function processAnnouncementDeliveries() {
         return;
       }
 
-      const targetContacts = primary.channel === "email" ? audience.emails : audience.phones;
+      // SMS discontinuado. Puede haber filas 'queued' creadas antes del corte:
+      // se cierran sin enviar en vez de dejarlas girando en la cola para
+      // siempre. Se marcan 'expired' (no 'failed') porque no es un error de
+      // entrega: el canal dejo de existir.
+      if (primary.channel === "sms") {
+        await markDeliveryStatuses(supabase, rows.map((row) => row.id), "expired");
+        return;
+      }
+
+      const targetContacts = audience.emails;
 
       if (targetContacts.length === 0) {
         await markDeliveryStatuses(supabase, rows.map((row) => row.id), "sent");
@@ -296,37 +319,27 @@ export async function processAnnouncementDeliveries() {
           if (!isAnnouncementDeliverable(eligibility, new Date())) {
             return { success: false as const, expired: true as const };
           }
-          if (primary.channel === "email") {
-            let branding = brandingByOrganizationId.get(primary.organization_id);
-            if (!branding) {
-              branding = await getTenantEmailBranding(primary.organization_id);
-              brandingByOrganizationId.set(primary.organization_id, branding);
-            }
-            return withTimeout(
-              sendAnnouncementEmail(contact, announcement.title, announcement.body, branding, {
-                organizationId: primary.organization_id,
-                announcementId: primary.announcement_id,
-                // Si este aviso tambien sale por push, quien este en el grupo
-                // de push ya tiene su fila en la campanita: el email no la
-                // duplica. Al resto (contacto sin cuenta o fuera del alcance
-                // del push) se le arma la suya, que es su unica via.
-                userId: avisosQueTambienVanPorPush.has(primary.announcement_id)
-                  ? userIdParaEmailSinDuplicarCampanita(audience.userIdByEmail[contact], audience.userIds)
-                  : audience.userIdByEmail[contact],
-              }),
-              DELIVERY_SEND_TIMEOUT_MS,
-              `announcement email to ${contact}`,
-            );
+          // Llegado aca el canal solo puede ser email: push tiene su rama propia
+          // mas arriba, in_app lo resuelve el push, y sms se cierra antes.
+          let branding = brandingByOrganizationId.get(primary.organization_id);
+          if (!branding) {
+            branding = await getTenantEmailBranding(primary.organization_id);
+            brandingByOrganizationId.set(primary.organization_id, branding);
           }
-
           return withTimeout(
-            sendTwilioMessage(
-              contact,
-              `*${announcement.title}*\n\n${announcement.body}`,
-              "sms",
-            ),
+            sendAnnouncementEmail(contact, announcement.title, announcement.body, branding, {
+              organizationId: primary.organization_id,
+              announcementId: primary.announcement_id,
+              // Si este aviso tambien sale por push, quien este en el grupo
+              // de push ya tiene su fila en la campanita: el email no la
+              // duplica. Al resto (contacto sin cuenta o fuera del alcance
+              // del push) se le arma la suya, que es su unica via.
+              userId: avisosQueTambienVanPorPush.has(primary.announcement_id)
+                ? userIdParaEmailSinDuplicarCampanita(audience.userIdByEmail[contact], audience.userIds)
+                : audience.userIdByEmail[contact],
+            }),
             DELIVERY_SEND_TIMEOUT_MS,
-            `announcement ${primary.channel} to ${contact}`,
+            `announcement email to ${contact}`,
           );
         });
       });

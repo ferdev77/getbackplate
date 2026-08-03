@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const DELIVERY_CHANNELS = new Set(["sms", "email", "in_app", "push"]);
+// Canales oficiales del producto. SMS esta discontinuado: los scheduled_jobs
+// creados antes del corte siguen teniendo "sms" en metadata.channels, y este
+// filtro es lo que impide que vuelvan a encolar un envio en cada vuelta. No
+// agregar "sms" de nuevo: la metadata vieja no se migro a proposito.
+const DELIVERY_CHANNELS = new Set(["email", "in_app", "push"]);
 
 export type AnnouncementRecurrenceJob = {
   id: string;

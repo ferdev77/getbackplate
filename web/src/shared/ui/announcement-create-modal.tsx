@@ -26,8 +26,9 @@ import { SubmitButton } from "@/shared/ui/submit-button";
 import { RecurrenceSelector } from "@/shared/ui/recurrence-selector";
 import type { BranchOption, DepartmentOption, PositionOption, ScopedUserOption } from "@/shared/contracts/scope-options";
 
-// SMS sigue funcionando en el backend; se oculta de la UI por ahora.
-const SHOW_SMS_CHANNEL = false;
+// SMS discontinuado: no se ofrece ni se envia. Los canales oficiales son tres:
+// in_app y push (siempre) y email (opcional, el toggle de abajo). No re-agregar
+// el selector de SMS; ver modules/checklists/lib/notification-channels.ts.
 
 type AnnouncementCreateModalProps = {
   onClose?: () => void;
@@ -89,7 +90,6 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(createAnnouncementAction, { success: false, message: "" });
   const [isApiPending, setIsApiPending] = useState(false);
-  const [notifySms, setNotifySms] = useState(Boolean(initial?.notification_channels?.includes("sms")));
   const [notifyEmail, setNotifyEmail] = useState(Boolean(initial?.notification_channels?.includes("email")));
   const [hasExpiry, setHasExpiry] = useState(Boolean(initial?.expires_at));
   const [isRecurring, setIsRecurring] = useState(Boolean(initial?.is_recurring));
@@ -309,16 +309,10 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
                     checked={notifyEmail}
                     onChange={setNotifyEmail}
                   />
-                  {SHOW_SMS_CHANNEL ? (
-                    <ScopeModalToggleRow label="Enviar también por SMS" checked={notifySms} onChange={setNotifySms} />
-                  ) : null}
-                  {notifySms ? <input type="hidden" name="notify_channel" value="sms" /> : null}
                   {notifyEmail ? <input type="hidden" name="notify_channel" value="email" /> : null}
-                  {/* En alta push va siempre. En edicion se conserva el contrato
-                      historico del job sin agregar canales que no tenia. */}
-                  {mode === "create" || !initial?.is_recurring || initial.notification_channels?.includes("push") ? (
-                    <input type="hidden" name="notify_channel" value="push" />
-                  ) : null}
+                  {/* push va siempre, en alta y en edicion: es canal obligatorio
+                      y arrastra la campanita (in_app) para todo el alcance. */}
+                  <input type="hidden" name="notify_channel" value="push" />
                 </>
               ) : null}
             </ScopeModalContent>

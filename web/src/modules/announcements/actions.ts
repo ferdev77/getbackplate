@@ -54,9 +54,16 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
   const departmentScopes = scope.department_ids;
   const positionScopes = scope.position_ids;
   const userScopes = scope.users;
+  // Canales oficiales: in_app, push y email.
+  //
+  // Email es el unico elegible. push va SIEMPRE, en alta y en edicion, y como
+  // sendPushToUsers escribe la fila de campanita para todo el alcance (tenga o
+  // no suscripcion push), garantizar push garantiza in_app. Por eso 'in_app' no
+  // se encola como canal propio: seria una entrega duplicada de la campanita.
+  // SMS esta discontinuado y se descarta aunque llegue en el POST.
   const notifyChannels = formData.getAll("notify_channel").map(String);
   const selectedNotifyChannels = [...new Set(notifyChannels)].filter((channel) =>
-    ["sms", "email", "in_app", "push"].includes(channel),
+    ["email", "push"].includes(channel),
   );
   const normalizedNotifyChannels = [...new Set([...selectedNotifyChannels, "push"])];
   const channelsForDelivery = announcementId ? [] : normalizedNotifyChannels;
@@ -124,7 +131,9 @@ export async function createAnnouncementAction(_prevState: unknown, formData: Fo
       isRecurring,
       recurrenceType,
       customDays,
-      channels: announcementId ? selectedNotifyChannels : normalizedNotifyChannels,
+      // Tambien en edicion: push es obligatorio, no se hereda lo que el aviso
+      // tuviera guardado. Un recurrente viejo sin push empieza a notificar.
+      channels: normalizedNotifyChannels,
     },
   });
 

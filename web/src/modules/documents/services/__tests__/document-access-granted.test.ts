@@ -39,9 +39,26 @@ const { notifyDocumentAccessGranted } = await import("../document-audience.servi
  * algo que ya no pueden abrir.
  */
 
+/**
+ * Lo minimo que necesita sendPushPorRol para preguntar quienes son admins.
+ * Sin company_admins: la audiencia de estos casos es del portal, asi que sale
+ * un solo push con el link de empleado.
+ */
+function supabaseSinAdmins() {
+  const c = {
+    select: () => c,
+    eq: () => c,
+    in: () => c,
+    maybeSingle: async () => ({ data: null, error: null }),
+    data: [] as object[],
+    error: null,
+  };
+  return { from: () => c };
+}
+
 function base(scopeAnterior: object, scopeNuevo: object, actorUserId: string | null = "quien-edita") {
   return {
-    supabase: {},
+    supabase: supabaseSinAdmins(),
     organizationId: "org-1",
     kind: "document" as const,
     title: "Manual de apertura",

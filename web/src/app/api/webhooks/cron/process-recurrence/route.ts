@@ -159,9 +159,11 @@ async function processRecurrence(req: Request) {
 
              try {
                // Import dynamico para no afectar ruta principal si falla
-               const { sendChecklistAudienceEmail, sendChecklistAudiencePush, sendChecklistAudienceTwilio } = await import('@/modules/checklists/services/checklist-audience.service');
+               const { sendChecklistAudienceEmail, sendChecklistAudiencePush } = await import('@/modules/checklists/services/checklist-audience.service');
 
                // El push es siempre activo (igual que en la creacion manual), no depende de notify_via.
+               // Deja ademas la fila in_app de la campanita para todo el alcance,
+               // haya o no suscripcion push: son los dos canales obligatorios.
                await sendChecklistAudiencePush({
                  ...audienceInput,
                  templateName: template.name,
@@ -169,25 +171,17 @@ async function processRecurrence(req: Request) {
                  itemsCount: 0,
                });
 
-               if (notifyChannels.length > 0) {
-                  if (notifyChannels.includes("email")) {
-                   await sendChecklistAudienceEmail({
-                     ...audienceInput,
-                     templateName: template.name,
-                     event: "created",
-                     itemsCount: 0,
-                     actorEmail: "Sistema (Recurrencia)",
-                   });
-                 }
-                  if (notifyChannels.includes("sms")) {
-                   await sendChecklistAudienceTwilio({
-                     ...audienceInput,
-                     channel: "sms",
-                     templateName: template.name,
-                     itemsCount: 0,
-                     actorEmail: "Sistema (Recurrencia)",
-                   });
-                 }
+               // Email es el unico canal opcional. SMS esta discontinuado: si el
+               // template guardado trae 'sms', normalizeChecklistNotificationChannels
+               // ya lo descarto y aca nunca llega (ver notification-channels.ts).
+               if (notifyChannels.includes("email")) {
+                 await sendChecklistAudienceEmail({
+                   ...audienceInput,
+                   templateName: template.name,
+                   event: "created",
+                   itemsCount: 0,
+                   actorEmail: "Sistema (Recurrencia)",
+                 });
                }
              } catch (notiError) {
                console.error(`Failed to send recurrence notifications for checklist ${job.target_id}:`, notiError);

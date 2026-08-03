@@ -234,6 +234,76 @@ Atomic increment via Supabase RPC: `increment_invoice_balance(p_organization_id,
 
 ---
 
+## Notification Channels — three, and only three
+
+**`in_app`, `push`, `email`. Nothing else. SMS and WhatsApp are gone.**
+
+| Channel | When it fires | Configurable? |
+|---------|---------------|---------------|
+| `in_app` (campanita) | **always** | no |
+| `push` (device) | **always** | no |
+| `email` | only if enabled | yes |
+
+The three are **independent**: a failed push does not stop the `in_app` row, and a
+bounced email does not affect the other two. `in_app` is the guaranteed record of
+"this was meant to reach you" — `sendPushToUsers` writes it for every recipient
+even when nobody has a push subscription (`infrastructure/push/send-to-org.ts`),
+and `sendTransactionalEmail` writes it too (`infrastructure/email/client.ts`).
+Use `userIdParaEmailSinDuplicarCampanita` when a message goes out by push *and*
+email so the bell is not written twice.
+
+### One notification, two destinations
+
+`/app/...` (company panel) and `/portal/...` (employee portal) are different
+apps. **A notification to a mixed audience must be split** — there is no single
+URL that works for both. Use `sendPushPorRol` (`shared/lib/notification-links.ts`):
+it separates `company_admin` recipients from everyone else and sends two pushes,
+each with its own link. Since `sendPushToUsers` writes the `in_app` row, splitting
+the push also splits the bell, so each person keeps the correct link in history.
+
+| Module | admin | employee |
+|--------|-------|----------|
+| checklists | `/app/reports` | `/portal/checklist` |
+| documents | `/app/documents` | `/portal/documents` |
+| announcements | `/app/announcements` | `/portal/announcements` |
+| vendors | `/app/vendors` | `/portal/vendors` |
+
+`modules/vendors/notifications.ts` resolves both audiences itself and stays as
+is — it is the original of this pattern.
+
+### `in_app` is never queued as a delivery channel
+
+For announcements, only `push` and `email` become `announcement_deliveries`
+rows. `push` is mandatory (create **and** edit) and already writes the bell for
+the whole audience, so queueing `in_app` separately would duplicate it. Legacy
+`in_app` rows are handled in `deliveries.ts`: closed as `sent` when a twin
+`push` row exists, otherwise sent as push so the bell still gets written.
+
+### SMS is discontinued — do not "fix" it back
+
+SMS was removed from the product. The UI selector is gone and the send path is
+cut. **Stale `'sms'` values still exist in the database on purpose** — no data
+migration was run — so you will keep seeing the string around. That is expected,
+not an oversight. The cut points that make it inert:
+
+| Where | What it does |
+|-------|--------------|
+| `modules/checklists/lib/notification-channels.ts` | drops `'sms'` and maps legacy `'all'` → `email` only |
+| `modules/announcements/services/announcement-recurrence.service.ts` | `DELIVERY_CHANNELS` excludes `sms`, so recurring jobs with stale metadata stop queueing |
+| `modules/announcements/services/deliveries.ts` | pre-existing `queued` SMS rows are closed as `expired`, never sent |
+| `modules/announcements/actions.ts` + `api/employee/announcements/manage` | `'sms'` filtered out of any incoming POST |
+
+`infrastructure/twilio/client.ts` and `sendChecklistAudienceTwilio` are kept but
+have **no callers**. Twilio still appears in the privacy policy as a
+subprocessor, and `TWILIO_*` env vars still exist. Re-enabling any of this is a
+product decision, not a bug fix.
+
+The landing page still markets "SMS & WhatsApp Notifications"
+(`modules/landing/ui/landing-experience.tsx`) — known and deliberately left
+alone; changing public commercial copy is the owner's call.
+
+---
+
 ## Cache Keys
 
 When adding new cached queries in `cached-queries.ts`, bump the version suffix

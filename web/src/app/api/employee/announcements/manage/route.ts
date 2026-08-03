@@ -54,10 +54,11 @@ export async function POST(request: Request) {
   const kind = normalizeKind(String(body?.kind ?? "general"));
   const expiresAt = String(body?.expires_at ?? "").trim() || null;
   const isFeatured = body?.is_featured === true;
-  // El push va siempre, igual que en el panel de admin.
+  // El push va siempre, igual que en el panel de admin, y con el push viaja la
+  // campanita: por eso 'in_app' no se encola aparte. SMS discontinuado.
   const selectedNotifyChannels = [...new Set(
     Array.isArray(body?.notify_channels) ? body.notify_channels.map(String) : [],
-  )].filter((channel) => ["sms", "email", "in_app", "push"].includes(channel));
+  )].filter((channel) => ["email", "push"].includes(channel));
   const notifyChannels = [...new Set([...selectedNotifyChannels, "push"])];
   const isRecurring = body?.is_recurring === true;
   const recurrenceType = String(body?.recurrence_type ?? "daily").trim() || "daily";
@@ -227,10 +228,14 @@ export async function PATCH(request: Request) {
   const kind = normalizeKind(String(body?.kind ?? "general"));
   const expiresAt = String(body?.expires_at ?? "").trim() || null;
   const isFeatured = body?.is_featured === true;
-  // En una edicion se conservan exactamente los canales del reparto futuro.
-  const notifyChannels = [...new Set(
-    Array.isArray(body?.notify_channels) ? body.notify_channels.map(String) : [],
-  )].filter((channel) => ["sms", "email", "in_app", "push"].includes(channel));
+  // En una edicion el email se conserva tal como venga, pero push es
+  // obligatorio igual que en el alta: un recurrente viejo sin push empieza a
+  // notificar. SMS discontinuado: si el aviso lo tenia guardado, se cae aca.
+  const notifyChannels = [...new Set([
+    ...(Array.isArray(body?.notify_channels) ? body.notify_channels.map(String) : [])
+      .filter((channel) => ["email", "push"].includes(channel)),
+    "push",
+  ])];
   const isRecurring = body?.is_recurring === true;
   const recurrenceType = String(body?.recurrence_type ?? "daily").trim() || "daily";
   let customDays: number[] = [];

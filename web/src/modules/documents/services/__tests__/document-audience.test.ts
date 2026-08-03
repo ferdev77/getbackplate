@@ -24,9 +24,20 @@ function buildSupabaseMock(employees: object[], memberships: object[] = []) {
     department_positions: [],
     organization_user_profiles: [],
     branches: [],
+    // Sin company_admins: toda la audiencia de estos casos es del portal, asi
+    // que sendPushPorRol manda un solo push, con el link de empleado.
+    roles: [],
   };
   const chain = (data: object[]) => {
-    const c = { select: () => c, eq: () => c, not: () => c, data, error: null };
+    const c = {
+      select: () => c,
+      eq: () => c,
+      not: () => c,
+      in: () => c,
+      maybeSingle: async () => ({ data: data[0] ?? null, error: null }),
+      data,
+      error: null,
+    };
     return c;
   };
   return { from: (table: string) => chain(tables[table] ?? []) };

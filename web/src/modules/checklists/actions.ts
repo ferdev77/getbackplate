@@ -7,7 +7,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { requireTenantModule } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 
-import { sendChecklistAudienceEmail, sendChecklistAudiencePush, sendChecklistAudienceTwilio } from "./services/checklist-audience.service";
+import { sendChecklistAudienceEmail, sendChecklistAudiencePush } from "./services/checklist-audience.service";
 import { upsertChecklistTemplate, deleteChecklistTemplate } from "./services/checklist-template.service";
 
 import { z } from "zod";
@@ -50,9 +50,12 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   const { data: authData } = await supabase.auth.getUser();
 
   // --- Parse notify channels ---
+  // Email es el unico canal configurable. in_app y push salen siempre y no se
+  // piden por formulario; SMS esta discontinuado y se descarta aunque llegue en
+  // el POST (ver lib/notification-channels.ts).
   const notifyChannels = [...new Set(formData.getAll("notify_channel").map(String))];
   const persistedNotifyChannels = notifyChannels.filter(
-    (channel): channel is "email" | "sms" => channel === "email" || channel === "sms",
+    (channel): channel is "email" => channel === "email",
   );
   const notifyByEmail = notifyChannels.includes("email");
 
@@ -176,7 +179,6 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   // --- Notifications (tanto al crear como al editar) ---
   let checklistAudienceEmailCount = 0;
   let checklistAudiencePushCount = 0;
-  let checklistAudienceSmsCount = 0;
   const scopePayload = {
     locations: parsed.data.location_scope,
     department_ids: parsed.data.department_scope,
@@ -208,29 +210,12 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     templateBranchId: parsed.data.branch_id,
   });
 
-  if (persistedNotifyChannels.includes("sms")) {
-    checklistAudienceSmsCount = await sendChecklistAudienceTwilio({
-      supabase,
-      organizationId: tenant.organizationId,
-      channel: "sms",
-      templateName: parsed.data.name,
-      itemsCount: result.totalItems,
-      actorEmail: authData.user?.email ?? "Usuario interno",
-      targetScope: scopePayload,
-      templateBranchId: parsed.data.branch_id,
-      event: notificationEvent,
-    });
-  }
-
   // --- Build response ---
   const notificationsSummary: string[] = [];
   if (notifyByEmail) {
     notificationsSummary.push(`Emails sent: ${checklistAudienceEmailCount}`);
   }
   notificationsSummary.push(`Push notifications sent: ${checklistAudiencePushCount}`);
-  if (persistedNotifyChannels.includes("sms")) {
-    notificationsSummary.push(`SMS messages sent: ${checklistAudienceSmsCount}`);
-  }
 
   // Cuando la vuelta actual ya tenia respuestas, los items quedaron pendientes
   // y se aplican al iniciar la vuelta siguiente (ver upsertChecklistTemplate).

@@ -49,8 +49,24 @@ function supabaseFalso(adminIds: string[]) {
   } as never;
 }
 
+/**
+ * Todos los destinatarios, juntando las llamadas.
+ *
+ * El aviso sale partido por rol (ver shared/lib/notification-links.ts): los
+ * company_admins van al panel de empresa y el resto al portal, asi que la misma
+ * notificacion puede ser dos envios.
+ */
 function destinatariosDeLaLlamada() {
-  return sendPushToUsers.mock.calls.at(-1)?.[0] ?? [];
+  return sendPushToUsers.mock.calls.flatMap((llamada) => llamada[0] ?? []);
+}
+
+/** El link con el que salio cada grupo, para chequear que cada rol va al suyo. */
+function urlPorDestinatario(): Record<string, string> {
+  const mapa: Record<string, string> = {};
+  for (const [usuarios, payload] of sendPushToUsers.mock.calls) {
+    for (const usuario of usuarios ?? []) mapa[usuario] = payload.url;
+  }
+  return mapa;
 }
 
 beforeEach(() => {
@@ -71,6 +87,26 @@ describe("notifyChecklistSubmitted", () => {
     });
 
     expect(destinatariosDeLaLlamada().sort()).toEqual(["admin-1", "admin-2", "creador"]);
+  });
+
+  it("manda a cada rol a su propia pantalla", async () => {
+    // El creador de la plantilla puede ser un empleado del portal. Antes todos
+    // recibian /app/reports y el empleado caia en el panel de administracion.
+    await notifyChecklistSubmitted({
+      supabase: supabaseFalso(["admin-1"]),
+      organizationId: "org-1",
+      templateId: "tpl-1",
+      templateName: "Apertura",
+      templateCreatedBy: "empleado-creador",
+      submittedByUserId: "quien-envio",
+      itemsCount: 5,
+      flaggedCount: 0,
+    });
+
+    expect(urlPorDestinatario()).toEqual({
+      "admin-1": "/app/reports",
+      "empleado-creador": "/portal/checklist",
+    });
   });
 
   it("no le avisa a quien acaba de enviarlo, aunque sea el creador", async () => {

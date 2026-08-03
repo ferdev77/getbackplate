@@ -1,3 +1,20 @@
+/**
+ * Cliente de Twilio. SIN CONSUMIDORES ACTIVOS.
+ *
+ * Los dos canales que usaban este archivo se discontinuaron:
+ *   WhatsApp  retirado antes
+ *   SMS       retirado, corte hecho en las capas que arman los canales
+ *
+ * Los canales oficiales del producto son tres y ninguno pasa por aca:
+ *   in_app  campanita   siempre  (infrastructure/push/send-to-org.ts)
+ *   push    dispositivo siempre  (infrastructure/push/send-to-org.ts)
+ *   email   correo      opcional (infrastructure/email/client.ts)
+ *
+ * El archivo se conserva, no se borra, por dos motivos: Twilio todavia figura
+ * como subprocesador en la politica de privacidad (app/legal/platform/privacy),
+ * y las env TWILIO_* siguen existiendo en los entornos. Si vas a reactivar algo
+ * de esto, es una decision de producto, no una reparacion de codigo muerto.
+ */
 import twilio from "twilio";
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;

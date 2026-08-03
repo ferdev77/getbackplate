@@ -1,7 +1,7 @@
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import { sendTransactionalEmail } from "@/infrastructure/email/client";
 import { sendTwilioMessage } from "@/infrastructure/twilio/client";
-import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
+import { sendPushPorRol } from "@/shared/lib/notification-links";
 import { resolveTenantAppUrlByOrganizationId } from "@/shared/lib/custom-domains";
 import { buildBrandedEmailSubject, getTenantEmailBranding, resolveEmailSenderName } from "@/shared/lib/email-branding";
 import { resolveAudienceContacts } from "@/shared/lib/audience-resolver";
@@ -157,17 +157,27 @@ export async function sendChecklistAudiencePush(input: ChecklistAudienceInput & 
       ? `Items: ${input.itemsCount}${input.flaggedCount ? ` · Incidencias: ${input.flaggedCount}` : ""}`
       : `Items: ${input.itemsCount}`;
 
-  const result = await sendPushToUsers(
-    contacts.userIds,
-    { title, body, url: "/app/reports" },
-    { source: "checklist", organizationId: input.organizationId },
-  );
-
-  return result.sent;
+  // La audiencia de un checklist se resuelve por sucursal, departamento y
+  // puesto: es mayormente gente del portal. Cada rol recibe su propio link.
+  return sendPushPorRol({
+    supabase: input.supabase,
+    organizationId: input.organizationId,
+    userIds: contacts.userIds,
+    payload: { title, body },
+    adminUrl: "/app/reports",
+    employeeUrl: "/portal/checklist",
+    options: { source: "checklist", organizationId: input.organizationId },
+  });
 }
 
 // ---------------------------------------------------------------------------
-// SMS Delivery
+// SMS Delivery — DISCONTINUADO, SIN LLAMADORES
+//
+// SMS se retiro del producto. Esta funcion ya no se invoca desde ningun lado:
+// ni actions.ts ni el cron de recurrencia la importan. Se conserva sin borrar
+// por pedido explicito (cambio minimo), pero NO volver a conectarla: los
+// canales oficiales son in_app, push y email.
+// Ver modules/checklists/lib/notification-channels.ts para el corte real.
 // ---------------------------------------------------------------------------
 
 export async function sendChecklistAudienceTwilio(input: ChecklistAudienceInput & {

@@ -28,8 +28,9 @@ import { flattenChecklistSectionTexts, parseChecklistSections } from "@/modules/
 import { frecuenciaDelChecklist } from "@/modules/checklists/lib/recurrence";
 import { normalizeChecklistNotificationChannels } from "@/modules/checklists/lib/notification-channels";
 
-// SMS sigue funcionando en el backend; se oculta de la UI por ahora.
-const SHOW_SMS_CHANNEL = false;
+// SMS discontinuado: no se ofrece ni se envia. Los canales oficiales son tres:
+// in_app y push (siempre, no configurables) y email (opcional, el toggle de
+// abajo). No re-agregar el selector de SMS; ver lib/notification-channels.ts.
 
 type EditingTemplate = {
   id: string;
@@ -79,7 +80,6 @@ export function ChecklistUpsertModal({
   const [state, formAction, isPending] = useActionState(createChecklistTemplateAction, { success: false, message: "" });
   const [isApiPending, setIsApiPending] = useState(false);
   const initialNotifyChannels = normalizeChecklistNotificationChannels(editingTemplate?.target_scope);
-  const [notifySms, setNotifySms] = useState(initialNotifyChannels.includes("sms"));
   const [notifyEmail, setNotifyEmail] = useState(initialNotifyChannels.includes("email"));
   const [scopeValid, setScopeValid] = useState(true);
 
@@ -293,10 +293,6 @@ export function ChecklistUpsertModal({
                     checked={notifyEmail}
                     onChange={setNotifyEmail}
                   />
-                  {SHOW_SMS_CHANNEL ? (
-                    <ScopeModalToggleRow label="Enviar también por SMS" checked={notifySms} onChange={setNotifySms} />
-                  ) : null}
-                  {notifySms ? <input type="hidden" name="notify_channel" value="sms" /> : null}
                   {notifyEmail ? <input type="hidden" name="notify_channel" value="email" /> : null}
                 </>
               ) : null}

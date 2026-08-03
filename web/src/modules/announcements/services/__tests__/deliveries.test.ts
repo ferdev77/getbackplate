@@ -453,16 +453,19 @@ describe("cuando el mismo aviso sale por push y por email", () => {
   });
 });
 
-describe("sms", () => {
-  it("usa los telefonos del alcance", async () => {
+describe("sms discontinuado", () => {
+  // SMS se retiro del producto. La base no se migro, asi que pueden quedar
+  // filas 'queued' con channel='sms' creadas antes del corte: se cierran sin
+  // enviar. Si este test falla, alguien reconecto Twilio.
+  it("no envia y cierra la fila heredada como expired", async () => {
     prepararAudiencia({ phones: ["+15550001"] });
-    usar(supabaseFalso({ encoladas: [entrega({ channel: "sms" })] }));
+    const mock = usar(supabaseFalso({ encoladas: [entrega({ channel: "sms" })] }));
 
     await processAnnouncementDeliveries();
 
-    expect(sendTwilioMessage).toHaveBeenCalledTimes(1);
-    expect(sendTwilioMessage.mock.calls[0]![0]).toBe("+15550001");
+    expect(sendTwilioMessage).not.toHaveBeenCalled();
     expect(sendTransactionalEmail).not.toHaveBeenCalled();
+    expect(mock.marcas).toEqual([{ ids: ["ent-1"], status: "expired" }]);
   });
 });
 
