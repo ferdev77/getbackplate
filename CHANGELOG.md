@@ -1,5 +1,44 @@
 # Changelog
 
+## 2026-08-03 - DNS, autenticacion de correo y branding de Google
+
+**Estado:** aplicado en PROD. No requirio contratar servicios pagos.
+
+- El dominio `getbackplate.com` quedo dado de alta como remitente en Brevo y **autenticado** (DKIM x2 + DMARC + brevo-code en Vercel DNS). Antes el correo salia firmado con el dominio de Brevo. Aplica a todo el correo de la plataforma.
+- Branding de Google verificado y activo: la pantalla de login muestra `GetBackplate` con logo, en vez del identificador tecnico.
+- Se descarto `auth.getbackplate.com` porque exige el add-on Custom Domain de Supabase (plan Pro).
+
+Detalle completo, registros que **no se pueden borrar** y comandos de verificacion: `DOCS/4_Operaciones_y_Guias/GUIA_DNS_Y_AUTENTICACION_DE_CORREO.md`.
+
+### Archivos
+- `web/scripts/send-owner-weekly-report.ts` (nuevo)
+- `web/package.json` (`report:owner-weekly`)
+
+## 2026-08-03 - Login entre dominios, carreras y cobros recuperables
+
+**Estado por entorno:** migraciones aplicadas y verificadas en DEV y PROD. Codigo desplegado.
+
+- **Login entre dominios blindado.** El host de retorno viajaba como parametro en la URL sin validar; ahora se guarda server-side con un token de un solo uso (5 min, Redis/Upstash) y se valida contra los dominios habilitados. **Introduce una dependencia nueva: sin Redis, el login con Google no arranca.**
+  - Dos correcciones posteriores el mismo dia: aceptar `Origin: null` (navegadores que no lo informan en POST cross-site, validando Fetch Metadata) y usar un documento relay en vez de redirect para que la cookie de binding se persista antes de saltar a Google.
+- **Cobros de Stripe recuperables.** Un evento que fallaba quedaba `failed` sin reintento. Ahora hay reclamos con token, reintentos, dead letter e idempotencia **por efecto** (`stripe_event_effects`), no solo por evento.
+- **Carreras cerradas** en alcance, checklists y recurrencia; documentos que no heredaban el alcance de su carpeta.
+
+### Migraciones
+`20260802000001` a `20260802000008`, `20260803000001` a `20260803000003`. Ver `SUPABASE_MIGRATIONS.md`.
+
+## 2026-08-02 - Modelo de notificaciones: campanita garantizada y sin duplicados
+
+**Estado:** desplegado en PROD.
+
+- **`in_app` es el canal de la campanita** y se garantiza para todo push y todo email. `push` y `email` quedan como diagnostico interno y no se muestran.
+- **Se elimino el duplicado**: 9 flujos mandaban push y email del mismo evento a la misma persona, dejandole el aviso dos veces. Regla centralizada en `userIdParaEmailSinDuplicarCampanita()`.
+- **Alcance por locacion** en los avisos de mantenimiento y proveedores: antes el aviso de un local le llegaba a gente de otro, que ni siquiera podia verlo en la app.
+- **Huecos cerrados**: ciclo completo de documentos de empleado (pedir, subir, revisar, agregar), feedback, proveedores y reasignacion de puesto.
+- **Textos por i18n**: los avisos nuevos se escriben en español y el diccionario los pasa a ingles segun la empresa (`shared/lib/notifications.i18n.ts`).
+- **Dos guardias automaticas** (`shared/lib/__tests__/notification-guards.test.ts`) que rompen el build si un modulo nuevo manda push+email sin resolver el duplicado, o resuelve destinatarios sin mirar la locacion.
+
+Ver `DOCS/4_Operaciones_y_Guias/GUIA_NOTIFICACIONES_MODELO.md`.
+
 ## 2026-07-31 - Limpieza de codigo muerto: opt-in de alertas push de integracion
 
 Se elimino `push_subscriptions.notify_integration_alerts`, una columna que nunca se conecto de punta a punta (la UI que deberia haberla activado no la escribia, y `notifyIntegrationEvent()` nunca la leia para filtrar destinatarios). El comportamiento real y correcto ya era, y sigue siendo sin cambios: todo superadmin con push activo en su dispositivo recibe automaticamente las alertas de integracion QBO -> R365; la tarjeta correspondiente en `/superadmin/notifications` es solo un indicador de estado + atajo para pedir permiso de notificaciones al navegador.

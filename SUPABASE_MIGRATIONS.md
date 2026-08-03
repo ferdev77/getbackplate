@@ -2,7 +2,9 @@
 
 Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 
-> **Ultima actualizacion:** 2026-07-26. Hay 194 migraciones en `supabase/migrations/`. DEV y PROD estan sincronizados 194/194. Las migraciones de hardening `20260726000003` a `20260726000011` fueron aplicadas y verificadas en ambos entornos. La fila 114 conserva ademas una copia historica en `web/supabase/migrations/`.
+> **Ultima actualizacion:** 2026-08-03. Hay 214 migraciones en `supabase/migrations/`. DEV (`uubdslmtfxwraszinpao`) y PROD (`mfhyemwypuzsqjqxtbjf`) estan sincronizados 214/214, verificado consultando `supabase_migrations.schema_migrations` en ambos el 2026-08-03. Las migraciones de hardening `20260726000003` a `20260726000011` fueron aplicadas y verificadas en ambos entornos. La fila 114 conserva ademas una copia historica en `web/supabase/migrations/`.
+>
+> Las 19 migraciones entre `20260727000001` y `20260803000003` se indexan al final de esta tabla, en la seccion "Migraciones 2026-07-27 a 2026-08-03".
 
 ## Todas las migraciones (orden cronológico)
 
@@ -203,6 +205,33 @@ Listado completo de migraciones SQL. Fuente de verdad: `supabase/migrations/`.
 | 193 | `20260726000010_stripe_event_processing_lifecycle.sql` | Agrega lifecycle durable `processing/processed/failed`, metadata y errores de eventos Stripe |
 | 194 | `20260726000011_keep_stripe_status_default_compatible.sql` | Conserva default compatible durante rolling deploy; el codigo nuevo reserva `processing` explicitamente |
 | — | `20260731000002_drop_push_integration_alerts_opt_in.sql` | Elimina `push_subscriptions.notify_integration_alerts` (agregada en fila 140): opt-in granular que nunca se conecto de punta a punta, ni la UI la escribia ni el envio de alertas la leia. Ver `DOCS/4_Operaciones_y_Guias/GUIA_PUSH_NOTIFICATIONS.md` seccion 4. *(Numeracion `—` porque hay migraciones `20260727000001` a `20260731000001` de otras sesiones aun sin indexar aqui; no se renumeraron filas ajenas a este cambio.)* |
+
+## Migraciones 2026-07-27 a 2026-08-03
+
+Estado: **aplicadas y verificadas en DEV y PROD** al 2026-08-03 (consultado directamente contra `supabase_migrations.schema_migrations` en ambos proyectos).
+
+| Archivo | Descripción breve |
+|---|---|
+| `20260727000001_fix_document_folder_rls_recursion.sql` | Corrige la recursión infinita de RLS al leer `document_folders`. |
+| `20260729000001_notifications_in_app_channel.sql` | Agrega `in_app` a los canales validos de `notifications`. Es el canal que alimenta la campanita (ver `GUIA_NOTIFICACIONES_MODELO.md`). |
+| `20260729000002_scope_and_semantics_announcements_checklists.sql` | Alinea avisos y checklists con la Regla de Oro de Alcance (`web/README_SCOPE_GOLDEN_RULE.md`): OR dentro de una dimensión, AND entre dimensiones pobladas. |
+| `20260729000003_unify_scope_rules.sql` | Cierra los dos desvíos que quedaban sobre la Regla de Oro de Alcance. |
+| `20260729000004_drop_announcement_audiences.sql` | Elimina `announcement_audiences` (reemplazada por el alcance unificado). |
+| `20260729000005_employees_position_id.sql` | `employees.position_id`: referencia real al puesto en lugar de resolverlo por nombre. |
+| `20260730000001_checklist_frozen_history.sql` | Historial de checklists inmutable y cambios pendientes hasta el próximo reparto. |
+| `20260731000001_checklist_deletable_with_history.sql` | Permite eliminar de verdad un checklist con respuestas, sin perder el historial. |
+| `20260731000002_drop_push_integration_alerts_opt_in.sql` | Ver fila indexada más arriba. |
+| `20260802000001_checklist_submission_integrity_and_history.sql` | Snapshots inmutables en `checklist_submissions` (plantilla, sección, orden, autor) + función transaccional `submit_checklist_transaction`. Borrar una plantilla ya no borra el historial. |
+| `20260802000002_vendor_mutation_transaction.sql` | Función transaccional `save_vendor_transaction`, FKs compuestas `(id, organization_id)` que impiden cruzar tenants, índice único de "un solo alcance global por proveedor", REVOKE de escritura directa a `anon`/`authenticated` y RLS nuevas. |
+| `20260802000003_harden_folder_scope_resolver.sql` | Mueve el resolvedor recursivo de alcance de carpetas al schema `app_private` (`security definer`, `search_path = ''`) y revoca su acceso directo. |
+| `20260802000004_announcement_delivery_expired_status.sql` | Agrega el estado `expired` a `announcement_deliveries` + trigger que no admite encolar entregas de avisos fuera de su ventana de publicación. |
+| `20260802000005_fix_document_inheritance_null_scope_detection.sql` | `jsonb_typeof` sobre una clave ausente devuelve NULL: sin `coalesce`, un documento no heredaba el alcance de su carpeta. |
+| `20260802000006_close_mutation_and_recurrence_races.sql` | Cierra carreras de mutación y recurrencia; la cadena recursiva de carpetas ahora falla cerrada y rechaza ciclos. |
+| `20260802000007_atomic_announcement_schedule_updates.sql` | Contenido y recurrencia de un aviso pasan a ser una sola mutación. |
+| `20260802000008_lock_announcement_schedule_mutations.sql` | El chequeo del lease y la mutación del schedule quedan en una sola sentencia con lock de fila. |
+| `20260803000001_recoverable_stripe_event_processing.sql` | Reclamos recuperables de eventos Stripe (`processing_token`, `next_attempt_at`, estados `processing/processed/failed/dead_lettered`) + tabla `stripe_event_effects` con idempotencia por efecto, no solo por evento. |
+| `20260803000002_harden_stripe_recovery_reconciliation.sql` | Endurece la reconciliación de la recuperación de eventos Stripe. |
+| `20260803000003_dead_letter_stripe_event_on_final_failure.sql` | Manda a dead letter el evento Stripe que falla definitivamente, para que no se reintente para siempre. |
 
 ## Convención de naming
 
