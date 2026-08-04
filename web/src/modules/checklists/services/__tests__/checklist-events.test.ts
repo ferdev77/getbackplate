@@ -89,9 +89,13 @@ describe("notifyChecklistSubmitted", () => {
     expect(destinatariosDeLaLlamada().sort()).toEqual(["admin-1", "admin-2", "creador"]);
   });
 
-  it("manda a cada rol a su propia pantalla", async () => {
+  it("manda a cada rol a su propia pantalla de reportes", async () => {
     // El creador de la plantilla puede ser un empleado del portal. Antes todos
     // recibian /app/reports y el empleado caia en el panel de administracion.
+    //
+    // El destino es la pantalla de reportes de cada uno, no la lista de
+    // checklists: a quien recibe este aviso no le toca completar nada, le
+    // avisan que ya se lo completaron.
     await notifyChecklistSubmitted({
       supabase: supabaseFalso(["admin-1"]),
       organizationId: "org-1",
@@ -105,7 +109,7 @@ describe("notifyChecklistSubmitted", () => {
 
     expect(urlPorDestinatario()).toEqual({
       "admin-1": "/app/reports",
-      "empleado-creador": "/portal/checklist",
+      "empleado-creador": "/portal/checklist/reports",
     });
   });
 

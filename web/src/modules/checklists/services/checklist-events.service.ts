@@ -61,13 +61,18 @@ export async function notifyChecklistSubmitted(params: {
 
   // Entre los destinatarios esta quien creo la plantilla, que puede ser un
   // empleado del portal: no todos van al panel de empresa.
+  //
+  // El link va a los reportes y no a la lista de checklists: a quien recibe
+  // este aviso no le toca completar nada, le acaban de completar lo suyo y lo
+  // que quiere ver es que marco la persona. El portal tiene su propia pantalla
+  // de reportes, acotada a los checklists que uno creo.
   return sendPushPorRol({
     supabase: params.supabase,
     organizationId: params.organizationId,
     userIds,
     payload: { title: `Checklist completado: ${params.templateName}`, body: detalle },
     adminUrl: "/app/reports",
-    employeeUrl: "/portal/checklist",
+    employeeUrl: "/portal/checklist/reports",
     options: { source: "checklist_submitted", organizationId: params.organizationId },
   });
 }
@@ -94,6 +99,9 @@ export async function notifyChecklistReviewed(params: {
 
   // Quien completo el reporte es casi siempre gente del portal: sin partir el
   // link, el aviso de "ya te lo revisaron" lo mandaba al panel de empresa.
+  //
+  // Va a los reportes, igual que el aviso de completado: lo que se anuncia es
+  // el estado de un reporte, no una tarea pendiente.
   return sendPushPorRol({
     supabase: params.supabase,
     organizationId: params.organizationId,
@@ -103,7 +111,7 @@ export async function notifyChecklistReviewed(params: {
       body: "El reporte ya fue revisado.",
     },
     adminUrl: "/app/reports",
-    employeeUrl: "/portal/checklist",
+    employeeUrl: "/portal/checklist/reports",
     options: { source: "checklist_reviewed", organizationId: params.organizationId },
   });
 }
