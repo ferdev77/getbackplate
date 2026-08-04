@@ -87,7 +87,6 @@ const STARTER_MODULES: ModuleEntry[] = [
 ];
 
 const PRO_DELTA_MODULES: ModuleEntry[] = [
-  { name: "SMS & WhatsApp Notifications", desc: "Real-time team messaging that reaches staff beyond the platform." },
   { name: "Task Assignment", desc: "Assign tasks, set due dates, and require photo proof of completion. Integrated with checklists and shift communication." },
   { name: "Incident & Accident Log", desc: "Track kitchen injuries, customer complaints, and equipment failures with full documentation." },
   { name: "Vacation & Time-Off Requests", desc: "Digital requests with manager approval flow. No more paper slips." },
@@ -401,7 +400,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
             ["01", "Operaciones y Cumplimiento", "Checklist digitales, procedimientos de apertura y cierre, registros de incidentes, seguridad alimentaria y mantenimiento de equipos — todo con firma de responsable y trazabilidad incorporada."],
             ["02", "People & RRHH", "Onboarding, turnos, solicitudes de ausencia, historial de capacitación, evaluaciones de desempeño, registros disciplinarios y firmas digitales de contratos — toda tu capa de personas, organizada."],
             ["03", "Cocina y Menú", "Archivo de recetas con escalado automático de porciones, costeo de menú vinculado directamente a las recetas, y directorio completo de proveedores con historial de pedidos y contactos."],
-            ["04", "Comunicación", "Notificaciones en plataforma, alertas por SMS y mensajería por WhatsApp mantienen a tu equipo conectado en tiempo real — sin el caos de una app de terceros que nadie usa."],
+            ["04", "Comunicación", "Las notificaciones en plataforma y por email mantienen a tu equipo conectado en tiempo real — sin el caos de una app de terceros que nadie usa."],
             ["05", "Marketing y Calidad", "Gestioná tu ficha de Google My Business, organizá concursos de reseñas dentro de la plataforma y hacé seguimiento de evaluaciones de mystery shopper con puntuación ponderada e informes de tendencia."],
             ["06", "Roles y Permisos", "Cada módulo está controlado por una capa unificada de roles y permisos. Los dueños ven todo. Los managers ven lo que necesitan. El staff ve lo relevante para su turno."],
           ]
@@ -409,7 +408,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
             ["01", "Operations & Compliance", "Digital checklists, opening and closing procedures, incident logs, food safety records, and equipment maintenance — all with sign-off and accountability tracking built in."],
             ["02", "People & HR", "Onboarding, scheduling, time-off requests, training records, performance reviews, disciplinary logs, and digital contract signatures — your entire people layer, organized."],
             ["03", "Kitchen & Menu", "Recipe archive with automatic portion scaling, menu costing tied directly to recipes, and a full supplier and vendor directory with order history and contacts."],
-            ["04", "Communication", "Platform notifications, SMS alerts, and WhatsApp messaging keep your team connected in real time — without the chaos of a third-party app nobody actually uses."],
+            ["04", "Communication", "Platform and email notifications keep your team connected in real time — without the chaos of a third-party app nobody actually uses."],
             ["05", "Marketing & Quality", "Manage your Google My Business listing, run in-platform review contests, and track mystery shopper evaluations with weighted scoring and trend reports."],
             ["06", "Roles & Permissions", "Every module is controlled by a unified roles and permissions layer. Owners see everything. Managers see what they need. Staff see what's relevant to their shift."],
           ],
@@ -1071,9 +1070,9 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
             >
               <p className="text-left text-[13px] leading-[1.6] text-[var(--gbp-text2)]">
                 {lang === "es" ? (
-                  <>Plus <strong className="text-[var(--gbp-text)]">{extraModulesCount} módulos más</strong> — SMS &amp; WhatsApp, Asignación de Tareas, Incidentes, Vacaciones, Mantenimiento de Equipos, Constructor de Turnos, Integración Zoom, Costo de Menú, Recetas, Temperatura &amp; Seguridad Alimentaria, Evaluaciones, GMB, Review Champions, Mystery Shopper, ✦ AI Quick Reports, ✦ Full AI Assistant.</>
+                  <>Plus <strong className="text-[var(--gbp-text)]">{extraModulesCount} módulos más</strong> — Asignación de Tareas, Incidentes, Vacaciones, Mantenimiento de Equipos, Constructor de Turnos, Integración Zoom, Costo de Menú, Recetas, Temperatura &amp; Seguridad Alimentaria, Evaluaciones, GMB, Review Champions, Mystery Shopper, ✦ AI Quick Reports, ✦ Full AI Assistant.</>
                 ) : (
-                  <>Plus <strong className="text-[var(--gbp-text)]">{extraModulesCount} more modules</strong> — SMS &amp; WhatsApp, Task Assignment, Incident Log, Time-Off Requests, Disciplinary Log, Equipment Tracker, Schedule Builder, Zoom Integration, Menu Costing, Recipe Archive, Temperature &amp; Food Safety, Performance Reviews, Google My Business, Review Champions, Mystery Shopper, ✦ AI Quick Reports, ✦ Full AI Assistant.</>
+                  <>Plus <strong className="text-[var(--gbp-text)]">{extraModulesCount} more modules</strong> — Task Assignment, Incident Log, Time-Off Requests, Disciplinary Log, Equipment Tracker, Schedule Builder, Zoom Integration, Menu Costing, Recipe Archive, Temperature &amp; Food Safety, Performance Reviews, Google My Business, Review Champions, Mystery Shopper, ✦ AI Quick Reports, ✦ Full AI Assistant.</>
                 )}
               </p>
               <span className="flex shrink-0 items-center gap-1.5 text-[12px] font-bold uppercase tracking-[0.06em] text-[var(--gbp-accent)]">

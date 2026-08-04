@@ -59,8 +59,8 @@ export default function PlatformPrivacyPage() {
       <p>When you use the Platform&apos;s communication features, we collect and store:</p>
       <ul>
         <li>In-platform notification history</li>
+        <li>Push notification delivery records, for users who have granted browser permission</li>
         <li>Email communication logs (sent via Brevo)</li>
-        <li>WhatsApp message logs (sent via ManyChat), for users who have provided explicit opt-in consent</li>
       </ul>
 
       <h3><span className="sub-num">2.5</span>Technical and Usage Data</h3>
@@ -77,7 +77,7 @@ export default function PlatformPrivacyPage() {
       <ol>
         <li><strong>Service delivery:</strong> to provide all Platform features, including employee management, operations tools, document storage, scheduling, and communication;</li>
         <li><strong>AI-powered features:</strong> to generate operational reports, insights, and recommendations based on your data. We do not use your Customer Data to train general-purpose AI models without your explicit consent;</li>
-        <li><strong>Notifications and communications:</strong> to send operational alerts, document expiration notices, checklist reminders, and service-related communications via in-app notifications, email (Brevo), and WhatsApp (ManyChat, with explicit opt-in);</li>
+        <li><strong>Notifications and communications:</strong> to send operational alerts, document expiration notices, checklist reminders, and service-related communications via in-app notifications, push notifications, and email (Brevo);</li>
         <li><strong>Billing and account management:</strong> to process subscription payments, manage plan limits, and send billing-related communications;</li>
         <li><strong>Support and troubleshooting:</strong> to investigate issues you report and provide customer support;</li>
         <li><strong>Security:</strong> to detect, prevent, and respond to fraud, abuse, or unauthorized access;</li>
@@ -109,8 +109,6 @@ export default function PlatformPrivacyPage() {
         <li><strong>Supabase Inc.</strong> — managed PostgreSQL database, file storage, and real-time services</li>
         <li><strong>Stripe Inc.</strong> — payment processing and subscription billing</li>
         <li><strong>Brevo (Sendinblue SAS)</strong> — transactional email delivery</li>
-        <li><strong>ManyChat Inc.</strong> — WhatsApp messaging (only for users who have provided explicit opt-in consent)</li>
-        <li><strong>Twilio Inc.</strong> — SMS and communication infrastructure</li>
         <li><strong>DocuSeal</strong> — digital contract signing</li>
         <li><strong>Sentry</strong> — error monitoring and performance tracking</li>
         <li><strong>Upstash</strong> — rate limiting and caching infrastructure</li>
@@ -144,8 +142,8 @@ export default function PlatformPrivacyPage() {
       <h3><span className="sub-num">7.1</span>Email</h3>
       <p>By using the Platform, administrators and employees consent to receive transactional and operational emails related to their use of the Service. These may include document expiration alerts, checklist notifications, account updates, and billing communications. Users may manage notification preferences within the Platform settings.</p>
 
-      <h3><span className="sub-num">7.2</span>WhatsApp</h3>
-      <p>WhatsApp messaging is only activated upon express opt-in from the individual recipient. By opting in, you consent to receive operational notifications via WhatsApp through ManyChat. You may opt out at any time by responding STOP to any WhatsApp message or by updating your notification preferences in the Platform.</p>
+      <h3><span className="sub-num">7.2</span>Push Notifications</h3>
+      <p>The Platform may send push notifications to devices where the user has granted browser permission. This permission is requested from the user and may be revoked at any time from the browser or device settings. In-app notifications remain available within the Platform regardless of push permission.</p>
 
       <h3><span className="sub-num">7.3</span>Marketing Communications</h3>
       <p>We do not send marketing communications without your separate, explicit consent. If you consent to marketing communications, you may withdraw that consent at any time.</p>

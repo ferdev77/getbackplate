@@ -29,7 +29,7 @@ export default function PlatformTermsPage() {
         <li><strong>Employee management:</strong> onboarding, document storage, digital contract signing, certification and license tracking (including Food Handler and TABC certifications), performance records, disciplinary logs, and vacation and time-off management.</li>
         <li><strong>Operations management:</strong> shift communication logs, checklists by department and shift, task assignment, incident and accident logs, and equipment maintenance tracking.</li>
         <li><strong>Document management:</strong> secure storage, organization, and retrieval of operational and employee documents, with configurable expiration alerts.</li>
-        <li><strong>Communication:</strong> platform notifications, email communications via Brevo, and WhatsApp messaging via ManyChat, subject to user consent.</li>
+        <li><strong>Communication:</strong> in-app and push notifications, and email communications via Brevo.</li>
         <li><strong>Business intelligence:</strong> AI-powered reporting and operational insights across locations.</li>
         <li><strong>Supplier management:</strong> vendor and supplier directory for internal reference and procurement coordination.</li>
         <li><strong>Billing and subscription management:</strong> plan management, payment processing via Stripe, and access control based on subscription tier.</li>
@@ -97,11 +97,11 @@ export default function PlatformTermsPage() {
       <h3><span className="sub-num">9.1</span>Email Communications</h3>
       <p>The Platform sends transactional and operational notifications via email through Brevo. By using the Platform, you and your employees consent to receive service-related email communications. All email communications include an option to manage notification preferences.</p>
 
-      <h3><span className="sub-num">9.2</span>WhatsApp Messaging</h3>
-      <p>The Platform offers WhatsApp-based notifications via ManyChat. WhatsApp messaging is only activated upon express opt-in consent from the individual recipient. Users may opt out at any time by responding STOP or through their notification settings within the Platform.</p>
-
-      <h3><span className="sub-num">9.3</span>Platform Notifications</h3>
+      <h3><span className="sub-num">9.2</span>Platform Notifications</h3>
       <p>The Platform sends in-app notifications related to operational events, document expirations, checklist completions, and other service-related activities. These notifications are integral to the Service and cannot be fully disabled without limiting Platform functionality.</p>
+
+      <h3><span className="sub-num">9.3</span>Push Notifications</h3>
+      <p>The Platform may also deliver these notifications as push notifications to devices where the user has granted browser permission. Push delivery is optional and may be revoked at any time from the browser or device settings, without affecting in-app notifications.</p>
 
       <h2><span className="section-num">10.</span>Subscription, Fees, and Payment</h2>
 
