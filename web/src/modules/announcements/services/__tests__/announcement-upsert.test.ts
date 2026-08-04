@@ -319,7 +319,29 @@ describe("el reparto periodico", () => {
     expect(operacionesDe(operaciones, "scheduled_jobs", "delete")).toHaveLength(1);
   });
 
-  it("no arma un reparto cuya proxima vuelta cae al vencer", async () => {
+  it("no arma un reparto cuya proxima vuelta cae despues de vencer", async () => {
+    // El aviso vence a las 08:00 y la unica pasada del dia es a las 09:00: para
+    // cuando le tocaria repartirse ya no existe.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-02T12:00:00.000Z"));
+    const { cliente, operaciones } = supabaseFalso();
+
+    await upsertAnnouncement({
+      supabase: cliente,
+      ...BASE,
+      expiresAt: "2026-08-03T08:00:00.000Z",
+      recurrence: { isRecurring: true, recurrenceType: "daily", customDays: [], channels: ["push"] },
+    });
+
+    expect(operacionesDe(operaciones, "scheduled_jobs", "insert")).toHaveLength(0);
+    expect(operacionesDe(operaciones, "scheduled_jobs", "delete")).toHaveLength(1);
+    vi.useRealTimers();
+  });
+
+  it("si la vuelta entra antes de vencer, el reparto se arma", async () => {
+    // Mismo caso pero venciendo al mediodia: la pasada de las 09:00 llega antes
+    // y el aviso alcanza a salir una vez mas. Con el calculo viejo esa vuelta
+    // caia justo al vencimiento y se perdia.
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-02T12:00:00.000Z"));
     const { cliente, operaciones } = supabaseFalso();
@@ -331,8 +353,7 @@ describe("el reparto periodico", () => {
       recurrence: { isRecurring: true, recurrenceType: "daily", customDays: [], channels: ["push"] },
     });
 
-    expect(operacionesDe(operaciones, "scheduled_jobs", "insert")).toHaveLength(0);
-    expect(operacionesDe(operaciones, "scheduled_jobs", "delete")).toHaveLength(1);
+    expect(operacionesDe(operaciones, "scheduled_jobs", "insert")).toHaveLength(1);
     vi.useRealTimers();
   });
 });

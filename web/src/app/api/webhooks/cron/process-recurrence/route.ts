@@ -9,6 +9,9 @@ import { processAnnouncementRecurrenceJob } from "@/modules/announcements/servic
 
 type JobError = { id: string; error: string };
 
+/** Cuanto se mira hacia adelante al buscar turnos vencidos. Ver el uso. */
+const MARGEN_DE_TOLERANCIA_MS = 5 * 60 * 1000;
+
 type ScheduledJob = {
   id: string;
   organization_id: string;
@@ -51,7 +54,14 @@ async function processRecurrence(req: Request) {
     }
 
     // 2. Fetch all scheduled jobs that are active and whose next_run_at <= now()
-    const nowIso = new Date().toISOString();
+    //
+    // Se toma un margen hacia adelante porque hay una sola pasada por dia: un
+    // turno que vence pocos minutos despues de que arranca la pasada no puede
+    // esperar 24 horas mas. Los turnos se agendan a la hora exacta de la pasada
+    // (ver HORA_UTC_DEL_REPARTO), asi que el margen solo absorbe el desfase con
+    // que Vercel dispara el cron; no adelanta ningun reparto de verdad.
+    const now = new Date();
+    const nowIso = new Date(now.getTime() + MARGEN_DE_TOLERANCIA_MS).toISOString();
     const { data: jobs, error: fetchError } = await supabaseAdmin
       .from("scheduled_jobs")
       .select("id, organization_id, job_type, target_id, metadata, recurrence_type, cron_expression, custom_days, next_run_at, schedule_revision")
