@@ -470,6 +470,49 @@ export function NewEmployeeModal({
     }
   }
 
+  /**
+   * Deja al usuario parado en el campo que falta.
+   *
+   * Devuelve true si el formulario esta completo. Si no, salta a la pestaña
+   * donde vive el primer campo incompleto, lo enfoca y dice cual es.
+   *
+   * Hace falta porque las pestañas se ocultan con display:none: el navegador no
+   * puede enfocar un campo oculto, asi que cancelaba el envio sin cartel y el
+   * unico rastro quedaba en la consola. Desde la pestaña de Permisos, guardar
+   * un empleado sin telefono no hacia absolutamente nada.
+   */
+  function llevarAlPrimerCampoIncompleto(form: HTMLFormElement): boolean {
+    if (form.checkValidity()) return true;
+
+    const campo = form.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(":invalid");
+    if (!campo) return true;
+
+    const claveDePestana = campo.closest("[data-tab-key]")?.getAttribute("data-tab-key");
+    const indice = claveDePestana ? tabs.findIndex((tab) => tab.key === claveDePestana) : -1;
+    if (indice >= 0) setActiveTab(indice);
+
+    // El nombre visible sale de la etiqueta; el atributo name es el ultimo
+    // recurso para no quedarnos con un mensaje sin sustantivo.
+    const etiqueta = campo.closest(".space-y-2")?.querySelector("label")?.textContent?.trim();
+    const nombreDelCampo = etiqueta || campo.getAttribute("name") || "un campo";
+    const nombreDePestana = indice >= 0 ? tabs[indice]?.label : null;
+
+    toast.error(
+      nombreDePestana
+        ? `Falta completar "${nombreDelCampo}" en ${nombreDePestana}`
+        : `Falta completar "${nombreDelCampo}"`,
+    );
+
+    // El foco espera al cambio de pestaña: sobre un campo todavia oculto no
+    // tiene efecto.
+    setTimeout(() => {
+      campo.focus();
+      campo.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 0);
+
+    return false;
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isEmployeeSelfMode) {
@@ -480,10 +523,15 @@ export function NewEmployeeModal({
       toast.error("Wait for document uploads to finish.");
       return;
     }
+    const form = event.currentTarget;
+    if (!llevarAlPrimerCampoIncompleto(form)) {
+      return;
+    }
+
     setIsActionPending(true);
 
     try {
-      const formData = new FormData(event.currentTarget);
+      const formData = new FormData(form);
       const response = await fetch(apiEndpoint, {
         method: "POST",
         body: formData,
@@ -1089,7 +1137,17 @@ export function NewEmployeeModal({
           ) : null}
         </div>
 
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {/*
+          noValidate no apaga las reglas: las sigue evaluando checkValidity() en
+          handleSubmit. Lo que apaga es el cartel del navegador, que en este
+          modal no servia. Los campos obligatorios viven en pestañas que se
+          ocultan con display:none, y a un campo oculto el navegador no lo puede
+          enfocar: cancelaba el envio sin mostrar nada y el aviso quedaba en la
+          consola. Pasaba de verdad -- un empleado sin telefono cargado no se
+          podia guardar desde la pestaña de Permisos, y no habia forma de saber
+          que faltaba.
+        */}
+        <form noValidate onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {mode === "edit" && initialEmployee ? (
             <input type="hidden" name="employee_id" value={initialEmployee.id} />
           ) : null}
@@ -1107,7 +1165,7 @@ export function NewEmployeeModal({
 
           <div className="flex-1 overflow-y-auto bg-[var(--gbp-surface)] p-8">
             {/* TAB 0 - Info Personal */}
-            <div className={currentTabIndex === tabs.findIndex((tab) => tab.key === "personal") ? "block" : "hidden"}>
+            <div data-tab-key="personal" className={currentTabIndex === tabs.findIndex((tab) => tab.key === "personal") ? "block" : "hidden"}>
               <fieldset disabled={isEmployeeSelfMode} className={isEmployeeSelfMode ? "opacity-90" : ""}>
               <h3 className={`mb-4 border-b border-[var(--gbp-border)] pb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--gbp-muted)] ${DARK_MUTED}`}>
                 Información Personal
@@ -1351,7 +1409,7 @@ export function NewEmployeeModal({
             </div>
 
             {/* TAB 1 - Documentos */}
-            <div className={currentTabIndex === tabs.findIndex((tab) => tab.key === "documents") ? "block" : "hidden"}>
+            <div data-tab-key="documents" className={currentTabIndex === tabs.findIndex((tab) => tab.key === "documents") ? "block" : "hidden"}>
               <h3 className="mb-6 border-b border-[var(--gbp-border)] pb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--gbp-muted)]">
                 Documentos del Empleado
               </h3>
@@ -1778,7 +1836,7 @@ export function NewEmployeeModal({
             </div>
 
             {/* TAB 2 - Contrato (solo empleado) */}
-            <div className={currentTabIndex === tabs.findIndex((tab) => tab.key === "contract") ? "block" : "hidden"}>
+            <div data-tab-key="contract" className={currentTabIndex === tabs.findIndex((tab) => tab.key === "contract") ? "block" : "hidden"}>
               <fieldset disabled={isEmployeeSelfMode} className={isEmployeeSelfMode ? "opacity-90" : ""}>
               <h3 className="mb-4 border-b border-[var(--gbp-border)] pb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--gbp-muted)]">
                 Contrato y Salario
@@ -1912,7 +1970,7 @@ export function NewEmployeeModal({
             </div>
 
             {/* TAB Cuenta App */}
-            <div className={currentTabIndex === tabs.findIndex((tab) => tab.key === "account") ? "block" : "hidden"}>
+            <div data-tab-key="account" className={currentTabIndex === tabs.findIndex((tab) => tab.key === "account") ? "block" : "hidden"}>
               <h3 className="mb-6 border-b border-[var(--gbp-border)] pb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--gbp-muted)]">
                 Crear cuenta de acceso
               </h3>
@@ -1990,7 +2048,7 @@ export function NewEmployeeModal({
             </div>
 
             {/* TAB Permisos */}
-            <div className={currentTabIndex === tabs.findIndex((tab) => tab.key === "permissions") ? "block" : "hidden"}>
+            <div data-tab-key="permissions" className={currentTabIndex === tabs.findIndex((tab) => tab.key === "permissions") ? "block" : "hidden"}>
               <DelegatedPermissionsSection
                 delegatedPermissions={delegatedPermissions}
                 setDelegatedPermissions={setDelegatedPermissions}
