@@ -158,6 +158,7 @@ describe("a quien le llega", () => {
       branchId: "loc-a",
       locationName: "Long Beach",
       createdByUserId: "quien-reporto",
+      createdByName: null,
     });
 
     expect(avisados()).toEqual(["admin-1", "encargado"]);
@@ -174,6 +175,7 @@ describe("a quien le llega", () => {
       branchId: "loc-a",
       locationName: null,
       createdByUserId: "admin-1",
+      createdByName: null,
     });
 
     expect(sendPushToUsers).not.toHaveBeenCalled();
@@ -199,6 +201,7 @@ describe("solo a quien tiene esa locación", () => {
       branchId: "loc-a",
       locationName: "Long Beach",
       createdByUserId: "otro",
+      createdByName: null,
     });
 
     expect(avisados()).toEqual(["de-long-beach", "de-todas", "de-varias"]);
@@ -214,6 +217,7 @@ describe("solo a quien tiene esa locación", () => {
       branchId: "loc-z",
       locationName: "Otra",
       createdByUserId: "otro",
+      createdByName: null,
     });
 
     expect(avisados()).toEqual(["admin-1"]);
@@ -229,6 +233,7 @@ describe("solo a quien tiene esa locación", () => {
       branchId: null,
       locationName: null,
       createdByUserId: "otro",
+      createdByName: null,
     });
 
     expect(avisados()).toEqual(["de-long-beach", "de-todas", "de-varias", "de-wiggins"]);
@@ -245,6 +250,7 @@ describe("solo a quien tiene esa locación", () => {
       locationName: "Long Beach",
       requestedByUserId: "de-wiggins",
       actorUserId: "otro",
+      actorName: null,
     });
 
     expect(avisados()).toContain("de-wiggins");
@@ -268,6 +274,7 @@ describe("la sucursal se aclara solo a quien maneja varias", () => {
       branchId: "loc-a",
       locationName: "Long Beach",
       createdByUserId: "otro",
+      createdByName: null,
     });
 
     expect(cuerpoPara("de-un-local")).toBe("Prioridad Alta");
@@ -283,6 +290,7 @@ describe("la sucursal se aclara solo a quien maneja varias", () => {
       branchId: "loc-a",
       locationName: "Long Beach",
       createdByUserId: "otro",
+      createdByName: null,
     });
 
     expect(cuerpoPara("admin-1")).toBe("Long Beach · Prioridad Alta");
@@ -297,9 +305,81 @@ describe("la sucursal se aclara solo a quien maneja varias", () => {
       branchId: "loc-a",
       locationName: null,
       createdByUserId: "otro",
+      createdByName: null,
     });
 
     expect(cuerpoPara("admin-1")).toBe("Prioridad Alta");
+  });
+});
+
+describe("el aviso dice quién lo hizo", () => {
+  it("nombra a quien reportó, después de la sucursal", async () => {
+    await notifyMaintenanceRequested({
+      supabase: supabaseFalso({
+        admins: ["admin-1"],
+        operativos: [{ userId: "de-un-local", locaciones: ["loc-a"] }],
+      }),
+      organizationId: "org-1",
+      title: "Heladera",
+      priority: "high",
+      branchId: "loc-a",
+      locationName: "Long Beach",
+      createdByUserId: "otro",
+      createdByName: "Ana Pérez",
+    });
+
+    expect(cuerpoPara("admin-1")).toBe("Long Beach · Ana Pérez · Prioridad Alta");
+    // A quien tiene un solo local no se le nombra la sucursal, pero sí la persona.
+    expect(cuerpoPara("de-un-local")).toBe("Ana Pérez · Prioridad Alta");
+  });
+
+  it("nombra a quien cambió el estado", async () => {
+    await notifyMaintenanceStatusChanged({
+      supabase: supabaseFalso({ admins: ["admin-1"] }),
+      organizationId: "org-1",
+      title: "Heladera",
+      toStatus: "resolved",
+      branchId: "loc-a",
+      locationName: "Long Beach",
+      requestedByUserId: null,
+      actorUserId: "otro",
+      actorName: "Ana Pérez",
+    });
+
+    expect(cuerpoPara("admin-1")).toBe("Long Beach · Ana Pérez · Pasó a Resuelta");
+  });
+
+  it("nombra a quien dejó la novedad", async () => {
+    await notifyMaintenanceUpdate({
+      supabase: supabaseFalso({ admins: ["admin-1"] }),
+      organizationId: "org-1",
+      title: "Heladera",
+      message: "Ya vino el técnico",
+      scheduledVisitAt: null,
+      branchId: null,
+      locationName: null,
+      requestedByUserId: null,
+      actorUserId: "otro",
+      actorName: "Ana Pérez",
+    });
+
+    expect(cuerpoPara("admin-1")).toBe("Ana Pérez · Ya vino el técnico");
+  });
+
+  it("sin nombre resuelto el cuerpo queda como antes, sin un separador suelto", async () => {
+    await notifyMaintenanceStatusChanged({
+      supabase: supabaseFalso({ admins: ["admin-1"] }),
+      organizationId: "org-1",
+      title: "Heladera",
+      toStatus: "resolved",
+      branchId: "loc-a",
+      locationName: "Long Beach",
+      requestedByUserId: null,
+      actorUserId: "otro",
+      actorName: null,
+    });
+
+    expect(cuerpoPara("admin-1")).toBe("Long Beach · Pasó a Resuelta");
   });
 });
 
@@ -313,6 +393,7 @@ describe("el texto va en español, no con el valor crudo", () => {
       branchId: null,
       locationName: null,
       createdByUserId: "otro",
+      createdByName: null,
     });
 
     // Antes decia "Prioridad high".
@@ -329,6 +410,7 @@ describe("el texto va en español, no con el valor crudo", () => {
       locationName: null,
       requestedByUserId: null,
       actorUserId: "otro",
+      actorName: null,
     });
 
     // Antes decia "Pasó a needs_parts".
@@ -345,6 +427,7 @@ describe("el texto va en español, no con el valor crudo", () => {
       locationName: null,
       requestedByUserId: null,
       actorUserId: "otro",
+      actorName: null,
     });
 
     expect(cuerpoPara("admin-1")).toBe("Pasó a algo_nuevo");
@@ -362,6 +445,7 @@ describe("quien reportó", () => {
       locationName: "Long Beach",
       requestedByUserId: "quien-reporto",
       actorUserId: "encargado",
+      actorName: null,
     });
 
     expect(avisados()).toEqual(["admin-1", "quien-reporto"]);
@@ -377,6 +461,7 @@ describe("quien reportó", () => {
       locationName: null,
       requestedByUserId: "ex-superadmin",
       actorUserId: "encargado",
+      actorName: null,
     });
 
     expect(avisados()).toEqual(["admin-1"]);
@@ -395,6 +480,7 @@ describe("novedades", () => {
       locationName: null,
       requestedByUserId: null,
       actorUserId: "encargado",
+      actorName: null,
     });
 
     expect(cuerpoPara("admin-1")).toContain("Visita programada");
@@ -412,6 +498,7 @@ describe("novedades", () => {
       locationName: null,
       requestedByUserId: null,
       actorUserId: "encargado",
+      actorName: null,
     });
 
     expect(cuerpoPara("admin-1")).toBe("Ya vino el técnico");
@@ -429,6 +516,7 @@ describe("no se manda nada al vacío", () => {
       branchId: "loc-a",
       locationName: "Long Beach",
       createdByUserId: "otro",
+      createdByName: null,
     });
 
     expect(sendPushToUsers).not.toHaveBeenCalled();
@@ -446,6 +534,7 @@ describe("no se manda nada al vacío", () => {
       branchId: "loc-a",
       locationName: "Long Beach",
       createdByUserId: "otro",
+      createdByName: null,
     });
 
     expect(sendPushToUsers.mock.calls.flatMap((c) => c[0])).toEqual(["dos-sombreros"]);
@@ -551,7 +640,7 @@ describe("notifyMaintenanceResponseByEmail", () => {
 });
 
 describe("notifyMaintenanceRequestedByEmail", () => {
-  it("lleva prioridad, sucursal y los detalles: quien lo recibe puede resolverlo sin entrar al sistema", async () => {
+  it("lleva quién la reportó, prioridad, sucursal y los detalles: quien lo recibe puede resolverlo sin entrar al sistema", async () => {
     getAuthEmailByUserId.mockResolvedValue(new Map([["admin-1", "admin@x.com"]]));
 
     await notifyMaintenanceRequestedByEmail({
@@ -563,11 +652,12 @@ describe("notifyMaintenanceRequestedByEmail", () => {
       priority: "high",
       locationName: "Long Beach",
       createdByUserId: "otro",
+      createdByName: "Ana Pérez",
     });
 
     const enviado = sendEmail.mock.calls[0][0];
     expect(enviado.subject).toBe("Nueva solicitud de mantenimiento: Heladera");
-    expect(enviado.htmlContent).toContain("Prioridad Alta · Long Beach");
+    expect(enviado.htmlContent).toContain("Ana Pérez · Prioridad Alta · Long Beach");
     expect(enviado.htmlContent).toContain("Pierde agua por abajo desde el lunes.");
     expect(enviado.notification.source).toBe("maintenance_requested_email");
   });
@@ -584,6 +674,7 @@ describe("notifyMaintenanceRequestedByEmail", () => {
       priority: null,
       locationName: null,
       createdByUserId: "otro",
+      createdByName: null,
     });
 
     const enviado = sendEmail.mock.calls[0][0];
@@ -611,6 +702,7 @@ describe("notifyMaintenanceRequestedByEmail", () => {
       priority: "medium",
       locationName: "Long Beach",
       createdByUserId: "quien-la-creo",
+      createdByName: null,
     });
 
     expect(getAuthEmailByUserId).toHaveBeenCalledWith(["admin-1", "fuera-de-alcance"]);
@@ -633,6 +725,7 @@ describe("notifyMaintenanceRequestedByEmail", () => {
       priority: null,
       locationName: null,
       createdByUserId: "otro",
+      createdByName: null,
     });
 
     expect(sendEmail).not.toHaveBeenCalled();

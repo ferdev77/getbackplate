@@ -7,6 +7,7 @@ import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import {
   attachMaintenanceFiles,
   maintenanceCreateSchema,
+  nombreDelActor,
   updateMaintenanceDraft,
 } from "@/modules/maintenance/services";
 
@@ -65,14 +66,19 @@ export async function PUT(request: Request, context: RouteContext) {
     if (parsed.data.action === "submit") {
       after(async () => {
         const admin = createSupabaseAdminClient();
+        const [locationName, createdByName] = await Promise.all([
+          nombreDeLaLocacion(admin, actorContext.organizationId, parsed.data.branch_id),
+          nombreDelActor(actorContext.organizationId, actorContext.userId),
+        ]);
         await notifyMaintenanceRequested({
           supabase: admin,
           organizationId: actorContext.organizationId,
           title: parsed.data.title,
           priority: parsed.data.priority ?? null,
           branchId: parsed.data.branch_id ?? null,
-          locationName: await nombreDeLaLocacion(admin, actorContext.organizationId, parsed.data.branch_id),
+          locationName,
           createdByUserId: actorContext.userId,
+          createdByName,
         });
       });
     }

@@ -47,6 +47,17 @@ async function conQuienReporto(
   return [{ userId: requestedBy, necesitaSaberLaLocacion: true, url: URL_EMPLEADO }, ...atienden];
 }
 
+/**
+ * Antepone quien hizo la accion al cuerpo del aviso.
+ *
+ * Va primero porque es lo que el aviso no decia y hacia falta: quien recibia
+ * "Pasó a Resuelta" no tenia forma de saber quien lo resolvio. Si no se pudo
+ * resolver el nombre, el cuerpo queda como estaba, sin un separador suelto.
+ */
+function conNombre(actorName: string | null, texto: string) {
+  return [actorName, texto].filter(Boolean).join(" · ");
+}
+
 /** Saca a quien acaba de hacer la accion: no necesita que le avisen de lo suyo. */
 function sinElActor(gente: DestinatarioDeMantenimiento[], actorUserId: string | null) {
   const vistos = new Set<string>();
@@ -188,6 +199,8 @@ export async function notifyMaintenanceRequested(params: {
   branchId: string | null;
   locationName: string | null;
   createdByUserId: string;
+  /** Como se llama quien la reporto. */
+  createdByName: string | null;
 }) {
   const gente = sinElActor(
     await quienesAtienden(params.supabase, params.organizationId, params.branchId),
@@ -201,7 +214,7 @@ export async function notifyMaintenanceRequested(params: {
     organizationId: params.organizationId,
     gente,
     title: `Nueva solicitud de mantenimiento: ${params.title}`,
-    body: prioridad ? `Prioridad ${prioridad}` : "Sin detalles adicionales",
+    body: conNombre(params.createdByName, prioridad ? `Prioridad ${prioridad}` : "Sin detalles adicionales"),
     locationName: params.locationName,
     source: "maintenance_requested",
   });
@@ -222,6 +235,8 @@ export async function notifyMaintenanceStatusChanged(params: {
   locationName: string | null;
   requestedByUserId: string | null;
   actorUserId: string;
+  /** Como se llama quien lo cambio. */
+  actorName: string | null;
 }) {
   const gente = sinElActor(
     await conQuienReporto(params, await quienesAtienden(params.supabase, params.organizationId, params.branchId)),
@@ -233,7 +248,7 @@ export async function notifyMaintenanceStatusChanged(params: {
     organizationId: params.organizationId,
     gente,
     title: `Mantenimiento: ${params.title}`,
-    body: `Pasó a ${estadoEnPalabras(params.toStatus)}`,
+    body: conNombre(params.actorName, `Pasó a ${estadoEnPalabras(params.toStatus)}`),
     locationName: params.locationName,
     source: "maintenance_status_changed",
   });
@@ -254,6 +269,8 @@ export async function notifyMaintenanceUpdate(params: {
   locationName: string | null;
   requestedByUserId: string | null;
   actorUserId: string;
+  /** Como se llama quien dejo la novedad. */
+  actorName: string | null;
 }) {
   const gente = sinElActor(
     await conQuienReporto(params, await quienesAtienden(params.supabase, params.organizationId, params.branchId)),
@@ -272,7 +289,7 @@ export async function notifyMaintenanceUpdate(params: {
     organizationId: params.organizationId,
     gente,
     title: `Mantenimiento: ${params.title}`,
-    body: cuerpo,
+    body: conNombre(params.actorName, cuerpo),
     locationName: params.locationName,
     source: params.scheduledVisitAt ? "maintenance_visit_scheduled" : "maintenance_update",
   });
@@ -409,9 +426,11 @@ export async function notifyMaintenanceRequestedByEmail(params: {
   priority: string | null;
   locationName: string | null;
   createdByUserId: string;
+  /** Como se llama quien la reporto. */
+  createdByName: string | null;
 }): Promise<void> {
   const prioridad = prioridadEnPalabras(params.priority);
-  const encabezado = [prioridad ? `Prioridad ${prioridad}` : null, params.locationName]
+  const encabezado = [params.createdByName, prioridad ? `Prioridad ${prioridad}` : null, params.locationName]
     .filter(Boolean)
     .join(" · ");
 

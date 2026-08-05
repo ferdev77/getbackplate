@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   notifyPush: vi.fn(),
   notifyEmail: vi.fn(),
   locationName: vi.fn(),
+  actorName: vi.fn(),
   /** Lo que `after` dejo corriendo despues de responder. */
   pendientes: [] as Promise<unknown>[],
 }));
@@ -34,7 +35,12 @@ vi.mock("next/server", async (importOriginal) => {
 vi.mock("@/shared/lib/access", () => ({ assertCompanyAdminModuleApi: mocks.access }));
 vi.mock("@/modules/maintenance/services", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/modules/maintenance/services")>();
-  return { ...original, createMaintenanceRequest: mocks.create, attachMaintenanceFiles: mocks.attach };
+  return {
+    ...original,
+    createMaintenanceRequest: mocks.create,
+    attachMaintenanceFiles: mocks.attach,
+    nombreDelActor: mocks.actorName,
+  };
 });
 vi.mock("@/modules/maintenance/services/maintenance-events.service", () => ({
   notifyMaintenanceRequested: mocks.notifyPush,
@@ -80,6 +86,7 @@ describe("POST /api/company/maintenance", () => {
     mocks.create.mockResolvedValue(REQUEST_ID);
     mocks.attach.mockResolvedValue(undefined);
     mocks.locationName.mockResolvedValue("Long Beach");
+    mocks.actorName.mockResolvedValue("Ana Pérez");
     mocks.notifyPush.mockResolvedValue(0);
     mocks.notifyEmail.mockResolvedValue(undefined);
   });
@@ -104,6 +111,7 @@ describe("POST /api/company/maintenance", () => {
       branchId: BRANCH_ID,
       locationName: "Long Beach",
       createdByUserId: USER_ID,
+      createdByName: "Ana Pérez",
     }));
     expect(mocks.notifyEmail).toHaveBeenCalledWith(expect.objectContaining({
       organizationId: ORG_ID,
@@ -112,6 +120,7 @@ describe("POST /api/company/maintenance", () => {
       priority: "high",
       locationName: "Long Beach",
       createdByUserId: USER_ID,
+      createdByName: "Ana Pérez",
     }));
   });
 

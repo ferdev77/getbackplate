@@ -228,6 +228,17 @@ function resolveActorDisplayName(value: {
   return "Administrador";
 }
 
+/**
+ * Como se llama quien acaba de hacer la accion, para nombrarlo en los avisos.
+ *
+ * Sale de la misma fuente que el historial de la solicitud, asi que el aviso y
+ * el timeline dicen el mismo nombre.
+ */
+export async function nombreDelActor(organizationId: string, userId: string) {
+  const nombres = await resolveMaintenanceActorNames({ organizationId, actorIds: [userId] });
+  return nombres.get(userId) ?? null;
+}
+
 async function resolveMaintenanceActorNames(params: {
   organizationId: string;
   actorIds: string[];

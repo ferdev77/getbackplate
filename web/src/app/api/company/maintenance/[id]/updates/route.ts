@@ -9,7 +9,7 @@ import {
 } from "@/modules/maintenance/services/maintenance-events.service";
 
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
-import { addMaintenanceUpdate, maintenanceUpdateSchema } from "@/modules/maintenance/services";
+import { addMaintenanceUpdate, maintenanceUpdateSchema, nombreDelActor } from "@/modules/maintenance/services";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -51,14 +51,19 @@ export async function POST(request: Request, context: RouteContext) {
     after(async () => {
       const admin = createSupabaseAdminClient();
       const branchId = solicitud.data?.branch_id ?? null;
+      const [locationName, actorName] = await Promise.all([
+        nombreDeLaLocacion(admin, access.tenant.organizationId, branchId),
+        nombreDelActor(access.tenant.organizationId, access.userId),
+      ]);
       const comun = {
         supabase: admin,
         organizationId: access.tenant.organizationId,
         title: solicitud.data?.title ?? "Solicitud",
         branchId,
-        locationName: await nombreDeLaLocacion(admin, access.tenant.organizationId, branchId),
+        locationName,
         requestedByUserId: solicitud.data?.created_by ?? null,
         actorUserId: access.userId,
+        actorName,
       };
 
       // Un cambio de estado y una novedad son avisos distintos: el primero dice
@@ -76,7 +81,7 @@ export async function POST(request: Request, context: RouteContext) {
       // El push/campanita ya llega siempre -- el email es aparte, solo si lo
       // tildaron a proposito (un email por cada comentario seria demasiado).
       if (parsed.data.send_email) {
-        const cuerpoEmail = parsed.data.status
+        const quePaso = parsed.data.status
           ? `Pasó a ${estadoEnPalabras(parsed.data.status)}${parsed.data.message ? ` — ${parsed.data.message}` : ""}`
           : parsed.data.scheduled_visit_at
             ? `Visita programada para el ${parsed.data.scheduled_visit_at}`
@@ -87,7 +92,7 @@ export async function POST(request: Request, context: RouteContext) {
           organizationId: access.tenant.organizationId,
           branchId,
           title: comun.title,
-          body: cuerpoEmail,
+          body: [actorName, quePaso].filter(Boolean).join(" · "),
           actorUserId: access.userId,
         });
       }

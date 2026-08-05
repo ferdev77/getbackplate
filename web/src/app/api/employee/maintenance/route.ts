@@ -12,6 +12,7 @@ import {
   createMaintenanceRequest,
   listMaintenanceRequests,
   maintenanceCreateSchema,
+  nombreDelActor,
 } from "@/modules/maintenance/services";
 
 function formDataToCreatePayload(formData: FormData) {
@@ -93,7 +94,10 @@ export async function POST(request: Request) {
       if (parsed.data.action === "draft") return;
 
       const admin = createSupabaseAdminClient();
-      const locationName = await nombreDeLaLocacion(admin, context.organizationId, parsed.data.branch_id);
+      const [locationName, createdByName] = await Promise.all([
+        nombreDeLaLocacion(admin, context.organizationId, parsed.data.branch_id),
+        nombreDelActor(context.organizationId, context.userId),
+      ]);
 
       await notifyMaintenanceRequested({
         supabase: admin,
@@ -103,6 +107,7 @@ export async function POST(request: Request) {
         branchId: parsed.data.branch_id ?? null,
         locationName,
         createdByUserId: context.userId,
+        createdByName,
       });
 
       // El push/campanita ya llega siempre -- el email es aparte, solo si lo
@@ -117,6 +122,7 @@ export async function POST(request: Request) {
           priority: parsed.data.priority ?? null,
           locationName,
           createdByUserId: context.userId,
+          createdByName,
         });
       }
     });
