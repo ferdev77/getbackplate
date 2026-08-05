@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   deriveScopeMode,
@@ -98,11 +98,69 @@ function initials(user: ScopeSelectorUser) {
   return parts.map((part) => part[0]?.toUpperCase() ?? "").join("");
 }
 
-function metaLine(user: ScopeSelectorUser) {
+/**
+ * Con que locacion se muestra a una persona en la audiencia.
+ *
+ * No es su sucursal, es *por cual entra*. Una persona puede alcanzar varias
+ * locaciones: entra al grupo si alguna coincide con las elegidas, pero antes se
+ * la mostraba siempre con su sucursal principal. El resultado confundia --
+ * elegias Este y en la lista aparecia alguien rotulado "Sur", como si el filtro
+ * estuviera fallando, cuando en realidad esa persona tambien alcanza Este.
+ *
+ * Sin locaciones elegidas no hay "por cual entra": se muestra la suya, igual
+ * que antes. Lo mismo para quien fue agregado a mano y no coincide con ninguna.
+ */
+export function locationLabelForUser(
+  user: ScopeSelectorUser,
+  selectedLocationIds: ReadonlySet<string>,
+  branchNameById: Map<string, string>,
+  totalBranches: number,
+): string | undefined {
+  const suyas = user.location_ids ?? [];
+  if (selectedLocationIds.size === 0 || suyas.length === 0) return user.location_label;
+
+  const coincidentes = suyas.filter((id) => selectedLocationIds.has(id));
+  if (coincidentes.length === 0) return user.location_label;
+
+  // Quien alcanza toda la organizacion coincide con cualquier cosa que se
+  // elija: enumerarlas seria una lista larga que ademas cambia sola.
+  if (totalBranches > 0 && suyas.length >= totalBranches) return "Todas las locaciones";
+
+  const nombres = coincidentes
+    .map((id) => branchNameById.get(id))
+    .filter((name): name is string => Boolean(name));
+  if (nombres.length === 0) return user.location_label;
+  if (nombres.length <= 2) return nombres.join(", ");
+  return `${nombres.slice(0, 2).join(", ")} +${nombres.length - 2}`;
+}
+
+function metaLine(user: ScopeSelectorUser, locationLabel?: string) {
   return (
-    [user.location_label, user.department_label, user.position_label].filter(Boolean).join(" · ") ||
+    [locationLabel, user.department_label, user.position_label].filter(Boolean).join(" · ") ||
     "Sin datos de perfil"
   );
+}
+
+/**
+ * Texto contra el que busca el cuadro de arriba.
+ *
+ * Usa TODAS las locaciones de la persona, no la que se le muestra: si alguien
+ * es de Sur y ademas alcanza Este, tiene que aparecer buscando cualquiera de
+ * las dos. Antes solo se podia buscar por su sucursal principal.
+ */
+export function searchHaystack(user: ScopeSelectorUser, branchNameById: Map<string, string>) {
+  const locaciones = (user.location_ids ?? [])
+    .map((id) => branchNameById.get(id))
+    .filter((name): name is string => Boolean(name));
+  return [
+    fullName(user),
+    user.location_label,
+    ...locaciones,
+    user.department_label,
+    user.position_label,
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
 export function ScopeSelector({
@@ -220,6 +278,18 @@ export function ScopeSelector({
   const effectiveLocations = useMemo(
     () => new Set(effectiveScopeLocations(Array.from(selectedLocations), restriction)),
     [restriction, selectedLocations],
+  );
+
+  // La etiqueta de cada persona depende de lo elegido, asi que se arma aca y no
+  // en el render: es el mismo texto en la lista de busqueda y en el panel de la
+  // derecha.
+  const metaLineFor = useCallback(
+    (user: ScopeSelectorUser) =>
+      metaLine(
+        user,
+        locationLabelForUser(user, effectiveLocations, branchNameById, branches.length),
+      ),
+    [branchNameById, branches.length, effectiveLocations],
   );
 
   const matchesFilters = useMemo(
@@ -350,9 +420,9 @@ export function ScopeSelector({
       : usersWithAccess;
 
     return pool
-      .filter((user) => !q || `${fullName(user)} ${metaLine(user)}`.toLowerCase().includes(q))
+      .filter((user) => !q || searchHaystack(user, branchNameById).toLowerCase().includes(q))
       .sort((a, b) => fullName(a).localeCompare(fullName(b), "es"));
-  }, [availableLocationIds, query, restricted, usersWithAccess]);
+  }, [availableLocationIds, branchNameById, query, restricted, usersWithAccess]);
 
   function toggleLocation(id: string, checked: boolean) {
     setSelectedLocations((prev) => {
@@ -749,7 +819,7 @@ export function ScopeSelector({
                   <span className="block truncate text-[11.5px] font-semibold text-[var(--gbp-text)]">
                     {fullName(user)}
                   </span>
-                  <span className="block truncate text-[10px] text-[var(--gbp-text2)]">{metaLine(user)}</span>
+                  <span className="block truncate text-[10px] text-[var(--gbp-text2)]">{metaLineFor(user)}</span>
                 </span>
               </label>
             );
@@ -781,7 +851,7 @@ export function ScopeSelector({
           <span className="block truncate text-[11px] font-semibold text-[var(--gbp-text)]">
             {fullName(user)}
           </span>
-          <span className="block truncate text-[9.5px] text-[var(--gbp-text2)]">{metaLine(user)}</span>
+          <span className="block truncate text-[9.5px] text-[var(--gbp-text2)]">{metaLineFor(user)}</span>
         </span>
       </div>
     );
