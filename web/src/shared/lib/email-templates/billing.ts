@@ -76,7 +76,7 @@ export function paymentFailedTemplate({ orgName, retryLink }: { orgName: string;
 
 export function planChangedTemplate({ orgName, planName }: { orgName: string; planName: string }) {
   return renderBillingEmail({
-    eyebrow: "Subscription updated", title: "Your plan has been updated", accent: "#059669",
+    eyebrow: "Subscription updated", title: "Your plan has been updated", accent: "#c04a17",
     intro: `Hello <strong>${escapeHtml(orgName)}</strong>, your GetBackplate subscription is now on the plan below.`,
     body: renderSummaryCard([{ label: "Active plan", value: planName }]),
     action: { label: "View billing", url: "https://app.getbackplate.com/app/billing/portal-launch" },
@@ -85,7 +85,7 @@ export function planChangedTemplate({ orgName, planName }: { orgName: string; pl
 
 export function subscriptionActivatedTemplate({ orgName, planName, trialDays, dashboardUrl }: { orgName: string; planName: string; trialDays: number; dashboardUrl?: string }) {
   return renderBillingEmail({
-    eyebrow: "Subscription confirmed", title: "Your subscription is active", accent: "#059669",
+    eyebrow: "Subscription confirmed", title: "Your subscription is active", accent: "#c04a17",
     intro: `Hello <strong>${escapeHtml(orgName)}</strong>, Stripe confirmed your payment and your GetBackplate workspace is ready.`,
     body: renderSummaryCard([{ label: "Active plan", value: planName }, { label: "Status", value: trialDays > 0 ? `${trialDays}-day trial active` : "Subscription active" }]),
     action: { label: "Open your workspace", url: dashboardUrl ?? "https://app.getbackplate.com/app/dashboard" },
@@ -97,9 +97,9 @@ export function successfulPaymentTemplate(params: { orgName: string; paymentDate
     ? params.lineItems.map((item) => `<tr><td style="border-top:1px solid #e5e7eb;color:#374151;font-family:Arial,sans-serif;font-size:13px;padding:11px 0;">${escapeHtml(item.description)}</td><td align="right" style="border-top:1px solid #e5e7eb;color:#171311;font-family:Arial,sans-serif;font-size:13px;font-weight:700;padding:11px 0;">${escapeHtml(item.amount)}</td></tr>`).join("")
     : `<tr><td style="border-top:1px solid #e5e7eb;color:#374151;font-family:Arial,sans-serif;font-size:13px;padding:11px 0;">Subscription payment</td><td align="right" style="border-top:1px solid #e5e7eb;color:#171311;font-family:Arial,sans-serif;font-size:13px;font-weight:700;padding:11px 0;">${escapeHtml(params.amount)}</td></tr>`;
   const extraConnections = params.extraR365Connections
-    ? `<p style="color:#047857;font-family:Arial,sans-serif;font-size:12px;line-height:1.5;margin:14px 0 0;">${escapeHtml(params.extraR365Connections)} additional R365 connection${params.extraR365Connections === 1 ? "" : "s"} added to your subscription.</p>` : "";
+    ? `<p style="color:#c04a17;font-family:Arial,sans-serif;font-size:12px;line-height:1.5;margin:14px 0 0;">${escapeHtml(params.extraR365Connections)} additional R365 connection${params.extraR365Connections === 1 ? "" : "s"} added to your subscription.</p>` : "";
   return renderBillingEmail({
-    eyebrow: "Payment received", title: "Your payment was successful", accent: "#059669",
+    eyebrow: "Payment received", title: "Your payment was successful", accent: "#c04a17",
     intro: `Hello <strong>${escapeHtml(params.orgName)}</strong>, Stripe confirmed your GetBackplate payment.`,
     body: `${renderSummaryCard([{ label: "Payment date", value: params.paymentDate }, { label: "Invoice / reference", value: params.invoiceNumber }])}<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;margin-top:18px;"><tbody>${itemRows}<tr><td style="border-top:1px solid #171311;color:#171311;font-family:Arial,sans-serif;font-size:14px;font-weight:800;padding:14px 0 0;">Total paid</td><td align="right" style="border-top:1px solid #171311;color:#171311;font-family:Arial,sans-serif;font-size:15px;font-weight:800;padding:14px 0 0;">${escapeHtml(params.amount)}</td></tr></tbody></table>${extraConnections}`,
     action: { label: params.invoiceUrl ? "View invoice in Stripe" : "Manage billing", url: params.invoiceUrl ?? params.billingPortalUrl },
@@ -113,7 +113,7 @@ function planChangeTemplate(params: PlanChangeTemplateProps) {
   const changes = [...params.modulesToEnable.map((module) => `+ ${module}`), ...params.modulesToDisable.map((module) => `- ${module}`)];
   const action = params.applied ? "has been applied" : "was requested";
   return renderBillingEmail({
-    eyebrow: params.direction === "downgrade" ? "Plan downgrade" : "Plan upgrade", title: `Your plan change ${action}`, accent: params.direction === "downgrade" ? "#d97706" : "#059669",
+    eyebrow: params.direction === "downgrade" ? "Plan downgrade" : "Plan upgrade", title: `Your plan change ${action}`, accent: params.direction === "downgrade" ? "#d97706" : "#c04a17",
     intro: `Hello <strong>${escapeHtml(params.orgName)}</strong>, a GetBackplate plan change ${action} by <strong>${escapeHtml(params.actorName)}</strong>.`,
     body: `${renderSummaryCard([{ label: "Previous plan", value: params.previousPlanName }, { label: "New plan", value: params.targetPlanName }, { label: "New price", value: params.targetPlanPrice }, { label: params.applied ? "Applied" : "Requested", value: params.changedAt }])}<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;color:#374151;font-family:Arial,sans-serif;font-size:12px;line-height:1.7;margin-top:18px;padding:14px 16px;"><strong style="color:#171311;">New plan limits</strong><br>${params.targetPlanLimits.map((limit) => `${escapeHtml(limit.label)}: ${escapeHtml(limit.value)}`).join("<br>")}</div>${changes.length ? `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;color:#374151;font-family:Arial,sans-serif;font-size:12px;line-height:1.7;margin-top:18px;padding:14px 16px;"><strong style="color:#171311;">Module changes</strong><br>${changes.map(escapeHtml).join("<br>")}</div>` : ""}`,
     action: { label: "View billing", url: "https://app.getbackplate.com/app/billing/portal-launch" },
