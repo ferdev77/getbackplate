@@ -225,18 +225,6 @@ export default function TrustCenterPage() {
 
               <div className="status-cell">
                 <div className="status-cell-header">
-                  <div className="status-cell-name">Liability coverage</div>
-                  <span className="pill pill-na">Contractual</span>
-                </div>
-                <div className="status-cell-value">$1M / $2M USD</div>
-                <div className="status-cell-detail">
-                  Our Master Services Agreement commits to Tech E&amp;O and Cyber Liability
-                  coverage of $1,000,000 per occurrence / $2,000,000 in the aggregate.
-                </div>
-              </div>
-
-              <div className="status-cell">
-                <div className="status-cell-header">
                   <div className="status-cell-name">Third-party audit</div>
                   <span className="pill pill-planned">Planned</span>
                 </div>
@@ -401,33 +389,7 @@ export default function TrustCenterPage() {
           <div className="container">
             <div className="section-grid">
               <aside className="section-aside">
-                <div className="section-number">06 · Insurance</div>
-                <div className="section-title">Financial protection</div>
-              </aside>
-              <div className="section-content">
-                <p>
-                  Our Master Services Agreement contractually commits us to maintain Technology
-                  Errors &amp; Omissions and Cyber Liability insurance for the duration of the
-                  agreement.
-                </p>
-
-                <table className="spec-table">
-                  <tbody>
-                    <tr><th>Technology E&amp;O</th><td>$1,000,000 USD per occurrence / $2,000,000 USD in the aggregate</td></tr>
-                    <tr><th>Cyber Liability</th><td>$1,000,000 USD per occurrence / $2,000,000 USD in the aggregate</td></tr>
-                    <tr><th>Certificate of Insurance</th><td>Available on written request</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="section">
-          <div className="container">
-            <div className="section-grid">
-              <aside className="section-aside">
-                <div className="section-number">07 · Incident response</div>
+                <div className="section-number">06 · Incident response</div>
                 <div className="section-title">If a breach occurs</div>
               </aside>
               <div className="section-content">
@@ -452,7 +414,7 @@ export default function TrustCenterPage() {
           <div className="container">
             <div className="section-grid">
               <aside className="section-aside">
-                <div className="section-number">08 · Subprocessors</div>
+                <div className="section-number">07 · Subprocessors</div>
                 <div className="section-title">Who we work with</div>
               </aside>
               <div className="section-content">
@@ -501,7 +463,7 @@ export default function TrustCenterPage() {
           <div className="container">
             <div className="section-grid">
               <aside className="section-aside">
-                <div className="section-number">09 · Compliance</div>
+                <div className="section-number">08 · Compliance</div>
                 <div className="section-title">Where we are, and where we&apos;re going</div>
               </aside>
               <div className="section-content">
@@ -512,7 +474,6 @@ export default function TrustCenterPage() {
                     <li><span className="ck-icon" /><span className="ck-text">FTP or FTPS delivery according to each Restaurant365 endpoint configuration, with TLS when FTPS is enabled.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Row-Level Security enforcing tenant isolation, with a database trigger that auto-enables it on new tables.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Role-based access control and a functioning audit log.</span></li>
-                    <li><span className="ck-icon" /><span className="ck-text">Tech E&amp;O and Cyber Liability coverage committed at $1M / $2M USD via our Master Services Agreement.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Privacy Policy and Terms of Service published and versioned for both products.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Retention policy enforced by a scheduled daily job: 12 months for operational integration data; fiscal and billing records are retained only as long as required for tax, accounting, or legal compliance.</span></li>
                     <li><span className="ck-icon" /><span className="ck-text">Email-based two-step verification, required for administrative accounts on organizations with the QuickBooks® Online integration active.</span></li>
@@ -536,7 +497,7 @@ export default function TrustCenterPage() {
           <div className="container">
             <div className="section-grid">
               <aside className="section-aside">
-                <div className="section-number">10 · Report an issue</div>
+                <div className="section-number">09 · Report an issue</div>
                 <div className="section-title">Found something?</div>
               </aside>
               <div className="section-content">

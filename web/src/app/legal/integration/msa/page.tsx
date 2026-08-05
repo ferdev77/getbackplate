@@ -81,7 +81,7 @@ export default function IntegrationMsaPage() {
       <h3><span className="sub-num">5.1</span>Uptime target</h3>
       <p>Provider shall use commercially reasonable efforts to maintain Service availability of ninety-nine and five-tenths percent (99.5%) measured monthly.</p>
       <h3><span className="sub-num">5.2</span>Exclusions</h3>
-      <p>The uptime target excludes downtime caused by: (a) scheduled maintenance with at least 24 hours&apos; prior notice; (b) emergency maintenance; (c) outages of third-party services including but not limited to Intuit QuickBooks® Online, Restaurant365, or other dependencies outside Provider&apos;s control; (d) Customer&apos;s acts or omissions; and (e) force majeure events as described in Section 14.</p>
+      <p>The uptime target excludes downtime caused by: (a) scheduled maintenance with at least 24 hours&apos; prior notice; (b) emergency maintenance; (c) outages of third-party services including but not limited to Intuit QuickBooks® Online, Restaurant365, or other dependencies outside Provider&apos;s control; (d) Customer&apos;s acts or omissions; and (e) force majeure events as described in Section 13.</p>
       <h3><span className="sub-num">5.3</span>Service credits</h3>
       <p>If Provider fails to meet the uptime target in any given month, Customer&apos;s sole and exclusive remedy shall be a service credit equal to five percent (5%) of the Base Subscription Fee for that month for each full percentage point below the uptime target, capped at one hundred percent (100%) of that month&apos;s Base Subscription Fee. Customer must request service credits in writing within thirty (30) days following the affected month.</p>
       <h3><span className="sub-num">5.4</span>Support</h3>
@@ -153,56 +153,53 @@ export default function IntegrationMsaPage() {
       <h3><span className="sub-num">12.3</span>Procedure</h3>
       <p>The indemnified Party shall promptly notify the indemnifying Party of any claim, provide reasonable cooperation in the defense, and allow the indemnifying Party sole control of the defense and settlement, provided that no settlement that imposes any obligation or admission on the indemnified Party shall be entered without the indemnified Party&apos;s prior written consent.</p>
 
-      <h2><span className="section-num">13.</span>Insurance</h2>
-      <p>Provider shall maintain during the Term, at its own expense: (a) Technology Errors &amp; Omissions insurance with limits of not less than One Million U.S. Dollars ($1,000,000) per occurrence and Two Million U.S. Dollars ($2,000,000) in the aggregate; and (b) Cyber Liability insurance with limits of not less than One Million U.S. Dollars ($1,000,000) per occurrence and Two Million U.S. Dollars ($2,000,000) in the aggregate. Upon written request from Customer, Provider shall provide certificates of insurance evidencing such coverage.</p>
-
-      <h2><span className="section-num">14.</span>Force majeure</h2>
+      <h2><span className="section-num">13.</span>Force majeure</h2>
       <p>Neither Party shall be liable for any failure or delay in performance under this Agreement due to causes beyond its reasonable control, including without limitation acts of God, war, terrorism, civil unrest, government actions, pandemics, epidemics, internet or telecommunications failures, or outages of third-party services. The affected Party shall promptly notify the other and use reasonable efforts to mitigate the effects.</p>
 
-      <h2><span className="section-num">15.</span>Governing law and dispute resolution</h2>
-      <h3><span className="sub-num">15.1</span>Governing law</h3>
+      <h2><span className="section-num">14.</span>Governing law and dispute resolution</h2>
+      <h3><span className="sub-num">14.1</span>Governing law</h3>
       <p>This Agreement shall be governed by and construed in accordance with the laws of the State of Texas, without regard to its conflict of laws principles.</p>
-      <h3><span className="sub-num">15.2</span>Dispute resolution</h3>
+      <h3><span className="sub-num">14.2</span>Dispute resolution</h3>
       <p>The Parties shall first attempt in good faith to resolve any dispute arising out of or relating to this Agreement through negotiation. If the dispute is not resolved within thirty (30) days of written notice of the dispute, it shall be finally resolved by binding arbitration administered by the American Arbitration Association under its Commercial Arbitration Rules, conducted in Harris County, Texas, in English. Judgment on the arbitration award may be entered in any court of competent jurisdiction.</p>
-      <h3><span className="sub-num">15.3</span>Injunctive relief</h3>
+      <h3><span className="sub-num">14.3</span>Injunctive relief</h3>
       <p>Notwithstanding the foregoing, either Party may seek injunctive or other equitable relief in any court of competent jurisdiction to protect its intellectual property or Confidential Information.</p>
 
-      <h2><span className="section-num">16.</span>Notices</h2>
+      <h2><span className="section-num">15.</span>Notices</h2>
       <p>All notices under this Agreement shall be in writing and delivered by email with confirmation of receipt, or by certified mail or recognized overnight courier. Notices to Provider shall be sent to <a href="mailto:security@getbackplate.com">security@getbackplate.com</a> with a copy to {LEGAL_ADDRESS.inline}. Notices to Customer shall be sent to the email address provided by Customer during electronic acceptance.</p>
 
-      <h2><span className="section-num">17.</span>Miscellaneous</h2>
-      <h3><span className="sub-num">17.1</span>Entire agreement</h3>
+      <h2><span className="section-num">16.</span>Miscellaneous</h2>
+      <h3><span className="sub-num">16.1</span>Entire agreement</h3>
       <p>This Agreement, including all Schedules attached hereto, constitutes the entire agreement between the Parties and supersedes all prior agreements, whether written or oral, regarding the subject matter hereof.</p>
-      <h3><span className="sub-num">17.2</span>Amendments</h3>
+      <h3><span className="sub-num">16.2</span>Amendments</h3>
       <p>No amendment to this Agreement shall be effective unless in writing and signed by authorized representatives of both Parties, or accepted electronically by Customer in accordance with Provider&apos;s then-current electronic acceptance mechanism.</p>
-      <h3><span className="sub-num">17.3</span>Severability</h3>
+      <h3><span className="sub-num">16.3</span>Severability</h3>
       <p>If any provision of this Agreement is held to be invalid or unenforceable, the remaining provisions shall remain in full force and effect.</p>
-      <h3><span className="sub-num">17.4</span>Assignment</h3>
+      <h3><span className="sub-num">16.4</span>Assignment</h3>
       <p>Neither Party may assign this Agreement without the other Party&apos;s prior written consent, except that either Party may assign this Agreement to a successor in connection with a merger, acquisition, or sale of substantially all of its assets.</p>
-      <h3><span className="sub-num">17.5</span>No waiver</h3>
+      <h3><span className="sub-num">16.5</span>No waiver</h3>
       <p>The failure of either Party to enforce any provision of this Agreement shall not constitute a waiver of that provision or of any other provision.</p>
-      <h3><span className="sub-num">17.6</span>Counterparts</h3>
+      <h3><span className="sub-num">16.6</span>Counterparts</h3>
       <p>This Agreement may be executed in counterparts, including by electronic acceptance, each of which shall be deemed an original and all of which together shall constitute one instrument.</p>
-      <h3><span className="sub-num">17.7</span>Relationship of Parties</h3>
+      <h3><span className="sub-num">16.7</span>Relationship of Parties</h3>
       <p>The Parties are independent contractors. Nothing in this Agreement creates any partnership, joint venture, agency, or employment relationship between them.</p>
-      <h3><span className="sub-num">17.8</span>Survival</h3>
-      <p>The following sections shall survive any termination or expiration of this Agreement: Section 7 (Data and Privacy), Section 8 (Confidentiality), Section 9 (Intellectual Property), Section 11 (Limitation of Liability), Section 12 (Indemnification), Section 15 (Governing Law and Dispute Resolution), and this Section 17 (Miscellaneous).</p>
-      <h3><span className="sub-num">17.9</span>Language</h3>
+      <h3><span className="sub-num">16.8</span>Survival</h3>
+      <p>The following sections shall survive any termination or expiration of this Agreement: Section 7 (Data and Privacy), Section 8 (Confidentiality), Section 9 (Intellectual Property), Section 11 (Limitation of Liability), Section 12 (Indemnification), Section 14 (Governing Law and Dispute Resolution), and this Section 16 (Miscellaneous).</p>
+      <h3><span className="sub-num">16.9</span>Language</h3>
       <p>This Agreement is executed and shall be interpreted in the English language. Any translations are provided for convenience only; the English version controls in the event of any conflict or inconsistency.</p>
 
-      <h2><span className="section-num">18.</span>Electronic acceptance</h2>
-      <h3><span className="sub-num">18.1</span>Acceptance mechanism</h3>
+      <h2><span className="section-num">17.</span>Electronic acceptance</h2>
+      <h3><span className="sub-num">17.1</span>Acceptance mechanism</h3>
       <p>This Agreement is accepted electronically by Customer checking the agreement acceptance box during Stripe Checkout, by Customer&apos;s authorized representative clicking an &quot;I Agree&quot; button on Provider&apos;s website, or by Customer otherwise affirmatively accepting these terms via Provider&apos;s electronic acceptance system.</p>
-      <h3><span className="sub-num">18.2</span>Authority</h3>
+      <h3><span className="sub-num">17.2</span>Authority</h3>
       <p>By accepting this Agreement, the individual completing checkout or otherwise providing acceptance represents and warrants that they are authorized to bind Customer to this Agreement.</p>
-      <h3><span className="sub-num">18.3</span>Record of acceptance</h3>
+      <h3><span className="sub-num">17.3</span>Record of acceptance</h3>
       <p>Provider shall maintain the acceptance evidence made available by Stripe Checkout, including the date and time of acceptance, the version of this Agreement accepted, the Checkout Session identifier, and the customer email provided during checkout. Stripe does not provide the customer&apos;s acceptance IP address to Provider. The retained record constitutes Customer&apos;s electronic acceptance under the Electronic Signatures in Global and National Commerce Act (E-SIGN) and applicable state equivalents.</p>
-      <h3><span className="sub-num">18.4</span>Additional connections</h3>
+      <h3><span className="sub-num">17.4</span>Additional connections</h3>
       <p>Customer may add additional R365 customer connections via Provider&apos;s dashboard or by request to Provider&apos;s support team. Each additional connection is billed at the rate set forth in Schedule B, and Customer&apos;s acceptance of this Agreement extends to such additional connections without additional formal acceptance required.</p>
 
       <div className="acceptance-block">
         <h2>Acceptance</h2>
-        <p>This Agreement is accepted electronically through Provider&apos;s Stripe Checkout flow as described in Section 18. No physical signature is required.</p>
+        <p>This Agreement is accepted electronically through Provider&apos;s Stripe Checkout flow as described in Section 17. No physical signature is required.</p>
 
         <div className="party">
           <div className="party-label">Provider</div>
@@ -214,7 +211,7 @@ export default function IntegrationMsaPage() {
         <div className="party">
           <div className="party-label">Customer</div>
           <p>Accepted electronically on the Acceptance Date via Stripe Checkout.<br />
-          Customer entity, billing details, and acceptance metadata are captured during checkout and retained by Provider in accordance with Section 18.3.</p>
+          Customer entity, billing details, and acceptance metadata are captured during checkout and retained by Provider in accordance with Section 17.3.</p>
         </div>
       </div>
 

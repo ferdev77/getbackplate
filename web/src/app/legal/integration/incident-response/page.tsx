@@ -145,7 +145,7 @@ export default function IncidentResponsePage() {
               <div className="approach-icon">5</div>
               <div className="approach-content">
                 <div className="approach-title">Coordinated partner and regulatory notification</div>
-                <div className="approach-desc">Notification to Intuit (QuickBooks® Online), Restaurant365, Stripe, cyber insurance carriers, and regulatory authorities (CCPA, GDPR, state breach notification laws) as required by applicable law and contractual obligations.</div>
+                <div className="approach-desc">Notification to Intuit (QuickBooks® Online), Restaurant365, Stripe, and regulatory authorities (CCPA, GDPR, state breach notification laws) as required by applicable law and contractual obligations.</div>
               </div>
             </div>
 
