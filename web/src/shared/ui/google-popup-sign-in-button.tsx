@@ -39,8 +39,17 @@ type GoogleIdApi = {
     ux_mode: "popup";
     auto_select: boolean;
     itp_support: boolean;
+    /**
+     * Chrome ya no muestra la tarjeta sin esto: One Tap paso a apoyarse en
+     * FedCM, la via del navegador que reemplaza a las cookies de terceros.
+     */
+    use_fedcm_for_prompt: boolean;
+    /** Tocar fuera no la cierra: se cierra con su propia X. */
+    cancel_on_tap_outside: boolean;
   }) => void;
   renderButton: (parent: HTMLElement, options: Record<string, unknown>) => void;
+  /** Muestra la tarjeta de arriba a la derecha, si Google decide mostrarla. */
+  prompt: () => void;
 };
 
 declare global {
@@ -157,8 +166,11 @@ export function GooglePopupSignInButton({
           client_id: clientId,
           nonce: await sha256(nonce),
           ux_mode: "popup",
+          // No entrar solo: aunque haya una unica cuenta, la persona elige.
           auto_select: false,
           itp_support: true,
+          use_fedcm_for_prompt: true,
+          cancel_on_tap_outside: false,
           callback: (response) => {
             if (response.credential) void handleCredential(response.credential, nonce);
           },
@@ -183,6 +195,13 @@ export function GooglePopupSignInButton({
           logo_alignment: "center",
           width: 320,
         });
+
+        // La tarjeta de arriba a la derecha. Es un ofrecimiento, no un
+        // reemplazo: Google la muestra solo si la persona tiene sesion abierta
+        // en el navegador, y deja de mostrarla un tiempo si la cerro varias
+        // veces. Por eso el boton queda siempre, y por eso esto va despues de
+        // dibujarlo -- si fallara, el boton ya esta puesto.
+        api.prompt();
       } catch {
         if (!cancelled) setDegraded(true);
       }
