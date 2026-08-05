@@ -1,13 +1,19 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
+const createSignedUrls = vi.hoisted(() => vi.fn());
+vi.mock("@/infrastructure/supabase/client/admin", () => ({
+  createSupabaseAdminClient: () => ({ storage: { from: () => ({ createSignedUrls }) } }),
+}));
+
+const {
   colorForUser,
+  firmarEvidencias,
   formatDateLabel,
   initials,
   relativeFromNow,
   resolveChecklistHistoryItemMeta,
   shortName,
-} from "../checklist-reports-snapshot";
+} = await import("../checklist-reports-snapshot");
 
 /**
  * Como se lee un reporte de checklists.
@@ -20,10 +26,60 @@ import {
  *
  * La consulta que arma el resumen (buildChecklistReportsSnapshot) sigue sin
  * cubrir: es de solo lectura y su valor esta en la agregacion contra la base.
+ * La excepcion es firmarEvidencias, que si esta abajo: ahi vivio un bug real.
  */
 
 afterEach(() => {
   vi.useRealTimers();
+});
+
+describe("firmarEvidencias", () => {
+  beforeEach(() => {
+    createSignedUrls.mockReset();
+  });
+
+  it("devuelve enlaces firmados, no la URL pública del bucket", async () => {
+    // El bucket es privado: una URL /object/public/ responde 400 y la foto se
+    // ve rota. Este es el bug que se arreglo.
+    createSignedUrls.mockResolvedValue({
+      data: [{ path: "org/sub/item/a.png", signedUrl: "https://x.test/a.png?token=abc" }],
+    });
+
+    const urls = await firmarEvidencias(new Map([["item-1", ["org/sub/item/a.png"]]]));
+
+    expect(urls.get("item-1")).toEqual(["https://x.test/a.png?token=abc"]);
+    expect(createSignedUrls).toHaveBeenCalledWith(["org/sub/item/a.png"], 60 * 60 * 24);
+  });
+
+  it("firma de a 50 para no pedir todo junto", async () => {
+    const paths = Array.from({ length: 120 }, (_, i) => `org/sub/item/${i}.png`);
+    createSignedUrls.mockResolvedValue({ data: [] });
+
+    await firmarEvidencias(new Map([["item-1", paths]]));
+
+    expect(createSignedUrls).toHaveBeenCalledTimes(3);
+    expect(createSignedUrls.mock.calls[0][0]).toHaveLength(50);
+    expect(createSignedUrls.mock.calls[2][0]).toHaveLength(20);
+  });
+
+  it("sin adjuntos no le pide nada al storage", async () => {
+    const urls = await firmarEvidencias(new Map());
+
+    expect(urls.size).toBe(0);
+    expect(createSignedUrls).not.toHaveBeenCalled();
+  });
+
+  it("una foto que no se pudo firmar no rompe el resto del reporte", async () => {
+    createSignedUrls.mockResolvedValue({
+      data: [{ path: "org/sub/item/a.png", signedUrl: "https://x.test/a.png?token=abc" }],
+    });
+
+    const urls = await firmarEvidencias(
+      new Map([["item-1", ["org/sub/item/a.png", "org/sub/item/perdida.png"]]]),
+    );
+
+    expect(urls.get("item-1")).toEqual(["https://x.test/a.png?token=abc"]);
+  });
 });
 
 describe("initials", () => {

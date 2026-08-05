@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { getEnabledModules } from "@/modules/organizations/queries";
 
 type ReportStatCard = {
@@ -174,6 +175,56 @@ type BuildChecklistReportsSnapshotParams = {
   templateCreatorUserId?: string;
   visibleBranchIds?: string[];
 };
+
+const EVIDENCE_BUCKET = "checklist-evidence";
+/** Lo mismo que usa el portal del empleado para estas fotos. */
+const EVIDENCE_URL_TTL_SECONDS = 60 * 60 * 24;
+
+/**
+ * Los enlaces de las fotos de evidencia, firmados.
+ *
+ * Antes se armaban con `getPublicUrl`, que no consulta nada: solo concatena la
+ * ruta /object/public/. El bucket es privado a proposito -- el alta lo fuerza a
+ * `public: false` en cada envio (ver api/employee/checklists/submit) -- asi que
+ * esa URL devolvia 400 y la foto se veia rota en las dos pantallas de reportes,
+ * la del panel y la del portal. La foto estaba subida y guardada; lo unico malo
+ * era el enlace.
+ *
+ * Se firma con el cliente admin y no con el que llego por parametro: el bucket
+ * no tiene policies de storage (no hay ninguna migracion que las defina), asi
+ * que una sesion de usuario no puede firmar. De los tres llamadores, dos pasan
+ * el admin y `/api/company/reports` pasa el de sesion; resolviendolo aca adentro
+ * ninguno puede volver a romperlo por elegir el cliente equivocado.
+ *
+ * Quien llega hasta aca ya paso el control de acceso del modulo y el snapshot
+ * filtra por organizacion, igual que en el portal.
+ */
+export async function firmarEvidencias(pathsBySubmissionItemId: Map<string, string[]>) {
+  const urlsBySubmissionItemId = new Map<string, string[]>();
+  const allPaths = [...pathsBySubmissionItemId.values()].flat();
+  if (!allPaths.length) return urlsBySubmissionItemId;
+
+  const admin = createSupabaseAdminClient();
+  const signedByPath = new Map<string, string>();
+  const chunkSize = 50;
+
+  for (let index = 0; index < allPaths.length; index += chunkSize) {
+    const chunk = allPaths.slice(index, index + chunkSize);
+    const { data } = await admin.storage.from(EVIDENCE_BUCKET).createSignedUrls(chunk, EVIDENCE_URL_TTL_SECONDS);
+    for (const row of data ?? []) {
+      if (row.path && row.signedUrl) signedByPath.set(row.path, row.signedUrl);
+    }
+  }
+
+  for (const [submissionItemId, paths] of pathsBySubmissionItemId.entries()) {
+    urlsBySubmissionItemId.set(
+      submissionItemId,
+      paths.map((path) => signedByPath.get(path)).filter((value): value is string => Boolean(value)),
+    );
+  }
+
+  return urlsBySubmissionItemId;
+}
 
 export async function buildChecklistReportsSnapshot({
   supabase,
@@ -375,19 +426,19 @@ export async function buildChecklistReportsSnapshot({
   }
 
   const attachmentCountBySubmissionItemId = new Map<string, number>();
-  const attachmentUrlsBySubmissionItemId = new Map<string, string[]>();
+  const pathsBySubmissionItemId = new Map<string, string[]>();
   for (const row of itemAttachments ?? []) {
     attachmentCountBySubmissionItemId.set(
       row.submission_item_id,
       (attachmentCountBySubmissionItemId.get(row.submission_item_id) ?? 0) + 1,
     );
-    const urls = attachmentUrlsBySubmissionItemId.get(row.submission_item_id) ?? [];
-    if (row.file_path) {
-      const { data } = supabase.storage.from("checklist-evidence").getPublicUrl(row.file_path);
-      urls.push(data.publicUrl);
-    }
-    attachmentUrlsBySubmissionItemId.set(row.submission_item_id, urls);
+    if (!row.file_path) continue;
+    const paths = pathsBySubmissionItemId.get(row.submission_item_id) ?? [];
+    paths.push(row.file_path);
+    pathsBySubmissionItemId.set(row.submission_item_id, paths);
   }
+
+  const attachmentUrlsBySubmissionItemId = await firmarEvidencias(pathsBySubmissionItemId);
 
   const sectionById = new Map(
     (templateSections ?? []).map((row) => [row.id, { name: row.name, sortOrder: row.sort_order, templateId: row.template_id }]),
