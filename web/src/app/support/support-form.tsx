@@ -127,7 +127,7 @@ export function SupportForm({
         <label>Website<input name="website" tabIndex={-1} autoComplete="off" /></label>
       </div>
       <p className="mt-4 text-xs leading-5 text-slate-500">For privacy requests, we will verify your identity and authority before disclosing or deleting data. Legally required fiscal and billing records may be retained as long as required by law.</p>
-      <button type="submit" disabled={identityBlocked || status.kind === "sending"} className="mt-5 rounded-lg bg-[#d4531a] px-5 py-3 text-sm font-bold text-white hover:bg-[#b94313] disabled:opacity-60">
+      <button type="submit" disabled={identityBlocked || status.kind === "sending"} className="mt-5 rounded-lg bg-[#c04a17] px-5 py-3 text-sm font-bold text-white hover:bg-[#9c3a12] disabled:opacity-60">
         {status.kind === "sending" ? "Submitting..." : "Submit request"}
       </button>
       {status.kind === "success" && <p className="mt-4 text-sm font-semibold text-emerald-700">{status.message}</p>}

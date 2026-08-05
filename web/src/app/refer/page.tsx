@@ -1,5 +1,5 @@
 import { PublicReferralFormClient } from "./public-referral-form-client";
-import { COMPANY_ADDRESS } from "@/shared/lib/company-addresses";
+import { IntegrationSiteFooter, IntegrationSiteHeader } from "@/modules/landing/ui/integration-site-chrome";
 
 export const metadata = {
   title: "Refer a vendor · GetBackplate",
@@ -9,36 +9,20 @@ export const metadata = {
 
 export default function PublicReferPage() {
   return (
+    // Fondo blanco y tipografia igual que los documentos legales, y el header y
+    // el footer del sitio en vez de una barra propia con el logo suelto.
     <div lang="en" style={{
       fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
       fontSize: 16,
       lineHeight: 1.6,
-      color: "#14151A",
-      background: "#F7F8FC",
+      color: "#1a1a1a",
+      background: "#fff",
       minHeight: "100vh",
       display: "flex",
       flexDirection: "column",
     }}>
 
-      <nav style={{
-        borderBottom: "1px solid #E6E8EE",
-        background: "#FFFFFF",
-      }}>
-        <div style={{
-          maxWidth: 560,
-          margin: "0 auto",
-          padding: "0 24px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          height: 64,
-        }}>
-          <a href="https://app.getbackplate.com" style={{ display: "inline-flex" }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/getbackplate-logo-light.svg" alt="GetBackplate" style={{ height: 32, width: "auto" }} />
-          </a>
-        </div>
-      </nav>
+      <IntegrationSiteHeader />
 
       <main style={{ flex: 1, padding: "56px 0" }}>
         <div style={{ maxWidth: 560, margin: "0 auto", padding: "0 24px" }}>
@@ -51,10 +35,10 @@ export default function PublicReferPage() {
             fontWeight: 600,
             letterSpacing: "0.06em",
             textTransform: "uppercase",
-            color: "#D4531A",
+            color: "#c04a17",
             marginBottom: 20,
           }}>
-            <span style={{ width: 6, height: 6, background: "#D4531A", borderRadius: "50%", display: "inline-block" }} />
+            <span style={{ width: 6, height: 6, background: "#c04a17", borderRadius: "50%", display: "inline-block" }} />
             Referral
           </div>
 
@@ -64,7 +48,7 @@ export default function PublicReferPage() {
             fontWeight: 700,
             letterSpacing: "-0.025em",
             marginBottom: 32,
-            color: "#14151A",
+            color: "#1a1a1a",
           }}>
             Refer a vendor and save hundreds of hours of manual entry.
           </h1>
@@ -84,32 +68,7 @@ export default function PublicReferPage() {
         </div>
       </main>
 
-      <footer style={{ background: "#13161e", color: "rgba(255,255,255,0.5)", padding: "40px 0" }}>
-        <div style={{
-          maxWidth: 1200,
-          margin: "0 auto",
-          padding: "0 24px",
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
-          alignItems: "center",
-          gap: 12,
-        }}>
-          <p style={{ margin: 0 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/getbackplate-logo-footer.svg" alt="GetBackplate" style={{ height: 22, width: "auto" }} />
-          </p>
-          <p style={{ margin: 0, textAlign: "center", fontSize: 12, fontStyle: "italic", color: "rgba(255,255,255,0.6)" }}>
-            Run your restaurant. Not just your register.
-          </p>
-          <p style={{ margin: 0, textAlign: "right", fontSize: 11, color: "rgba(255,255,255,0.5)", lineHeight: 1.8 }}>
-            © 2026 GetBackplate. All rights reserved.<br />
-            {COMPANY_ADDRESS.inline}<br />
-            Site by <a href="https://marketingsolutions.formstack.com/forms/webform" target="_blank" rel="noopener noreferrer" style={{ color: "#ff6b35", textDecoration: "none" }}>Marketing Solutions</a>
-            {" · "}
-            <a href="/legal/" style={{ textDecoration: "underline", textUnderlineOffset: 2, color: "rgba(255,255,255,0.5)" }}>Legal</a>
-          </p>
-        </div>
-      </footer>
+      <IntegrationSiteFooter />
 
     </div>
   );

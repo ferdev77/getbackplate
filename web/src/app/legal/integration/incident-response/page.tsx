@@ -20,11 +20,15 @@ export const metadata = {
 };
 
 const STYLES = `
+/* Paleta alineada con el resto de los documentos legales (shared/ui/legal-doc.css):
+   mismo fondo blanco, mismo acento y mismo borde. La superficie pasa a gris muy
+   claro porque el fondo dejo de serlo: con las dos en blanco, las tarjetas se
+   perdian contra la pagina. */
 .ir-page{
-  --accent:#D4531A; --accent-light:#FCE9DF; --accent-dark:#A23E12;
-  --bg:#F7F8FC; --surface:#FFFFFF; --text:#14151A;
-  --text-secondary:#595B66; --text-light:#8A8C95; --text-muted:#8A8C95;
-  --border:#E6E8EE; --success:#15803D; --success-bg:#E7F5EC;
+  --accent:#c04a17; --accent-light:#fef7f2; --accent-dark:#9c3a12;
+  --bg:#fff; --surface:#fafafb; --text:#1a1a1a;
+  --text-secondary:#595B66; --text-light:#8A8C95; --text-muted:#6b7280;
+  --border:#e5e7f0; --success:#15803D; --success-bg:#E7F5EC;
   --radius:10px; --max-width:860px;
   font-family:var(--font-jakarta,'Plus Jakarta Sans',system-ui,-apple-system,sans-serif);
   font-size:15px; line-height:1.65; color:var(--text); background:var(--bg);

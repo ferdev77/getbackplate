@@ -26,7 +26,9 @@ const INTEGRATION = {
 
 export default function LegalIndexPage() {
   return (
-    <div className="min-h-screen" lang="en" style={{ background: "#f5f6f8", fontFamily: "var(--font-plus-jakarta-sans), sans-serif" }}>
+    // Fondo blanco, igual que los documentos legales (ver shared/ui/legal-doc.css).
+    // El indice conserva su ancho y sus tarjetas por producto: no es un documento.
+    <div className="min-h-screen" lang="en" style={{ background: "#fff", fontFamily: "var(--font-plus-jakarta-sans), sans-serif" }}>
       <IntegrationSiteHeader />
 
       <main className="mx-auto max-w-[1000px] px-6 py-16 sm:px-10">
