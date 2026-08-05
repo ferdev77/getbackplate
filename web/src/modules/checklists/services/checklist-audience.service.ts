@@ -55,6 +55,29 @@ function trazaANotificacion(traza: TrazaDelEnvio) {
 // Audience Resolution
 // ---------------------------------------------------------------------------
 
+/**
+ * Saca de la audiencia a quien acaba de hacer la accion.
+ *
+ * Quien crea o edita un checklist suele estar dentro del alcance que el mismo
+ * eligio, asi que se auto-avisaba: le llegaba "Nuevo checklist" por algo que
+ * acababa de crear. Con el nombre en el aviso encima lee su propio nombre.
+ *
+ * El reparto automatico no pasa por aca a proposito: ahi no hay nadie que
+ * acabe de hacer nada, y a quien armo la plantilla puede tocarle operarla
+ * todos los dias como a cualquiera.
+ */
+function sinElActor(
+  contacts: { emails: string[]; userIds: string[]; userIdByEmail: Record<string, string> },
+  excludeUserId: string | null | undefined,
+) {
+  if (!excludeUserId) return contacts;
+  return {
+    ...contacts,
+    emails: contacts.emails.filter((email) => contacts.userIdByEmail[email] !== excludeUserId),
+    userIds: contacts.userIds.filter((userId) => userId !== excludeUserId),
+  };
+}
+
 async function resolveChecklistAudienceContacts(input: ChecklistAudienceInput) {
   const raw = input.targetScope ?? {};
   const contacts = await resolveAudienceContacts({
@@ -85,9 +108,15 @@ export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput &
   event: "created" | "updated" | "submitted";
   itemsCount: number;
   flaggedCount?: number;
-  actorEmail?: string;
+  /**
+   * Como se llama quien lo mando. Antes se mandaba `actorEmail` y el mail
+   * mostraba la direccion cruda de la persona.
+   */
+  actorName?: string | null;
+  /** Quien acaba de mandarlo: no se le avisa de lo suyo. */
+  excludeUserId?: string | null;
 }) {
-  const contacts = await resolveChecklistAudienceContacts(input);
+  const contacts = sinElActor(await resolveChecklistAudienceContacts(input), input.excludeUserId);
   if (!contacts.emails.length) return 0;
 
   const appUrl = await resolveTenantAppUrlByOrganizationId({
@@ -96,44 +125,46 @@ export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput &
   });
   const reportsUrl = appUrl ? `${appUrl}/app/reports` : "/app/reports";
   const branding = await getTenantEmailBranding(input.organizationId);
-  const subject =
+  // El mail estaba escrito en ingles mientras el push y la campanita del mismo
+  // evento salian en español: la misma persona recibia el aviso en dos idiomas.
+  const encabezado =
     input.event === "created"
-      ? `New checklist created: ${input.templateName}`
+      ? "Nuevo checklist"
       : input.event === "updated"
-        ? `Checklist updated: ${input.templateName}`
-        : `Checklist submitted: ${input.templateName}`;
+        ? "Checklist actualizado"
+        : "Checklist completado";
+  const quienLabel =
+    input.event === "created" ? "Lo creó" : input.event === "updated" ? "Lo actualizó" : "Lo completó";
+  const quien = input.actorName ?? "Un usuario interno";
+  const boton = input.event === "submitted" ? "Ver el reporte" : "Ver los checklists";
+
+  const subject = `${encabezado}: ${input.templateName}`;
   const brandedSubject = buildBrandedEmailSubject(subject, branding);
-  const html =
-    input.event === "created"
-      ? `
-    <h2 style="margin:0 0 10px 0;">New checklist created</h2>
-    <p style="margin:0 0 8px 0;color:#444;">Template: <strong>${input.templateName}</strong></p>
-    <p style="margin:0 0 8px 0;color:#444;">Items: <strong>${input.itemsCount}</strong></p>
-    <p style="margin:0 0 14px 0;color:#444;">Created by: <strong>${input.actorEmail ?? "Internal user"}</strong></p>
-    <p style="margin:14px 0 0 0;"><a href="${reportsUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">View checklists</a></p>
-  `
-      : input.event === "updated"
-        ? `
-    <h2 style="margin:0 0 10px 0;">Checklist updated</h2>
-    <p style="margin:0 0 8px 0;color:#444;">Template: <strong>${input.templateName}</strong></p>
-    <p style="margin:0 0 8px 0;color:#444;">Items: <strong>${input.itemsCount}</strong></p>
-    <p style="margin:0 0 14px 0;color:#444;">Updated by: <strong>${input.actorEmail ?? "Internal user"}</strong></p>
-    <p style="margin:14px 0 0 0;"><a href="${reportsUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">View checklists</a></p>
-  `
-        : `
-    <h2 style="margin:0 0 10px 0;">Checklist submitted</h2>
-    <p style="margin:0 0 8px 0;color:#444;">Template: <strong>${input.templateName}</strong></p>
-    <p style="margin:0 0 8px 0;color:#444;">Items: <strong>${input.itemsCount}</strong></p>
-    <p style="margin:0 0 8px 0;color:#444;">Issues: <strong>${input.flaggedCount ?? 0}</strong></p>
-    <p style="margin:0 0 14px 0;color:#444;">Submitted by: <strong>${input.actorEmail ?? "Internal user"}</strong></p>
-    <p style="margin:14px 0 0 0;"><a href="${reportsUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">View in reports</a></p>
+
+  const lineaIncidencias =
+    input.event === "submitted"
+      ? `<p style="margin:0 0 8px 0;color:#444;">Incidencias: <strong>${input.flaggedCount ?? 0}</strong></p>`
+      : "";
+
+  const html = `
+    <h2 style="margin:0 0 10px 0;">${encabezado}</h2>
+    <p style="margin:0 0 8px 0;color:#444;">Plantilla: <strong>${input.templateName}</strong></p>
+    <p style="margin:0 0 8px 0;color:#444;">Ítems: <strong>${input.itemsCount}</strong></p>
+    ${lineaIncidencias}
+    <p style="margin:0 0 14px 0;color:#444;">${quienLabel}: <strong>${quien}</strong></p>
+    <p style="margin:14px 0 0 0;"><a href="${reportsUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">${boton}</a></p>
   `;
-  const text =
-    input.event === "created"
-      ? `New checklist created\nTemplate: ${input.templateName}\nItems: ${input.itemsCount}\nCreated by: ${input.actorEmail ?? "Internal user"}\nView checklists: ${reportsUrl}`
-      : input.event === "updated"
-        ? `Checklist updated\nTemplate: ${input.templateName}\nItems: ${input.itemsCount}\nUpdated by: ${input.actorEmail ?? "Internal user"}\nView checklists: ${reportsUrl}`
-        : `Checklist submitted\nTemplate: ${input.templateName}\nItems: ${input.itemsCount}\nIssues: ${input.flaggedCount ?? 0}\nSubmitted by: ${input.actorEmail ?? "Internal user"}\nView in reports: ${reportsUrl}`;
+
+  const text = [
+    encabezado,
+    `Plantilla: ${input.templateName}`,
+    `Ítems: ${input.itemsCount}`,
+    input.event === "submitted" ? `Incidencias: ${input.flaggedCount ?? 0}` : null,
+    `${quienLabel}: ${quien}`,
+    `${boton}: ${reportsUrl}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   await Promise.allSettled(
     contacts.emails.map((to) =>
@@ -171,8 +202,12 @@ export async function sendChecklistAudiencePush(input: ChecklistAudienceInput & 
   event: "created" | "updated" | "submitted";
   itemsCount: number;
   flaggedCount?: number;
+  /** Como se llama quien lo manda. En el reparto automatico, quien creo la plantilla. */
+  actorName?: string | null;
+  /** Quien acaba de mandarlo: no se le avisa de lo suyo. */
+  excludeUserId?: string | null;
 }) {
-  const contacts = await resolveChecklistAudienceContacts(input);
+  const contacts = sinElActor(await resolveChecklistAudienceContacts(input), input.excludeUserId);
   if (!contacts.userIds.length) return 0;
 
   const title =
@@ -181,10 +216,15 @@ export async function sendChecklistAudiencePush(input: ChecklistAudienceInput & 
       : input.event === "updated"
         ? `Checklist actualizado: ${input.templateName}`
         : `Checklist enviado: ${input.templateName}`;
-  const body =
+
+  // Quien lo manda va primero: era lo que faltaba para saber de quien viene el
+  // checklist que te toca operar. El conteo se dice igual que en el aviso de
+  // completado ("5 ítems"), que antes decia "Items: 5".
+  const detalle =
     input.event === "submitted"
-      ? `Items: ${input.itemsCount}${input.flaggedCount ? ` · Incidencias: ${input.flaggedCount}` : ""}`
-      : `Items: ${input.itemsCount}`;
+      ? `${input.itemsCount} ítems${input.flaggedCount ? ` · ${input.flaggedCount} incidencias` : ""}`
+      : `${input.itemsCount} ítems`;
+  const body = [input.actorName, detalle].filter(Boolean).join(" · ");
 
   // La audiencia de un checklist se resuelve por sucursal, departamento y
   // puesto: es mayormente gente del portal. Cada rol recibe su propio link.

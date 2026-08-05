@@ -6,6 +6,7 @@ import { analyzeUploadedFile } from "@/shared/lib/file-security";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
 import { assertPlanLimitForStorage, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
 import { resolveEmployeeAllowedLocationIds } from "@/shared/lib/employee-api-scope";
+import { nombreDelActor as nombreDelActorCompartido } from "@/shared/lib/actor-names";
 import {
   MAINTENANCE_PRIORITIES,
   MAINTENANCE_STATUSES,
@@ -231,12 +232,11 @@ function resolveActorDisplayName(value: {
 /**
  * Como se llama quien acaba de hacer la accion, para nombrarlo en los avisos.
  *
- * Sale de la misma fuente que el historial de la solicitud, asi que el aviso y
- * el timeline dicen el mismo nombre.
+ * Misma fuente que el historial de la solicitud, asi que el aviso y el timeline
+ * dicen el mismo nombre.
  */
 export async function nombreDelActor(organizationId: string, userId: string) {
-  const nombres = await resolveMaintenanceActorNames({ organizationId, actorIds: [userId] });
-  return nombres.get(userId) ?? null;
+  return nombreDelActorCompartido(organizationId, userId, "Administrador");
 }
 
 async function resolveMaintenanceActorNames(params: {

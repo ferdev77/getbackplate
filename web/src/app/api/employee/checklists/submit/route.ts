@@ -1,5 +1,6 @@
 import { NextResponse, after } from "next/server";
 import { notifyChecklistSubmitted } from "@/modules/checklists/services/checklist-events.service";
+import { nombreDelActor } from "@/shared/lib/actor-names";
 
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
@@ -363,6 +364,7 @@ export async function POST(request: Request) {
       templateName: template?.name ?? "Checklist",
       templateCreatedBy: template?.created_by ?? null,
       submittedByUserId: userId,
+      submittedByName: await nombreDelActor(tenant.organizationId, userId),
       itemsCount: items.length,
       flaggedCount: rpcItemsPayload.filter((item) => item.flagged).length,
     });

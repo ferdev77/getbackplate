@@ -82,6 +82,7 @@ describe("notifyChecklistSubmitted", () => {
       templateName: "Apertura",
       templateCreatedBy: "creador",
       submittedByUserId: "quien-envio",
+      submittedByName: null,
       itemsCount: 5,
       flaggedCount: 0,
     });
@@ -103,6 +104,7 @@ describe("notifyChecklistSubmitted", () => {
       templateName: "Apertura",
       templateCreatedBy: "empleado-creador",
       submittedByUserId: "quien-envio",
+      submittedByName: null,
       itemsCount: 5,
       flaggedCount: 0,
     });
@@ -121,6 +123,7 @@ describe("notifyChecklistSubmitted", () => {
       templateName: "Apertura",
       templateCreatedBy: "misma-persona",
       submittedByUserId: "misma-persona",
+      submittedByName: null,
       itemsCount: 5,
       flaggedCount: 0,
     });
@@ -136,6 +139,7 @@ describe("notifyChecklistSubmitted", () => {
       templateName: "Apertura",
       templateCreatedBy: "creador",
       submittedByUserId: "quien-envio",
+      submittedByName: null,
       itemsCount: 5,
       flaggedCount: 0,
     });
@@ -151,6 +155,7 @@ describe("notifyChecklistSubmitted", () => {
       templateName: "Apertura",
       templateCreatedBy: null,
       submittedByUserId: "quien-envio",
+      submittedByName: null,
       itemsCount: 5,
       flaggedCount: 2,
     });
@@ -169,11 +174,31 @@ describe("notifyChecklistSubmitted", () => {
       templateName: "Apertura",
       templateCreatedBy: null,
       submittedByUserId: "quien-envio",
+      submittedByName: null,
       itemsCount: 3,
       flaggedCount: 0,
     });
 
     expect(sendPushToUsers.mock.calls.at(-1)?.[1]).toMatchObject({ body: "3 ítems · sin novedades" });
+  });
+
+  it("dice quién lo completó, antes del detalle", async () => {
+    await notifyChecklistSubmitted({
+      supabase: supabaseFalso(["admin-1"]),
+      organizationId: "org-1",
+      templateId: "tpl-1",
+      templateName: "Apertura",
+      templateCreatedBy: null,
+      submittedByUserId: "quien-envio",
+      submittedByName: "Ana Pérez",
+      itemsCount: 5,
+      flaggedCount: 2,
+    });
+
+    expect(sendPushToUsers.mock.calls.at(-1)?.[1]).toMatchObject({
+      title: "Checklist completado: Apertura",
+      body: "Ana Pérez · 5 ítems · 2 para atención",
+    });
   });
 });
 
@@ -186,6 +211,7 @@ describe("notifyChecklistReviewed", () => {
       templateCreatedBy: "creador",
       submittedByUserId: "quien-envio",
       reviewedByUserId: "quien-revisa",
+      reviewedByName: null,
     });
 
     expect(destinatariosDeLaLlamada().sort()).toEqual(["creador", "quien-envio"]);
@@ -200,6 +226,7 @@ describe("notifyChecklistReviewed", () => {
       templateCreatedBy: "creador",
       submittedByUserId: "quien-envio",
       reviewedByUserId: "creador",
+      reviewedByName: null,
     });
 
     expect(destinatariosDeLaLlamada()).toEqual(["quien-envio"]);
@@ -213,6 +240,7 @@ describe("notifyChecklistReviewed", () => {
       templateCreatedBy: "misma-persona",
       submittedByUserId: "misma-persona",
       reviewedByUserId: "misma-persona",
+      reviewedByName: null,
     });
 
     expect(sendPushToUsers).not.toHaveBeenCalled();
@@ -226,8 +254,40 @@ describe("notifyChecklistReviewed", () => {
       templateCreatedBy: null,
       submittedByUserId: "quien-envio",
       reviewedByUserId: "quien-revisa",
+      reviewedByName: null,
     });
 
     expect(destinatariosDeLaLlamada()).toEqual(["quien-envio"]);
+  });
+
+  it("dice quién lo revisó", async () => {
+    await notifyChecklistReviewed({
+      supabase: supabaseFalso([]),
+      organizationId: "org-1",
+      templateName: "Apertura",
+      templateCreatedBy: "creador",
+      submittedByUserId: "quien-envio",
+      reviewedByUserId: "quien-revisa",
+      reviewedByName: "Ana Pérez",
+    });
+
+    expect(sendPushToUsers.mock.calls.at(-1)?.[1]).toMatchObject({
+      title: "Reporte revisado: Apertura",
+      body: "Ana Pérez ya lo revisó",
+    });
+  });
+
+  it("sin nombre resuelto sigue diciendo lo de antes", async () => {
+    await notifyChecklistReviewed({
+      supabase: supabaseFalso([]),
+      organizationId: "org-1",
+      templateName: "Apertura",
+      templateCreatedBy: "creador",
+      submittedByUserId: "quien-envio",
+      reviewedByUserId: "quien-revisa",
+      reviewedByName: null,
+    });
+
+    expect(sendPushToUsers.mock.calls.at(-1)?.[1]).toMatchObject({ body: "El reporte ya fue revisado." });
   });
 });

@@ -1,5 +1,6 @@
 import { NextResponse, after } from "next/server";
 import { notifyChecklistReviewed } from "@/modules/checklists/services/checklist-events.service";
+import { nombreDelActor } from "@/shared/lib/actor-names";
 import { z } from "zod";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
@@ -141,6 +142,7 @@ export async function POST(request: Request) {
       templateCreatedBy: templateCreator,
       submittedByUserId: submission.submitted_by ?? null,
       reviewedByUserId: moduleAccess.userId,
+      reviewedByName: await nombreDelActor(organizationId, moduleAccess.userId),
     });
   });
 

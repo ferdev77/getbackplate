@@ -118,6 +118,39 @@ export async function applyPendingChecklistSections(params: {
 }
 
 /**
+ * Cuantos items tiene hoy una plantilla.
+ *
+ * El conteo solo existia como resultado de guardar (`totalItems` del upsert),
+ * asi que el reparto automatico no tenia de donde sacarlo y su aviso siempre
+ * decia "0 ítems". Se cuenta contra la base para que el numero sea el de la
+ * vuelta que se esta repartiendo.
+ */
+export async function contarItemsDeLaPlantilla(params: {
+  supabase: SupabaseClient;
+  organizationId: string;
+  templateId: string;
+}): Promise<number> {
+  const { supabase, organizationId, templateId } = params;
+
+  const { data: sections } = await supabase
+    .from("checklist_template_sections")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("template_id", templateId);
+
+  const sectionIds = (sections ?? []).map((row) => row.id);
+  if (!sectionIds.length) return 0;
+
+  const { count } = await supabase
+    .from("checklist_template_items")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", organizationId)
+    .in("section_id", sectionIds);
+
+  return count ?? 0;
+}
+
+/**
  * Deja el reparto programado del checklist en sincronia con su frecuencia.
  *
  * Vive aparte porque el portal de empleado tiene su propia ruta de alta y

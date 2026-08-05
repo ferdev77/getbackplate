@@ -35,6 +35,17 @@ function destinatarios(candidatos: Array<string | null | undefined>, excluir: st
 }
 
 /**
+ * Antepone quien hizo la accion al cuerpo del aviso.
+ *
+ * Va primero porque es lo que faltaba: quien recibia "Checklist completado" no
+ * sabia quien lo habia completado. Sin nombre resuelto, el cuerpo queda como
+ * estaba, sin un separador suelto.
+ */
+function conNombre(actorName: string | null, texto: string) {
+  return [actorName, texto].filter(Boolean).join(" · ");
+}
+
+/**
  * Alguien completo y envio un checklist.
  *
  * Le llega a quien lo creo -- que es quien tiene que revisarlo -- y a los
@@ -47,6 +58,8 @@ export async function notifyChecklistSubmitted(params: {
   templateName: string;
   templateCreatedBy: string | null;
   submittedByUserId: string;
+  /** Como se llama quien lo completo. */
+  submittedByName: string | null;
   itemsCount: number;
   flaggedCount: number;
 }) {
@@ -54,10 +67,12 @@ export async function notifyChecklistSubmitted(params: {
   const userIds = destinatarios([params.templateCreatedBy, ...admins], params.submittedByUserId);
   if (userIds.length === 0) return 0;
 
-  const detalle =
+  const detalle = conNombre(
+    params.submittedByName,
     params.flaggedCount > 0
       ? `${params.itemsCount} ítems · ${params.flaggedCount} para atención`
-      : `${params.itemsCount} ítems · sin novedades`;
+      : `${params.itemsCount} ítems · sin novedades`,
+  );
 
   // Entre los destinatarios esta quien creo la plantilla, que puede ser un
   // empleado del portal: no todos van al panel de empresa.
@@ -90,6 +105,8 @@ export async function notifyChecklistReviewed(params: {
   templateCreatedBy: string | null;
   submittedByUserId: string | null;
   reviewedByUserId: string;
+  /** Como se llama quien lo reviso. */
+  reviewedByName: string | null;
 }) {
   const userIds = destinatarios(
     [params.submittedByUserId, params.templateCreatedBy],
@@ -108,7 +125,9 @@ export async function notifyChecklistReviewed(params: {
     userIds,
     payload: {
       title: `Reporte revisado: ${params.templateName}`,
-      body: "El reporte ya fue revisado.",
+      // Con el nombre adelante se lee como una frase; sin nombre, sigue
+      // diciendo lo mismo que antes.
+      body: params.reviewedByName ? `${params.reviewedByName} ya lo revisó` : "El reporte ya fue revisado.",
     },
     adminUrl: "/app/reports",
     employeeUrl: "/portal/checklist/reports",

@@ -18,6 +18,7 @@ import {
   upsertChecklistTemplate,
 } from "@/modules/checklists/services/checklist-template.service";
 import { sendChecklistAudiencePush } from "@/modules/checklists/services/checklist-audience.service";
+import { nombreDelActor } from "@/shared/lib/actor-names";
 import {
   flattenChecklistSectionTexts,
   parseChecklistSections,
@@ -207,6 +208,8 @@ export async function POST(request: Request) {
     templateName: name,
     event: "created",
     itemsCount: result.totalItems,
+    actorName: await nombreDelActor(access.tenant.organizationId, access.userId),
+    excludeUserId: access.userId,
     targetScope: {
       locations: locationPolicy.locations,
       department_ids: departmentScope,
@@ -411,6 +414,8 @@ export async function PATCH(request: Request) {
     templateName: name,
     event: "updated",
     itemsCount: result.totalItems,
+    actorName: await nombreDelActor(access.tenant.organizationId, access.userId),
+    excludeUserId: access.userId,
     targetScope: {
       locations: locationPolicy.locations,
       department_ids: departmentScope,

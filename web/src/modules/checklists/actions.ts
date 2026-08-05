@@ -8,6 +8,7 @@ import { requireTenantModule } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 
 import { sendChecklistAudienceEmail, sendChecklistAudiencePush } from "./services/checklist-audience.service";
+import { nombreDelActor } from "@/shared/lib/actor-names";
 import { upsertChecklistTemplate, deleteChecklistTemplate } from "./services/checklist-template.service";
 
 import { z } from "zod";
@@ -187,6 +188,9 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   };
   const notificationEvent = parsed.data.template_id ? ("updated" as const) : ("created" as const);
 
+  // Quien lo manda, para que el aviso diga de quien viene el checklist.
+  const actorName = await nombreDelActor(tenant.organizationId, authData.user?.id ?? null);
+
   if (notifyByEmail) {
     checklistAudienceEmailCount = await sendChecklistAudienceEmail({
       supabase,
@@ -196,7 +200,8 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
       templateName: parsed.data.name,
       event: notificationEvent,
       itemsCount: result.totalItems,
-      actorEmail: authData.user?.email ?? "Usuario interno",
+      actorName,
+      excludeUserId: authData.user?.id ?? null,
       targetScope: scopePayload,
       templateBranchId: parsed.data.branch_id,
     });
@@ -210,6 +215,8 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
     templateName: parsed.data.name,
     event: notificationEvent,
     itemsCount: result.totalItems,
+    actorName,
+    excludeUserId: authData.user?.id ?? null,
     targetScope: scopePayload,
     templateBranchId: parsed.data.branch_id,
   });

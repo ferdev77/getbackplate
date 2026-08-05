@@ -115,7 +115,7 @@ async function processRecurrence(req: Request) {
         if (job.job_type === 'checklist_generator') {
            const { data: template } = await supabaseAdmin
              .from('checklist_templates')
-             .select('name, target_scope, is_active, branch_id, department_id, organization_id, pending_sections')
+             .select('name, target_scope, is_active, branch_id, department_id, organization_id, pending_sections, created_by')
              .eq('organization_id', job.organization_id)
              .eq('id', job.target_id)
              .maybeSingle();
@@ -175,6 +175,24 @@ async function processRecurrence(req: Request) {
              try {
                // Import dynamico para no afectar ruta principal si falla
                const { sendChecklistAudienceEmail, sendChecklistAudiencePush } = await import('@/modules/checklists/services/checklist-audience.service');
+               const { nombreDelActor } = await import('@/shared/lib/actor-names');
+               const { contarItemsDeLaPlantilla } = await import('@/modules/checklists/services/checklist-template.service');
+
+               // El reparto automatico no tiene a nadie atras apretando el
+               // boton: se nombra a quien armo la plantilla y dejo la
+               // recurrencia, que para quien lo recibe es quien se lo manda.
+               //
+               // Los items se cuentan aca y no antes: si esta vuelta traia
+               // pendientes, recien ahora estan aplicados, asi que el numero es
+               // el de la lista que la gente va a ver.
+               const [actorName, itemsCount] = await Promise.all([
+                 nombreDelActor(template.organization_id, template.created_by ?? null),
+                 contarItemsDeLaPlantilla({
+                   supabase: supabaseAdmin,
+                   organizationId: template.organization_id,
+                   templateId: job.target_id,
+                 }),
+               ]);
 
                // El push es siempre activo (igual que en la creacion manual), no depende de notify_via.
                // Deja ademas la fila in_app de la campanita para todo el alcance,
@@ -183,7 +201,8 @@ async function processRecurrence(req: Request) {
                  ...audienceInput,
                  templateName: template.name,
                  event: "created",
-                 itemsCount: 0,
+                 itemsCount,
+                 actorName,
                });
 
                // Email es el unico canal opcional. SMS esta discontinuado: si el
@@ -194,8 +213,8 @@ async function processRecurrence(req: Request) {
                    ...audienceInput,
                    templateName: template.name,
                    event: "created",
-                   itemsCount: 0,
-                   actorEmail: "Sistema (Recurrencia)",
+                   itemsCount,
+                   actorName,
                  });
                }
              } catch (notiError) {
