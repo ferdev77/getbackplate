@@ -131,27 +131,28 @@ export function relativeFromNow(value: string | null) {
 }
 
 /**
- * El color del circulo con las iniciales de cada persona.
+ * El color del circulo con las iniciales de cada persona: el de identidad de
+ * la plataforma, uno solo para todos.
  *
- * Los valores van directo a un `style` inline, asi que tienen que ser CSS
- * valido. Cuatro de los seis venian escritos con guiones bajos --
- * `color-mix(in_oklab,...)` -- que es la forma de Tailwind para las clases
- * arbitrarias, no CSS: el navegador los descartaba y el circulo quedaba sin
- * fondo, con el texto blanco sobre blanco. Se veia el avatar de unas personas
- * si y de otras no, segun donde cayera su hash.
+ * Antes se elegia de una paleta de seis segun un hash del usuario, y ahi habia
+ * dos problemas. El visible: cuatro de los seis estaban escritos con guiones
+ * bajos -- `color-mix(in_oklab,...)`, la forma de Tailwind para las clases
+ * arbitrarias, no CSS -- asi que el navegador los descartaba y el circulo
+ * quedaba sin fondo, con el texto blanco sobre blanco. El de fondo: la paleta
+ * mezclaba el verde de `--gbp-success`, que en el resto del sistema significa
+ * "todo bien", no "esta persona". Un avatar verde al lado de uno naranja se
+ * leia como un estado.
+ *
+ * Quien es cada uno lo dicen las iniciales y el nombre al lado; el color no
+ * tenia que aportar eso. Se usa `var(--gbp-accent)` y no un valor fijo para que
+ * acompañe al tema activo -- cambia entre claro y oscuro, y entre los temas
+ * alternativos de la app.
+ *
+ * Ya no recibe el usuario: dejaria un parametro que no se usa, y el dia que se
+ * vuelva a distinguir por persona se agrega de nuevo.
  */
-export function colorForUser(userId: string) {
-  const palette = [
-    "var(--gbp-accent)",
-    "color-mix(in oklab, var(--gbp-accent) 65%, black)",
-    "var(--gbp-success)",
-    "color-mix(in oklab, var(--gbp-accent) 80%, var(--gbp-success))",
-    "color-mix(in oklab, var(--gbp-accent) 72%, black)",
-    "color-mix(in oklab, var(--gbp-success) 72%, black)",
-  ];
-  let hash = 0;
-  for (const char of userId) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  return palette[hash % palette.length] ?? palette[0];
+export function colorForUser() {
+  return "var(--gbp-accent)";
 }
 
 export function resolveChecklistHistoryItemMeta(
@@ -581,7 +582,7 @@ export async function buildChecklistReportsSnapshot({
       managerName,
       managerShort: shortName(managerName),
       managerInitials: initials(managerName),
-      managerColor: colorForUser(submission.submitted_by),
+      managerColor: colorForUser(),
       dateLabel: formatDateLabel(timestamp, todayStart),
       timeLabel: formatTimeLabel(timestamp),
       submittedAtIso: timestamp,

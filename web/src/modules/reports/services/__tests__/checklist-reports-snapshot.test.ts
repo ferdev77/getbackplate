@@ -174,34 +174,27 @@ describe("relativeFromNow", () => {
 });
 
 describe("colorForUser", () => {
-  it("la misma persona siempre tiene el mismo color", () => {
-    expect(colorForUser("u1")).toBe(colorForUser("u1"));
+  it("es el color de identidad de la plataforma", () => {
+    // La paleta anterior elegia entre seis colores segun un hash del usuario, y
+    // uno de esos era el verde de --gbp-success, que en el resto del sistema
+    // significa "todo bien": un avatar verde al lado de uno naranja se leia
+    // como un estado y no como una persona. Quien es cada uno lo dicen las
+    // iniciales; el color no tenia que aportar eso.
+    expect(colorForUser()).toBe("var(--gbp-accent)");
   });
 
-  it("siempre devuelve un color de la paleta", () => {
-    for (const id of ["u1", "u2", "u3", "", "aaaaaaaa-bbbb-cccc"]) {
-      expect(colorForUser(id)).toBeTruthy();
-      expect(typeof colorForUser(id)).toBe("string");
-    }
+  it("es CSS que el navegador entienda, no una clase de Tailwind", () => {
+    // Los colores venian con guiones bajos -- `color-mix(in_oklab,...)`, que es
+    // la forma de Tailwind para clases arbitrarias. Como el valor va a un style
+    // inline, el navegador lo descartaba y el circulo quedaba sin fondo: se veia
+    // el avatar de unas personas y de otras no.
+    expect(colorForUser()).not.toMatch(/_/);
   });
 
-  it("devuelve CSS que el navegador entienda, no clases de Tailwind", () => {
-    // Cuatro de los seis colores venian con guiones bajos en vez de espacios
-    // -- `color-mix(in_oklab,...)`, que es la forma de Tailwind para clases
-    // arbitrarias. Como el valor va a un style inline, el navegador lo
-    // descartaba y el circulo quedaba sin fondo: el avatar se veia en unas
-    // personas y en otras no. Que sea un string no alcanza como prueba.
-    const colores = new Set<string>();
-    for (let i = 0; i < 200; i++) colores.add(colorForUser(`usuario-${i}`));
-
-    // Con 200 ids tienen que haber salido los seis de la paleta.
-    expect(colores.size).toBe(6);
-    for (const color of colores) {
-      expect(color).not.toMatch(/_/);
-      if (color.startsWith("color-mix")) {
-        expect(color).toMatch(/^color-mix\(in oklab, .+\)$/);
-      }
-    }
+  it("es una variable del tema y no un color fijo", () => {
+    // Asi acompaña al tema activo: cambia entre claro y oscuro, y entre los
+    // temas alternativos de la app.
+    expect(colorForUser()).toMatch(/^var\(--/);
   });
 });
 
