@@ -72,6 +72,23 @@ export const QUICKBOOKS_R365_EN: Record<string, string> = {
   "Proveedor en R365": "Vendor in R365",
   "Nombre del proveedor en R365": "Vendor name in R365",
   "Exactamente como aparece en R365 (case-sensitive)": "Exactly as it appears in R365 (case-sensitive)",
+
+  // ── Ayudas de cada campo del modal de conexión ────────────────
+  "Las sucursales de tu cliente en QuickBooks que entran en esta conexión. El Account No. de cada una es lo que R365 usa como Location: si a alguna le falta, sus facturas llegan sin locación asignada.":
+    "Your customer's QuickBooks locations included in this connection. Each one's Account No. is what R365 uses as the Location: if any is missing, its invoices arrive with no location assigned.",
+  "Un nombre para reconocer esta conexión dentro del panel. No se envía a R365 ni aparece en las facturas.":
+    "A name to recognize this connection inside the panel. It is not sent to R365 and does not appear on invoices.",
+  "Escribí el nombre de tu empresa como figura en la cuenta de R365 de tu cliente. Es el proveedor al que se le van a asignar las facturas.":
+    "Enter your company name exactly as it appears in your customer's R365 account. This is the vendor the invoices will be assigned to.",
+  "La dirección del servidor FTP de R365 de tu cliente. Te la da tu cliente junto con el usuario y la contraseña.":
+    "The address of your customer's R365 FTP server. Your customer provides it along with the username and password.",
+  "El usuario del FTP de R365 de tu cliente.": "The username for your customer's R365 FTP.",
+  "La contraseña del FTP de R365 de tu cliente. Queda guardada cifrada y no vuelve a mostrarse.":
+    "The password for your customer's R365 FTP. It is stored encrypted and never shown again.",
+  "La carpeta del FTP donde R365 lee los archivos. Si tu cliente no indicó otra, dejá la que viene por defecto.":
+    "The FTP folder where R365 reads the files. Unless your customer specified another one, keep the default.",
+  "Trae las facturas ya emitidas desde la fecha que elijas, además de las nuevas. Corre en segundo plano y solo se puede pedir al crear la conexión.":
+    "Brings in invoices already issued since the date you pick, on top of the new ones. It runs in the background and can only be requested when creating the connection.",
   "R365 FTP del cliente": "Customer's R365 FTP",
   Usuario: "Username",
   Contraseña: "Password",

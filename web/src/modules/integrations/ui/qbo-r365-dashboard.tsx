@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link2, Search, X, AlertTriangle, CheckCircle2, Clock, XCircle, Loader2, Plus, Minus, Play, Trash2, Eye, Pencil, ChevronDown, ChevronUp, ChevronsUpDown, Layers, Download } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/infrastructure/supabase/client/browser";
 import { EmptyState } from "@/shared/ui/empty-state";
+import { FieldHelp } from "@/shared/ui/field-help";
 import { ConnectToQuickBooksButton } from "@/shared/ui/connect-to-quickbooks-button";
 import { resolveHistoryCustomerName } from "@/modules/integrations/qbo-r365/lib/resolve-customer-name";
 import { toast } from "sonner";
@@ -1878,7 +1879,10 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
               <div>
                 <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">{t("Clientes QuickBooks (sucursales)")}</h4>
                 <label className="block">
-                  <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">{t("Cliente")} *</span>
+                  <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">
+                    {t("Cliente")} *
+                    <FieldHelp text={t("Las sucursales de tu cliente en QuickBooks que entran en esta conexión. El Account No. de cada una es lo que R365 usa como Location: si a alguna le falta, sus facturas llegan sin locación asignada.")} />
+                  </span>
                   {customersLoading
                     ? <p className="text-xs text-[var(--gbp-muted)]">{t("Cargando clientes de QuickBooks...")}</p>
                     : (
@@ -1965,7 +1969,10 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
               <div>
                 <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">{t("Nombre")}</h4>
                 <label className="block">
-                  <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">{t("Nombre de la sincronización")} *</span>
+                  <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">
+                    {t("Nombre de la sincronización")} *
+                    <FieldHelp text={t("Un nombre para reconocer esta conexión dentro del panel. No se envía a R365 ni aparece en las facturas.")} />
+                  </span>
                   <input
                     required
                     type="text"
@@ -1980,7 +1987,10 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
               <div>
                 <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">{t("Proveedor en R365")}</h4>
                 <label className="block">
-                  <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">{t("Nombre del proveedor en R365")}</span>
+                  <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">
+                    {t("Nombre del proveedor en R365")}
+                    <FieldHelp text={t("Escribí el nombre de tu empresa como figura en la cuenta de R365 de tu cliente. Es el proveedor al que se le van a asignar las facturas.")} />
+                  </span>
                   <input
                     type="text"
                     placeholder="e.g., PRODEL DISTRIBUTION INC"
@@ -1996,17 +2006,26 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
                 <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">{t("R365 FTP del cliente")} *</h4>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block sm:col-span-2">
-                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Host</span>
+                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">
+                      Host
+                      <FieldHelp text={t("La dirección del servidor FTP de R365 de tu cliente. Te la da tu cliente junto con el usuario y la contraseña.")} />
+                    </span>
                     <input required={mode !== "developer"} type="text" value={newSyncFtpHost} onChange={(e) => setNewSyncFtpHost(e.target.value)}
                       className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
                   </label>
                   <label className="block">
-                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">{t("Usuario")}</span>
+                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">
+                      {t("Usuario")}
+                      <FieldHelp text={t("El usuario del FTP de R365 de tu cliente.")} />
+                    </span>
                     <input required={mode !== "developer"} type="text" autoComplete="off" data-lpignore="true" value={newSyncFtpUser} onChange={(e) => setNewSyncFtpUser(e.target.value)}
                       className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
                   </label>
                   <label className="block">
-                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">{t("Contraseña")}</span>
+                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">
+                      {t("Contraseña")}
+                      <FieldHelp text={t("La contraseña del FTP de R365 de tu cliente. Queda guardada cifrada y no vuelve a mostrarse.")} align="left" />
+                    </span>
                     <div className="relative">
                       <input required={mode !== "developer" && !editingSyncConfigId} placeholder={editingSyncConfigId ? t("Dejar vacío para no cambiarla") : undefined} type={showNewSyncFtpPass ? "text" : "password"} autoComplete="new-password" data-lpignore="true" value={newSyncFtpPass} onChange={(e) => setNewSyncFtpPass(e.target.value)}
                         className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 pr-9 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
@@ -2017,7 +2036,10 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
                     </div>
                   </label>
                   <label className="block">
-                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">Remote Path</span>
+                    <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">
+                      Remote Path
+                      <FieldHelp text={t("La carpeta del FTP donde R365 lee los archivos. Si tu cliente no indicó otra, dejá la que viene por defecto.")} />
+                    </span>
                     <input type="text" value={newSyncFtpPath} onChange={(e) => setNewSyncFtpPath(e.target.value)}
                       className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />
                   </label>
@@ -2026,7 +2048,10 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
               {/* Importación histórica — solo al crear, nunca al editar */}
               {!editingSyncConfigId && (
                 <div>
-                  <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">{t("Importación histórica")}</h4>
+                  <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--gbp-accent)]">
+                    {t("Importación histórica")}
+                    <FieldHelp text={t("Trae las facturas ya emitidas desde la fecha que elijas, además de las nuevas. Corre en segundo plano y solo se puede pedir al crear la conexión.")} />
+                  </h4>
                   <label className="flex cursor-pointer items-start gap-3">
                     <input
                       type="checkbox"
