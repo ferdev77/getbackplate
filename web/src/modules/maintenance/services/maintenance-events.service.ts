@@ -278,11 +278,19 @@ export async function notifyMaintenanceUpdate(params: {
   });
 }
 
+/** Para el texto libre que escribe la gente: el email se arma con HTML. */
+function escaparHtml(texto: string) {
+  return texto
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 /**
- * Manda por email la respuesta a una solicitud, cuando quien la escribe tilda
- * "Enviar por email" a proposito -- a diferencia del push/campanita (que ya
- * llega siempre), esto es opcional porque un email por cada comentario seria
- * demasiado.
+ * A quien le llega un email de mantenimiento, y como se evita duplicarle la
+ * fila de la campanita. Lo comparten el aviso de solicitud nueva y el de
+ * respuesta: cambia el asunto y el cuerpo, no los destinatarios.
  *
  * Va a company_admins y a cualquiera con permiso de editar mantenimiento, sin
  * filtrar por locacion: el pedido fue explicito, "cualquiera que tenga [el
@@ -294,13 +302,14 @@ export async function notifyMaintenanceUpdate(params: {
  * sucursal (por eso no recibio el push) se le arma su propia fila, porque para
  * esa persona el email es la unica forma en que se entera.
  */
-export async function notifyMaintenanceResponseByEmail(params: {
+async function emailAQuienesAtienden(params: {
   supabase: SupabaseClient;
   organizationId: string;
   branchId: string | null;
-  title: string;
-  body: string;
+  subject: string;
+  htmlContent: string;
   actorUserId: string | null;
+  source: string;
 }): Promise<void> {
   const [admins, operativos, yaAvisadosPorPush] = await Promise.all([
     companyAdminUserIds(params.supabase, params.organizationId),
@@ -316,8 +325,7 @@ export async function notifyMaintenanceResponseByEmail(params: {
   const sinCampanitaTodavia = userIds.filter((id) => !yaEnCampanita.has(id));
 
   const emailByUserId = await getAuthEmailByUserId(userIds);
-  const subject = `Mantenimiento: ${params.title}`;
-  const htmlContent = `<p>${params.body}</p>`;
+  const { subject, htmlContent } = params;
 
   // Ya tienen fila en la campanita por el push: se manda igual el email, pero
   // sin que dispare una segunda fila para el mismo aviso.
@@ -333,7 +341,7 @@ export async function notifyMaintenanceResponseByEmail(params: {
         to: paraConCampanita,
         subject,
         htmlContent,
-        notification: { source: "maintenance_response_email", organizationId: params.organizationId, userId: null },
+        notification: { source: params.source, organizationId: params.organizationId, userId: null },
       }),
     );
   }
@@ -349,10 +357,76 @@ export async function notifyMaintenanceResponseByEmail(params: {
         to: [{ email }],
         subject,
         htmlContent,
-        notification: { source: "maintenance_response_email", organizationId: params.organizationId, userId },
+        notification: { source: params.source, organizationId: params.organizationId, userId },
       }),
     );
   }
 
   await Promise.all(envios);
+}
+
+/**
+ * Manda por email la respuesta a una solicitud, cuando quien la escribe tilda
+ * "Enviar por email" -- a diferencia del push/campanita (que ya llega siempre),
+ * esto es opcional porque un email por cada comentario seria demasiado.
+ */
+export async function notifyMaintenanceResponseByEmail(params: {
+  supabase: SupabaseClient;
+  organizationId: string;
+  branchId: string | null;
+  title: string;
+  body: string;
+  actorUserId: string | null;
+}): Promise<void> {
+  await emailAQuienesAtienden({
+    supabase: params.supabase,
+    organizationId: params.organizationId,
+    branchId: params.branchId,
+    subject: `Mantenimiento: ${params.title}`,
+    htmlContent: `<p>${params.body}</p>`,
+    actorUserId: params.actorUserId,
+    source: "maintenance_response_email",
+  });
+}
+
+/**
+ * Manda por email la solicitud recien creada, cuando quien la carga tilda
+ * "Enviar por email" en el modal -- mismo criterio que la respuesta: el
+ * push/campanita ya sale siempre, el email es la decision explicita de quien
+ * escribe.
+ *
+ * No se manda para borradores: eso lo decide quien llama.
+ *
+ * A diferencia del push, el cuerpo lleva los detalles completos, porque quien
+ * lo recibe puede resolverlo sin entrar al sistema.
+ */
+export async function notifyMaintenanceRequestedByEmail(params: {
+  supabase: SupabaseClient;
+  organizationId: string;
+  branchId: string | null;
+  title: string;
+  description: string;
+  priority: string | null;
+  locationName: string | null;
+  createdByUserId: string;
+}): Promise<void> {
+  const prioridad = prioridadEnPalabras(params.priority);
+  const encabezado = [prioridad ? `Prioridad ${prioridad}` : null, params.locationName]
+    .filter(Boolean)
+    .join(" · ");
+
+  await emailAQuienesAtienden({
+    supabase: params.supabase,
+    organizationId: params.organizationId,
+    branchId: params.branchId,
+    subject: `Nueva solicitud de mantenimiento: ${params.title}`,
+    htmlContent: [
+      encabezado ? `<p>${escaparHtml(encabezado)}</p>` : "",
+      `<p>${escaparHtml(params.description)}</p>`,
+    ]
+      .filter(Boolean)
+      .join(""),
+    actorUserId: params.createdByUserId,
+    source: "maintenance_requested_email",
+  });
 }

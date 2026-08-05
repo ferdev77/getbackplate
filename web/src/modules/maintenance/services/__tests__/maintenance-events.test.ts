@@ -22,6 +22,7 @@ const {
   notifyMaintenanceStatusChanged,
   notifyMaintenanceUpdate,
   notifyMaintenanceResponseByEmail,
+  notifyMaintenanceRequestedByEmail,
 } = await import("../maintenance-events.service");
 
 /**
@@ -546,5 +547,94 @@ describe("notifyMaintenanceResponseByEmail", () => {
 
     expect(sendEmail).not.toHaveBeenCalled();
     expect(getAuthEmailByUserId).not.toHaveBeenCalled();
+  });
+});
+
+describe("notifyMaintenanceRequestedByEmail", () => {
+  it("lleva prioridad, sucursal y los detalles: quien lo recibe puede resolverlo sin entrar al sistema", async () => {
+    getAuthEmailByUserId.mockResolvedValue(new Map([["admin-1", "admin@x.com"]]));
+
+    await notifyMaintenanceRequestedByEmail({
+      supabase: supabaseFalso({ admins: ["admin-1"] }),
+      organizationId: "org-1",
+      branchId: "loc-a",
+      title: "Heladera",
+      description: "Pierde agua por abajo desde el lunes.",
+      priority: "high",
+      locationName: "Long Beach",
+      createdByUserId: "otro",
+    });
+
+    const enviado = sendEmail.mock.calls[0][0];
+    expect(enviado.subject).toBe("Nueva solicitud de mantenimiento: Heladera");
+    expect(enviado.htmlContent).toContain("Prioridad Alta · Long Beach");
+    expect(enviado.htmlContent).toContain("Pierde agua por abajo desde el lunes.");
+    expect(enviado.notification.source).toBe("maintenance_requested_email");
+  });
+
+  it("escapa el HTML de los detalles, que son texto libre", async () => {
+    getAuthEmailByUserId.mockResolvedValue(new Map([["admin-1", "admin@x.com"]]));
+
+    await notifyMaintenanceRequestedByEmail({
+      supabase: supabaseFalso({ admins: ["admin-1"] }),
+      organizationId: "org-1",
+      branchId: "loc-a",
+      title: "Heladera",
+      description: "<script>alert(1)</script>",
+      priority: null,
+      locationName: null,
+      createdByUserId: "otro",
+    });
+
+    const enviado = sendEmail.mock.calls[0][0];
+    expect(enviado.htmlContent).not.toContain("<script>");
+    expect(enviado.htmlContent).toContain("&lt;script&gt;");
+  });
+
+  it("le manda a cualquiera con permiso de mantenimiento aunque no cubra esa locación, menos a quien la creó", async () => {
+    getAuthEmailByUserId.mockResolvedValue(
+      new Map([
+        ["admin-1", "admin@x.com"],
+        ["fuera-de-alcance", "fuera@x.com"],
+      ]),
+    );
+
+    await notifyMaintenanceRequestedByEmail({
+      supabase: supabaseFalso({
+        admins: ["admin-1", "quien-la-creo"],
+        operativos: [{ userId: "fuera-de-alcance", locaciones: ["loc-b"] }],
+      }),
+      organizationId: "org-1",
+      branchId: "loc-a",
+      title: "Heladera",
+      description: "Pierde agua.",
+      priority: "medium",
+      locationName: "Long Beach",
+      createdByUserId: "quien-la-creo",
+    });
+
+    expect(getAuthEmailByUserId).toHaveBeenCalledWith(["admin-1", "fuera-de-alcance"]);
+
+    // A quien el push no alcanzó por locación se le arma su propia fila en la
+    // campanita: el email es la única forma en que se entera.
+    const sinCampanitaTodavia = sendEmail.mock.calls.find((c) =>
+      c[0].to.some((r: { email: string }) => r.email === "fuera@x.com"),
+    )![0];
+    expect(sinCampanitaTodavia.notification.userId).toBe("fuera-de-alcance");
+  });
+
+  it("sin nadie que gestione mantenimiento, no manda nada", async () => {
+    await notifyMaintenanceRequestedByEmail({
+      supabase: supabaseFalso({}),
+      organizationId: "org-1",
+      branchId: null,
+      title: "Heladera",
+      description: "Pierde agua.",
+      priority: null,
+      locationName: null,
+      createdByUserId: "otro",
+    });
+
+    expect(sendEmail).not.toHaveBeenCalled();
   });
 });

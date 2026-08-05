@@ -602,7 +602,10 @@ export function MaintenanceWorkspace({
   const [draftForm, setDraftForm] = useState<MaintenanceRequestFormState>(() => deriveFormState(branches));
   const [responseStatus, setResponseStatus] = useState<"schedule_visit" | MaintenanceStatus>(() => defaultResponseStatus(initialRequests[0] ?? null));
   const [responseScheduledVisitAt, setResponseScheduledVisitAt] = useState("");
-  const [responseSendEmail, setResponseSendEmail] = useState(false);
+  // Viene tildado: lo normal es que la respuesta se avise por email, y quien no
+  // lo quiera lo destilda antes de guardar.
+  const [responseSendEmail, setResponseSendEmail] = useState(true);
+  const [createSendEmail, setCreateSendEmail] = useState(true);
 
   const selectedRequest = useMemo(
     () => requests.find((request) => request.id === selectedId) ?? requests[0] ?? null,
@@ -730,7 +733,7 @@ export function MaintenanceWorkspace({
       }
 
       toast.success("Response saved.");
-      setResponseSendEmail(false);
+      setResponseSendEmail(true);
       await refresh(activeStatus);
     } catch {
       toast.error("Could not save the response.");
@@ -753,6 +756,7 @@ export function MaintenanceWorkspace({
   useEffect(() => {
     if (!createOpen) return;
     setCreateForm(deriveFormState(catalog.branches));
+    setCreateSendEmail(true);
   }, [catalog.branches, createOpen]);
 
   useEffect(() => {
@@ -763,7 +767,7 @@ export function MaintenanceWorkspace({
   useEffect(() => {
     setResponseStatus(defaultResponseStatus(selectedRequest));
     setResponseScheduledVisitAt("");
-    setResponseSendEmail(false);
+    setResponseSendEmail(true);
   }, [selectedRequest]);
 
   const categoryOptions = useMemo(
@@ -1280,7 +1284,20 @@ export function MaintenanceWorkspace({
               ) : null}
             </div>
 
-            <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <div className="mt-5 flex items-center justify-between gap-3">
+              <label className="flex items-center gap-2 text-xs font-semibold text-[var(--gbp-text2)]">
+                <input
+                  name="send_email"
+                  type="checkbox"
+                  checked={createSendEmail}
+                  onChange={(event) => setCreateSendEmail(event.target.checked)}
+                  className="h-4 w-4 rounded border-[var(--gbp-border)]"
+                />
+                Enviar por email
+              </label>
+            </div>
+
+            <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button type="submit" name="action" value="draft" disabled={isPending} className="rounded-xl border border-[var(--gbp-border)] px-4 py-2.5 text-sm font-bold text-[var(--gbp-text2)] disabled:opacity-60">
                 Guardar borrador
               </button>

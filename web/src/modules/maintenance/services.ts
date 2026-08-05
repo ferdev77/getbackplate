@@ -38,6 +38,7 @@ export const maintenanceCreateSchema = z.object({
   issue: nullableString,
   priority: z.enum(MAINTENANCE_PRIORITIES).default("medium"),
   action: z.enum(["draft", "submit"]).default("submit"),
+  send_email: z.boolean().optional(),
 });
 
 export const maintenanceUpdateSchema = z.object({

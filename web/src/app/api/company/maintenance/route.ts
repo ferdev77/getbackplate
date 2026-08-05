@@ -1,7 +1,10 @@
 import { NextResponse, after } from "next/server";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { nombreDeLaLocacion } from "@/modules/maintenance/lib/location-label";
-import { notifyMaintenanceRequested } from "@/modules/maintenance/services/maintenance-events.service";
+import {
+  notifyMaintenanceRequested,
+  notifyMaintenanceRequestedByEmail,
+} from "@/modules/maintenance/services/maintenance-events.service";
 
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import {
@@ -21,6 +24,7 @@ function formDataToCreatePayload(formData: FormData) {
     issue: String(formData.get("issue") ?? ""),
     priority: String(formData.get("priority") ?? "medium"),
     action: String(formData.get("action") ?? "submit"),
+    send_email: formData.get("send_email") === "on",
   };
 }
 
@@ -84,16 +88,38 @@ export async function POST(request: Request) {
     await attachMaintenanceFiles(context, requestId, filesFromFormData(formData));
 
     after(async () => {
+      // Un borrador todavia no se envio: no se avisa a nadie hasta que lo
+      // manden. Antes la campanita salia igual y avisaba de algo a medio
+      // escribir, que quien lo recibia no podia ni ver.
+      if (parsed.data.action === "draft") return;
+
       const admin = createSupabaseAdminClient();
+      const locationName = await nombreDeLaLocacion(admin, context.organizationId, parsed.data.branch_id);
+
       await notifyMaintenanceRequested({
         supabase: admin,
         organizationId: context.organizationId,
         title: parsed.data.title,
         priority: parsed.data.priority ?? null,
         branchId: parsed.data.branch_id ?? null,
-        locationName: await nombreDeLaLocacion(admin, context.organizationId, parsed.data.branch_id),
+        locationName,
         createdByUserId: context.userId,
       });
+
+      // El push/campanita ya llega siempre -- el email es aparte, solo si lo
+      // tildaron.
+      if (parsed.data.send_email) {
+        await notifyMaintenanceRequestedByEmail({
+          supabase: admin,
+          organizationId: context.organizationId,
+          branchId: parsed.data.branch_id ?? null,
+          title: parsed.data.title,
+          description: parsed.data.description,
+          priority: parsed.data.priority ?? null,
+          locationName,
+          createdByUserId: context.userId,
+        });
+      }
     });
 
     return NextResponse.json({ request: { id: requestId } }, { status: 201 });
