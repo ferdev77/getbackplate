@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { Toaster } from "sonner";
-import { GlobalRealtimeListener } from "@/shared/ui/global-realtime";
 import { PwaRegister } from "./pwa-register";
 import "./globals.css";
 
@@ -41,7 +40,6 @@ export default function RootLayout({
         className={`${plusJakartaSans.variable} ${geistMono.variable} antialiased`}
       >
         <PwaRegister />
-        <GlobalRealtimeListener />
         {children}
         <Toaster position="bottom-right" richColors />
       </body>

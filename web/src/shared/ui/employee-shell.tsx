@@ -479,6 +479,7 @@ export function EmployeeShell({
                   <div key={item.href}>
                     <CollapsibleSidebarNavItem
                       href={item.href}
+                      prefetch={false}
                       icon={item.icon}
                       label={item.label}
                       collapsed={collapsed}
