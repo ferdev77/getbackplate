@@ -107,31 +107,29 @@ function initials(user: ScopeSelectorUser) {
  * elegias Este y en la lista aparecia alguien rotulado "Sur", como si el filtro
  * estuviera fallando, cuando en realidad esa persona tambien alcanza Este.
  *
+ * Siempre es UNA locacion, nunca un resumen. Si la persona alcanza varias de
+ * las elegidas, se muestra por la que entro primero: se recorren las elegidas
+ * en el orden en que se fueron marcando y gana la primera que le corresponda.
+ * Asi la etiqueta no cambia al seguir sumando locaciones -- si entro por A,
+ * sigue diciendo A aunque despues se marque B.
+ *
  * Sin locaciones elegidas no hay "por cual entra": se muestra la suya, igual
  * que antes. Lo mismo para quien fue agregado a mano y no coincide con ninguna.
  */
 export function locationLabelForUser(
   user: ScopeSelectorUser,
-  selectedLocationIds: ReadonlySet<string>,
+  /** Las elegidas, en el orden en que se marcaron. */
+  selectedLocationIds: readonly string[],
   branchNameById: Map<string, string>,
-  totalBranches: number,
 ): string | undefined {
   const suyas = user.location_ids ?? [];
-  if (selectedLocationIds.size === 0 || suyas.length === 0) return user.location_label;
+  if (selectedLocationIds.length === 0 || suyas.length === 0) return user.location_label;
 
-  const coincidentes = suyas.filter((id) => selectedLocationIds.has(id));
-  if (coincidentes.length === 0) return user.location_label;
+  const alcanza = new Set(suyas);
+  const porLaQueEntra = selectedLocationIds.find((id) => alcanza.has(id));
+  if (!porLaQueEntra) return user.location_label;
 
-  // Quien alcanza toda la organizacion coincide con cualquier cosa que se
-  // elija: enumerarlas seria una lista larga que ademas cambia sola.
-  if (totalBranches > 0 && suyas.length >= totalBranches) return "Todas las locaciones";
-
-  const nombres = coincidentes
-    .map((id) => branchNameById.get(id))
-    .filter((name): name is string => Boolean(name));
-  if (nombres.length === 0) return user.location_label;
-  if (nombres.length <= 2) return nombres.join(", ");
-  return `${nombres.slice(0, 2).join(", ")} +${nombres.length - 2}`;
+  return branchNameById.get(porLaQueEntra) ?? user.location_label;
 }
 
 function metaLine(user: ScopeSelectorUser, locationLabel?: string) {
@@ -283,13 +281,14 @@ export function ScopeSelector({
   // La etiqueta de cada persona depende de lo elegido, asi que se arma aca y no
   // en el render: es el mismo texto en la lista de busqueda y en el panel de la
   // derecha.
+  // El orden importa: es el de marcado, y define por cual locacion se muestra a
+  // quien alcanza varias de las elegidas.
+  const orderedLocations = useMemo(() => Array.from(effectiveLocations), [effectiveLocations]);
+
   const metaLineFor = useCallback(
     (user: ScopeSelectorUser) =>
-      metaLine(
-        user,
-        locationLabelForUser(user, effectiveLocations, branchNameById, branches.length),
-      ),
-    [branchNameById, branches.length, effectiveLocations],
+      metaLine(user, locationLabelForUser(user, orderedLocations, branchNameById)),
+    [branchNameById, orderedLocations],
   );
 
   const matchesFilters = useMemo(

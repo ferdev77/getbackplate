@@ -18,7 +18,6 @@ const SUCURSALES = new Map([
   ["norte", "Norte"],
   ["oeste", "Oeste"],
 ]);
-const TOTAL = SUCURSALES.size;
 
 function persona(campos: Partial<ScopeSelectorUser> = {}): ScopeSelectorUser {
   return {
@@ -40,68 +39,73 @@ describe("locationLabelForUser", () => {
     // El caso reportado: alcanza Sur y Este, se elige Este, y aparecia "Sur".
     const label = locationLabelForUser(
       persona({ location_ids: ["sur", "este"] }),
-      new Set(["este"]),
+      ["este"],
       SUCURSALES,
-      TOTAL,
     );
 
     expect(label).toBe("Este");
   });
 
-  it("si coincide en varias, las lista", () => {
+  it("siempre es una sola locacion, nunca un resumen", () => {
+    // Coincide en tres y aun asi se muestra una: la primera marcada.
     const label = locationLabelForUser(
       persona({ location_ids: ["sur", "este", "norte"] }),
-      new Set(["este", "norte"]),
+      ["este", "norte", "sur"],
       SUCURSALES,
-      TOTAL,
     );
 
-    expect(label).toBe("Este, Norte");
+    expect(label).toBe("Este");
   });
 
-  it("con muchas coincidencias corta y cuenta el resto", () => {
-    const label = locationLabelForUser(
-      persona({ location_ids: ["sur", "este", "norte"] }),
-      new Set(["sur", "este", "norte"]),
-      SUCURSALES,
-      // Total mayor que las suyas: no alcanza toda la organizacion.
-      TOTAL + 2,
-    );
-
-    expect(label).toBe("Sur, Este +1");
-  });
-
-  it("quien alcanza toda la organizacion se muestra asi, sin enumerar", () => {
+  it("quien alcanza todas entra por la que se marco", () => {
+    // Antes decia "Todas las locaciones", que no era por donde entraba.
     const label = locationLabelForUser(
       persona({ location_ids: ["sur", "este", "norte", "oeste"] }),
-      new Set(["este"]),
+      ["este"],
       SUCURSALES,
-      TOTAL,
     );
 
-    expect(label).toBe("Todas las locaciones");
+    expect(label).toBe("Este");
+  });
+
+  it("sumar otra locacion no le cambia la etiqueta a quien ya entro", () => {
+    // Se marca Sur primero y entra por Sur. Al marcar tambien Este sigue
+    // mostrando Sur: entro por ahi y no tiene por que moverse.
+    const conSurPrimero = locationLabelForUser(
+      persona({ location_ids: ["sur", "este"] }),
+      ["sur"],
+      SUCURSALES,
+    );
+    const trasAgregarEste = locationLabelForUser(
+      persona({ location_ids: ["sur", "este"] }),
+      ["sur", "este"],
+      SUCURSALES,
+    );
+
+    expect(conSurPrimero).toBe("Sur");
+    expect(trasAgregarEste).toBe("Sur");
+  });
+
+  it("si se saca la primera, pasa a la siguiente que le corresponda", () => {
+    const label = locationLabelForUser(
+      persona({ location_ids: ["sur", "este"] }),
+      ["este"],
+      SUCURSALES,
+    );
+
+    expect(label).toBe("Este");
   });
 
   it("sin locaciones elegidas muestra la suya, como antes", () => {
     // Alcance por departamento o puesto, o toda la organizacion: no hay una
     // locacion "por la que entra".
-    const label = locationLabelForUser(
-      persona({ location_ids: ["sur", "este"] }),
-      new Set(),
-      SUCURSALES,
-      TOTAL,
-    );
+    const label = locationLabelForUser(persona({ location_ids: ["sur", "este"] }), [], SUCURSALES);
 
     expect(label).toBe("Sur");
   });
 
   it("a quien se agrego a mano y no coincide, se lo muestra con la suya", () => {
-    const label = locationLabelForUser(
-      persona({ location_ids: ["sur"] }),
-      new Set(["este"]),
-      SUCURSALES,
-      TOTAL,
-    );
+    const label = locationLabelForUser(persona({ location_ids: ["sur"] }), ["este"], SUCURSALES);
 
     expect(label).toBe("Sur");
   });
@@ -109,9 +113,8 @@ describe("locationLabelForUser", () => {
   it("sin datos de locacion no inventa nada", () => {
     const label = locationLabelForUser(
       persona({ location_ids: [], location_label: undefined }),
-      new Set(["este"]),
+      ["este"],
       SUCURSALES,
-      TOTAL,
     );
 
     expect(label).toBeUndefined();
