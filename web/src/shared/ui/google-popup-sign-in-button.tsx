@@ -116,6 +116,13 @@ export function GooglePopupSignInButton({
   // Si Google no carga, no se deja al usuario sin forma de entrar: se muestra
   // el boton de siempre, que hace el recorrido largo pero funciona.
   const [degraded, setDegraded] = useState(false);
+  // Google dibuja el boton con un ancho fijo en pixeles: no entiende de
+  // porcentajes. Con un valor puesto a mano, en un telefono se desbordaba de la
+  // tarjeta -- en una pantalla de 375px quedan unos 263px utiles despues de los
+  // margenes, y el boton medía 320. Se mide el espacio real y se redibuja si
+  // cambia, para que acompañe tambien al girar el telefono.
+  const [buttonWidth, setButtonWidth] = useState<number | null>(null);
+  const [ready, setReady] = useState(false);
 
   const handleCredential = useCallback(
     async (credential: string, nonce: string) => {
@@ -185,16 +192,7 @@ export function GooglePopupSignInButton({
             setDegraded(true);
           },
         });
-        container.innerHTML = "";
-        api.renderButton(container, {
-          type: "standard",
-          theme: "outline",
-          size: "large",
-          text: "signin_with",
-          shape: "rectangular",
-          logo_alignment: "center",
-          width: 320,
-        });
+        setReady(true);
 
         // La tarjeta de arriba a la derecha. Es un ofrecimiento, no un
         // reemplazo: Google la muestra solo si la persona tiene sesion abierta
@@ -212,6 +210,45 @@ export function GooglePopupSignInButton({
       cancelled = true;
     };
   }, [clientId, handleCredential]);
+
+  // Mide el hueco donde va el boton. Se observa en vez de leerlo una sola vez
+  // para que siga al girar el telefono o al cambiar el tamaño de la ventana.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const medir = () => {
+      const ancho = container.getBoundingClientRect().width;
+      // Google acepta entre 200 y 400: fuera de ese rango ignora el valor y
+      // vuelve a su ancho por defecto, que es lo que desbordaba.
+      if (ancho > 0) setButtonWidth(Math.round(Math.min(400, Math.max(200, ancho))));
+    };
+
+    medir();
+    const observer = new ResizeObserver(medir);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [degraded]);
+
+  // Dibujar es aparte de arrancar: cambiar el ancho no tiene que rehacer el
+  // arranque, que generaria un nonce nuevo y volveria a pedir la tarjeta.
+  useEffect(() => {
+    if (!ready || buttonWidth === null) return;
+    const api = window.google?.accounts?.id;
+    const container = containerRef.current;
+    if (!api || !container) return;
+
+    container.innerHTML = "";
+    api.renderButton(container, {
+      type: "standard",
+      theme: "outline",
+      size: "large",
+      text: "signin_with",
+      shape: "rectangular",
+      logo_alignment: "center",
+      width: buttonWidth,
+    });
+  }, [buttonWidth, ready]);
 
   // El camino largo se muestra con el boton de siempre, no con una copia: si
   // se degrada, el usuario tiene que ver exactamente lo que veia antes, con su
