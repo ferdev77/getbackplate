@@ -3,11 +3,10 @@ import { headers } from "next/headers";
 
 import { requestPasswordRecoveryAction } from "@/modules/auth/actions";
 import { resolveTenantAuthBrandingByHint } from "@/shared/lib/tenant-auth-branding";
+import { TenantAuthBrand } from "@/shared/ui/tenant-auth-brand";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import { SlideUp } from "@/shared/ui/animations";
 import { TagPill } from "@/shared/ui/tag-pill";
-import { ThemeAwareGetBackplateLogo } from "@/shared/ui/theme-aware-getbackplate-logo";
-import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 
 type ForgotPasswordPageProps = {
   searchParams: Promise<{ error?: string; status?: string; message?: string; org?: string }>;
@@ -52,27 +51,7 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
             <TagPill>Recovery</TagPill>
           </div>
 
-          {tenantBranding ? (
-            <div className="mb-6 flex flex-col items-center justify-center text-center">
-              <div className="grid min-h-[92px] min-w-[240px] place-items-center rounded-[var(--gbp-radius-xl)] border border-[var(--gbp-border)] bg-[linear-gradient(160deg,var(--gbp-surface)_0%,var(--gbp-bg)_100%)] px-4 py-4">
-                {tenantBranding.logoUrl ? (
-                  <picture>
-                    {tenantBranding.logoDarkUrl ? (
-                      <source media="(prefers-color-scheme: dark)" srcSet={tenantBranding.logoDarkUrl} />
-                    ) : null}
-                    <img src={tenantBranding.logoUrl} alt={`${tenantBranding.companyName} logo`} className="block h-auto max-h-14 w-auto max-w-[190px] object-contain" />
-                  </picture>
-                ) : (
-                  <span className="text-sm font-bold tracking-[0.08em] text-[var(--gbp-text)] uppercase">{tenantBranding.companyName}</span>
-                )}
-              </div>
-              <p className="mt-2 text-xs text-[var(--gbp-text2)]">Company account recovery</p>
-            </div>
-          ) : (
-            <div className="mb-5 flex justify-center">
-              <ThemeAwareGetBackplateLogo width={230} height={42} className={`${BRAND_SCALE.authHeight} w-auto`} priority />
-            </div>
-          )}
+          <TenantAuthBrand branding={tenantBranding} caption="Company account recovery" />
 
           <h1 className="mb-1 text-2xl font-bold tracking-tight">Reset your password</h1>
           <p className="mb-6 text-sm text-[var(--gbp-text2)]">

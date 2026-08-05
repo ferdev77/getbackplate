@@ -6,8 +6,8 @@ import { getActiveOrganizationIdWithFallback } from "@/shared/lib/tenant-selecti
 import { verifyMfaCodeAction } from "@/modules/auth/mfa-actions";
 import { createEmailMfaChallenge } from "@/modules/auth/mfa.service";
 import { SubmitButton } from "@/shared/ui/submit-button";
-import { ThemeAwareGetBackplateLogo } from "@/shared/ui/theme-aware-getbackplate-logo";
-import { BRAND_SCALE } from "@/shared/ui/brand-scale";
+import { TenantAuthBrand } from "@/shared/ui/tenant-auth-brand";
+import { resolveTenantAuthBrandingByHint } from "@/shared/lib/tenant-auth-branding";
 import { MfaResendButton } from "./mfa-resend-button";
 
 export const metadata: Metadata = {
@@ -37,12 +37,15 @@ export default async function VerifyMfaPage({ searchParams }: VerifyMfaPageProps
   const initialCooldownSeconds = challenge.ok ? 45 : challenge.retryAfterSeconds ?? 0;
   const initialError = !challenge.ok && !challenge.retryAfterSeconds ? challenge.error : null;
 
+  // Aca ya se sabe de que organizacion se trata, asi que la marca sale de esa y
+  // no del dominio: el paso anterior mostraba el logo de la empresa y este
+  // volvia al de GetBackplate, en medio del mismo login.
+  const tenantBranding = await resolveTenantAuthBrandingByHint(organizationId, null);
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-6 py-10">
       <section className="w-full max-w-md rounded-2xl border border-line bg-panel p-8 shadow-[0_8px_30px_rgba(0,0,0,0.05)]">
-        <div className="mb-4 flex justify-center">
-          <ThemeAwareGetBackplateLogo width={230} height={42} className={`${BRAND_SCALE.authHeight} w-auto`} priority />
-        </div>
+        <TenantAuthBrand branding={tenantBranding} />
         <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-brand uppercase">Two-step verification</p>
         <h1 className="mb-1 text-2xl font-bold tracking-tight">Check your email</h1>
         <p className="mb-6 text-sm text-neutral-600">
