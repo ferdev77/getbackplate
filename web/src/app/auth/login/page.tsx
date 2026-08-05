@@ -11,6 +11,7 @@ import { PasswordInput } from "@/shared/ui/password-input";
 import { BRAND_SCALE } from "@/shared/ui/brand-scale";
 import { IntuitSignInButton } from "@/shared/ui/intuit-sign-in-button";
 import { GoogleSignInButton } from "@/shared/ui/google-sign-in-button";
+import { GooglePopupSignInButton } from "@/shared/ui/google-popup-sign-in-button";
 
 type LoginPageProps = {
   searchParams: Promise<{ error?: string; org?: string; desde?: string }>;
@@ -60,6 +61,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const intuitAvailability = await resolveIntuitSsoAvailability(organizationIdHint, requestHost);
   const showIntuitSso = intuitAvailability ?? params.desde === "integracion";
 
+  const googleTrack = passwordBillingTrack === "integration" ? "integracion" : "plataforma";
+  const googleHref = `/api/auth/google/start${orgQuery}${orgQuery ? "&" : "?"}desde=${googleTrack}`;
+  // La ventana emergente se usa solo donde resuelve algo: en un dominio propio,
+  // el boton clasico obliga a saltar al dominio canonico y volver con la sesion
+  // por un puente. En el dominio canonico no hay salto que evitar, asi que ahi
+  // se deja el camino de siempre. Sin client_id configurado tampoco se activa.
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+  const useGooglePopup = Boolean(googleClientId) && Boolean(tenantBranding);
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_var(--gbp-surface)_0%,_var(--gbp-bg)_48%,_var(--gbp-bg2)_100%)] px-6 py-10">
       <div className="w-full max-w-md">
@@ -96,8 +106,23 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </p>
 
           <div className="mb-4">
-            <GoogleSignInButton href={`/api/auth/google/start${orgQuery}${orgQuery ? "&" : "?"}desde=${passwordBillingTrack === "integration" ? "integracion" : "plataforma"}`} />
+            {useGooglePopup ? (
+              <GooglePopupSignInButton
+                clientId={googleClientId}
+                organizationHint={effectiveOrganizationHint}
+                billingTrack={googleTrack}
+                fallbackHref={googleHref}
+              />
+            ) : (
+              <GoogleSignInButton href={googleHref} />
+            )}
           </div>
+          {useGooglePopup ? (
+            <p className="mb-4 text-center text-[11px] leading-[1.5] text-[var(--gbp-text2)]">
+              Vas a autorizar a GetBackplate, la plataforma que opera{" "}
+              {tenantBranding?.companyName ?? "tu empresa"}.
+            </p>
+          ) : null}
           <div className="mb-4 flex items-center gap-3 text-xs text-[var(--gbp-muted)]">
             <span className="h-px flex-1 bg-[var(--gbp-border)]" />
             or
