@@ -103,11 +103,19 @@ async function resolveChecklistAudienceContacts(input: ChecklistAudienceInput) {
 // Email Delivery
 // ---------------------------------------------------------------------------
 
+/**
+ * El mail de "te asignaron un checklist".
+ *
+ * Es el unico mail del modulo, y sale solo si el checklist tiene tildado
+ * "Enviar también por email". Cuando alguien COMPLETA un checklist no se manda
+ * mail a nadie: ese aviso va por campanita y push y siempre, sin depender de
+ * ninguna casilla (ver notifyChecklistSubmitted). Habia una rama 'submitted'
+ * escrita aca que no llamaba nadie -- se saco para que no se conecte por error.
+ */
 export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput & TrazaDelEnvio & {
   templateName: string;
-  event: "created" | "updated" | "submitted";
+  event: "created" | "updated";
   itemsCount: number;
-  flaggedCount?: number;
   /**
    * Como se llama quien lo mando. Antes se mandaba `actorEmail` y el mail
    * mostraba la direccion cruda de la persona.
@@ -127,30 +135,18 @@ export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput &
   const branding = await getTenantEmailBranding(input.organizationId);
   // El mail estaba escrito en ingles mientras el push y la campanita del mismo
   // evento salian en español: la misma persona recibia el aviso en dos idiomas.
-  const encabezado =
-    input.event === "created"
-      ? "Nuevo checklist"
-      : input.event === "updated"
-        ? "Checklist actualizado"
-        : "Checklist completado";
-  const quienLabel =
-    input.event === "created" ? "Lo creó" : input.event === "updated" ? "Lo actualizó" : "Lo completó";
+  const encabezado = input.event === "created" ? "Nuevo checklist" : "Checklist actualizado";
+  const quienLabel = input.event === "created" ? "Lo creó" : "Lo actualizó";
   const quien = input.actorName ?? "Un usuario interno";
-  const boton = input.event === "submitted" ? "Ver el reporte" : "Ver los checklists";
+  const boton = "Ver los checklists";
 
   const subject = `${encabezado}: ${input.templateName}`;
   const brandedSubject = buildBrandedEmailSubject(subject, branding);
-
-  const lineaIncidencias =
-    input.event === "submitted"
-      ? `<p style="margin:0 0 8px 0;color:#444;">Incidencias: <strong>${input.flaggedCount ?? 0}</strong></p>`
-      : "";
 
   const html = `
     <h2 style="margin:0 0 10px 0;">${encabezado}</h2>
     <p style="margin:0 0 8px 0;color:#444;">Plantilla: <strong>${input.templateName}</strong></p>
     <p style="margin:0 0 8px 0;color:#444;">Ítems: <strong>${input.itemsCount}</strong></p>
-    ${lineaIncidencias}
     <p style="margin:0 0 14px 0;color:#444;">${quienLabel}: <strong>${quien}</strong></p>
     <p style="margin:14px 0 0 0;"><a href="${reportsUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">${boton}</a></p>
   `;
@@ -159,12 +155,9 @@ export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput &
     encabezado,
     `Plantilla: ${input.templateName}`,
     `Ítems: ${input.itemsCount}`,
-    input.event === "submitted" ? `Incidencias: ${input.flaggedCount ?? 0}` : null,
     `${quienLabel}: ${quien}`,
     `${boton}: ${reportsUrl}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  ].join("\n");
 
   await Promise.allSettled(
     contacts.emails.map((to) =>
@@ -197,11 +190,17 @@ export async function sendChecklistAudienceEmail(input: ChecklistAudienceInput &
 // Push Delivery (siempre activo, no es opcional)
 // ---------------------------------------------------------------------------
 
+/**
+ * El aviso de "te asignaron un checklist", por campanita y push.
+ *
+ * Solo cubre el reparto: el aviso de que alguien lo completo lo manda
+ * notifyChecklistSubmitted, a quien lo creo y a los admins. Habia una rama
+ * 'submitted' escrita aca que no llamaba nadie, y que competia con esa.
+ */
 export async function sendChecklistAudiencePush(input: ChecklistAudienceInput & TrazaDelEnvio & {
   templateName: string;
-  event: "created" | "updated" | "submitted";
+  event: "created" | "updated";
   itemsCount: number;
-  flaggedCount?: number;
   /** Como se llama quien lo manda. En el reparto automatico, quien creo la plantilla. */
   actorName?: string | null;
   /** Quien acaba de mandarlo: no se le avisa de lo suyo. */
@@ -213,18 +212,12 @@ export async function sendChecklistAudiencePush(input: ChecklistAudienceInput & 
   const title =
     input.event === "created"
       ? `Nuevo checklist: ${input.templateName}`
-      : input.event === "updated"
-        ? `Checklist actualizado: ${input.templateName}`
-        : `Checklist enviado: ${input.templateName}`;
+      : `Checklist actualizado: ${input.templateName}`;
 
   // Quien lo manda va primero: era lo que faltaba para saber de quien viene el
   // checklist que te toca operar. El conteo se dice igual que en el aviso de
   // completado ("5 ítems"), que antes decia "Items: 5".
-  const detalle =
-    input.event === "submitted"
-      ? `${input.itemsCount} ítems${input.flaggedCount ? ` · ${input.flaggedCount} incidencias` : ""}`
-      : `${input.itemsCount} ítems`;
-  const body = [input.actorName, detalle].filter(Boolean).join(" · ");
+  const body = [input.actorName, `${input.itemsCount} ítems`].filter(Boolean).join(" · ");
 
   // La audiencia de un checklist se resuelve por sucursal, departamento y
   // puesto: es mayormente gente del portal. Cada rol recibe su propio link.

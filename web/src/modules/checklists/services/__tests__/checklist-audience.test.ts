@@ -158,17 +158,6 @@ describe("el push del reparto", () => {
     expect(mocks.push.mock.calls[0][0].userIds).toEqual(["jefa"]);
   });
 
-  it("cuenta las incidencias cuando el checklist ya fue completado", async () => {
-    await sendChecklistAudiencePush({
-      ...base,
-      event: "submitted",
-      itemsCount: 5,
-      flaggedCount: 2,
-      actorName: "Ana Pérez",
-    });
-
-    expect(mocks.push.mock.calls[0][0].payload.body).toBe("Ana Pérez · 5 ítems · 2 incidencias");
-  });
 });
 
 describe("el mail del reparto", () => {
@@ -190,22 +179,6 @@ describe("el mail del reparto", () => {
     // Lo que decia antes, que convivia con un push en español.
     expect(enviado.html).not.toContain("Created by");
     expect(enviado.html).not.toContain("New checklist");
-  });
-
-  it("el de completado suma las incidencias y manda a ver el reporte", async () => {
-    await sendChecklistAudienceEmail({
-      ...base,
-      event: "submitted",
-      itemsCount: 5,
-      flaggedCount: 2,
-      actorName: "Ana Pérez",
-    });
-
-    const enviado = mocks.email.mock.calls[0][0];
-    expect(enviado.subject).toBe("Checklist completado: Apertura");
-    expect(enviado.text).toContain("Incidencias: 2");
-    expect(enviado.text).toContain("Lo completó: Ana Pérez");
-    expect(enviado.html).toContain("Ver el reporte");
   });
 
   it("tampoco le manda el mail a quien acaba de mandarlo", async () => {
