@@ -130,14 +130,24 @@ export function relativeFromNow(value: string | null) {
   return `hace ${hours}h`;
 }
 
+/**
+ * El color del circulo con las iniciales de cada persona.
+ *
+ * Los valores van directo a un `style` inline, asi que tienen que ser CSS
+ * valido. Cuatro de los seis venian escritos con guiones bajos --
+ * `color-mix(in_oklab,...)` -- que es la forma de Tailwind para las clases
+ * arbitrarias, no CSS: el navegador los descartaba y el circulo quedaba sin
+ * fondo, con el texto blanco sobre blanco. Se veia el avatar de unas personas
+ * si y de otras no, segun donde cayera su hash.
+ */
 export function colorForUser(userId: string) {
   const palette = [
     "var(--gbp-accent)",
-    "color-mix(in_oklab,var(--gbp-accent)_65%,black)",
+    "color-mix(in oklab, var(--gbp-accent) 65%, black)",
     "var(--gbp-success)",
-    "color-mix(in_oklab,var(--gbp-accent)_80%,var(--gbp-success))",
-    "color-mix(in_oklab,var(--gbp-accent)_72%,black)",
-    "color-mix(in_oklab,var(--gbp-success)_72%,black)",
+    "color-mix(in oklab, var(--gbp-accent) 80%, var(--gbp-success))",
+    "color-mix(in oklab, var(--gbp-accent) 72%, black)",
+    "color-mix(in oklab, var(--gbp-success) 72%, black)",
   ];
   let hash = 0;
   for (const char of userId) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;

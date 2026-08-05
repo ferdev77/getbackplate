@@ -184,6 +184,25 @@ describe("colorForUser", () => {
       expect(typeof colorForUser(id)).toBe("string");
     }
   });
+
+  it("devuelve CSS que el navegador entienda, no clases de Tailwind", () => {
+    // Cuatro de los seis colores venian con guiones bajos en vez de espacios
+    // -- `color-mix(in_oklab,...)`, que es la forma de Tailwind para clases
+    // arbitrarias. Como el valor va a un style inline, el navegador lo
+    // descartaba y el circulo quedaba sin fondo: el avatar se veia en unas
+    // personas y en otras no. Que sea un string no alcanza como prueba.
+    const colores = new Set<string>();
+    for (let i = 0; i < 200; i++) colores.add(colorForUser(`usuario-${i}`));
+
+    // Con 200 ids tienen que haber salido los seis de la paleta.
+    expect(colores.size).toBe(6);
+    for (const color of colores) {
+      expect(color).not.toMatch(/_/);
+      if (color.startsWith("color-mix")) {
+        expect(color).toMatch(/^color-mix\(in oklab, .+\)$/);
+      }
+    }
+  });
 });
 
 describe("resolveChecklistHistoryItemMeta", () => {
