@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { GoogleSignInButton } from "@/shared/ui/google-sign-in-button";
+
 /**
  * Boton de Google que abre una ventana emergente en vez de sacar al usuario de
  * la pagina.
@@ -192,16 +194,11 @@ export function GooglePopupSignInButton({
     };
   }, [clientId, handleCredential]);
 
+  // El camino largo se muestra con el boton de siempre, no con una copia: si
+  // se degrada, el usuario tiene que ver exactamente lo que veia antes, con su
+  // logo. Duplicar el marcado ya hizo que el respaldo saliera sin el icono.
   if (degraded) {
-    return (
-      <a
-        href={fallbackHref}
-        aria-label="Sign in with Google"
-        className="flex h-10 w-full items-center justify-center gap-3 rounded-[var(--gbp-radius-lg)] border border-[var(--gbp-border2)] bg-white px-4 text-sm font-medium text-[#3c4043] shadow-sm transition hover:bg-gray-50"
-      >
-        Sign in with Google
-      </a>
-    );
+    return <GoogleSignInButton href={fallbackHref} />;
   }
 
   return (

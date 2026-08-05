@@ -31,13 +31,17 @@ const nextConfig: NextConfig = {
     // For a hardened prod setup, replace with nonce-based CSP via middleware.
     const baseCspDirectives = [
       `default-src 'self'`,
-      `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.docuseal.com https://docuseal.com https://*.docuseal.com`,
+      // accounts.google.com: el inicio de sesion con Google en ventana emergente
+      // (ver shared/ui/google-popup-sign-in-button.tsx). Necesita las cuatro
+      // entradas -- script, iframe de comunicacion, llamadas y avatares -- y sin
+      // alguna de ellas el boton no llega a dibujarse y cae al camino largo.
+      `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://cdn.jsdelivr.net https://cdn.docuseal.com https://docuseal.com https://*.docuseal.com`,
       `worker-src 'self' blob:`,
-      `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
+      `style-src 'self' 'unsafe-inline' https://accounts.google.com https://fonts.googleapis.com`,
       `font-src 'self' https://fonts.gstatic.com`,
-      `img-src 'self' data: blob: https://${supabaseHost} https://*.supabase.co https://docuseal.com https://*.docuseal.com https://docuseal.s3.amazonaws.com`,
-      `connect-src 'self' https://${supabaseHost} https://*.supabase.co wss://${supabaseHost} wss://*.supabase.co https://sentry.io https://*.sentry.io https://api.brevo.com https://api.docuseal.com https://docuseal.com https://cdn.docuseal.com https://*.docuseal.com`,
-      `frame-src 'self' https://docuseal.com https://*.docuseal.com`,
+      `img-src 'self' data: blob: https://${supabaseHost} https://*.supabase.co https://lh3.googleusercontent.com https://docuseal.com https://*.docuseal.com https://docuseal.s3.amazonaws.com`,
+      `connect-src 'self' https://${supabaseHost} https://*.supabase.co wss://${supabaseHost} wss://*.supabase.co https://accounts.google.com https://sentry.io https://*.sentry.io https://api.brevo.com https://api.docuseal.com https://docuseal.com https://cdn.docuseal.com https://*.docuseal.com`,
+      `frame-src 'self' https://accounts.google.com https://docuseal.com https://*.docuseal.com`,
       `base-uri 'self'`,
       `form-action 'self'${publicAppHostname ? ` https://${publicAppHostname}` : ""}`,
       `object-src 'none'`,
