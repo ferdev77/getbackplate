@@ -68,7 +68,18 @@ describe("QBO to R365 pure pipeline", () => {
   });
 
   it("normalizes CreditMemo amounts and tax as negative R365 values", () => {
-    const lines = normalize("credit");
+    const invoiceTotals = new Map<string, number>();
+    const lines = normalizeQboRows({
+      invoices: [],
+      salesReceipts: [],
+      creditMemos: [baseTransaction],
+      template: "by_item",
+      taxMode: "header",
+      mappings: [],
+      itemSkuMap: new Map([["item-1", "SKU-001"]]),
+      customerAcctNumMap: new Map([["customer-1", "LOC-10"]]),
+      invoiceTotalsOut: invoiceTotals,
+    });
 
     expect(lines[0]).toMatchObject({
       transactionTypeCode: "2",
@@ -79,6 +90,7 @@ describe("QBO to R365 pure pipeline", () => {
       qboStatusRaw: "Credit Memo",
     });
     expect(lines[1]).toMatchObject({ transactionTypeCode: "2", unitPrice: -10, lineAmount: -10 });
+    expect(invoiceTotals.get("txn-1")).toBe(-110);
   });
 
   it("applies nested mappings and deterministic defaults without mutating the source", () => {

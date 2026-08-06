@@ -76,7 +76,7 @@ export function normalizeQboRows(input: {
     const invoiceNumber = row.data.DocNumber || `QBO-${invoiceId}`;
     const invoiceDate = row.data.TxnDate || input.today || new Date().toISOString().slice(0, 10);
     const totalAmount = Number(row.data.TotalAmt ?? 0);
-    input.invoiceTotalsOut?.set(invoiceId, totalAmount);
+    input.invoiceTotalsOut?.set(invoiceId, row.kind === "credit" ? -totalAmount : totalAmount);
     const balanceAmount = Number(row.data.Balance ?? Number.NaN);
     const qboPaymentStatus: NormalizedInvoiceLine["qboPaymentStatus"] = row.kind === "credit"
       ? "not_applicable"
