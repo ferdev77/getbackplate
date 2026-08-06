@@ -282,9 +282,12 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
           <GoogleOAuthSettingsCard
             enabled={customBrandingEnabled}
             initialStatus={googleOAuthStatus}
-            callbackUrls={googleCallbackUrls}
-            disabledReason={googleOAuthDisabledReason}
-            result={params.google_oauth}
+          callbackUrls={googleCallbackUrls}
+          disabledReason={googleOAuthDisabledReason}
+          continueUrl={activeCustomDomain && requestHost !== activeCustomDomain.domain
+            ? `https://${activeCustomDomain.domain}/app/settings#google-oauth-branding`
+            : undefined}
+          result={params.google_oauth}
             resultMessage={params.message}
           />
         ) : null}

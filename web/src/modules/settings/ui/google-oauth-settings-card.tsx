@@ -18,6 +18,7 @@ export function GoogleOAuthSettingsCard({
   initialStatus,
   callbackUrls,
   disabledReason,
+  continueUrl,
   result,
   resultMessage,
 }: {
@@ -25,6 +26,7 @@ export function GoogleOAuthSettingsCard({
   initialStatus: GoogleOAuthStatus;
   callbackUrls: string[];
   disabledReason?: string;
+  continueUrl?: string;
   result?: string;
   resultMessage?: string;
 }) {
@@ -188,7 +190,16 @@ export function GoogleOAuthSettingsCard({
         </>
       ) : (
         <div className="mt-4 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3 text-xs text-[var(--gbp-text2)]">
-          {disabledReason ?? <>El módulo <strong>Custom Branding</strong> debe estar activo para configurar una identidad propia en Google.</>}
+          <p>{disabledReason ?? <>El módulo <strong>Custom Branding</strong> debe estar activo para configurar una identidad propia en Google.</>}</p>
+          {continueUrl ? (
+            <a
+              href={continueUrl}
+              className="mt-3 inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--gbp-accent)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--gbp-accent-hover)]"
+            >
+              <KeyRound className="h-4 w-4" />
+              Abrir configuración en el dominio personalizado
+            </a>
+          ) : null}
         </div>
       )}
 
