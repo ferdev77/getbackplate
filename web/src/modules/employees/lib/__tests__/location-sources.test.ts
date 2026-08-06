@@ -125,6 +125,11 @@ describe("nadie mas resuelve locaciones por su cuenta", () => {
     "app/api/employee/checklists/reports/route.ts",
     "app/api/employee/checklists/review/route.ts",
     "shared/lib/employee-documents-root-folder.ts",
+    // Suben un documento al expediente desde el portal: traen la fila del
+    // empleado y se la pasan a isEmployeeInScope para no dejar que un RRHH
+    // delegado toque a alguien de otra locacion.
+    "app/api/employee/employees/documents/upload/route.ts",
+    "app/api/employee/employees/documents/upload/upload-url/route.ts",
   ]);
 
   function recorrer(dir: string): string[] {

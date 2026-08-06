@@ -19,6 +19,12 @@ import {
   upsertEmployeeContractDocument,
 } from "@/modules/employees/services/company-employees-route-support";
 import { resolveHrScope, isEmployeeInScope } from "@/modules/employees/lib/api-scope";
+import {
+  attachEmployeeDocumentUploads,
+  readEmployeeDocumentUploads,
+  removeStagedEmployeeUploads,
+  rollbackEmployeeDocumentUploads,
+} from "@/modules/employees/services/employee-documents-upload.service";
 import { EMPLOYEES_MESSAGES } from "@/shared/lib/employees-messages";
 import { camposDeAlcance } from "@/modules/employees/lib/location-sources";
 
@@ -450,6 +456,15 @@ export async function POST(request: Request) {
   let createdAuthUserId: string | null = null;
   let createdMembershipForLinkedUser = false;
 
+  // ── Documentos del expediente ──
+  // Se leen recien aca, con las validaciones baratas ya pasadas, porque traerlos
+  // implica bajar los bytes de la carpeta de paso.
+  const documentUploads = await readEmployeeDocumentUploads({ formData, organizationId });
+  if (!documentUploads.ok) {
+    await removeStagedEmployeeUploads(documentUploads.stagingPaths);
+    return NextResponse.json({ error: documentUploads.message }, { status: 400 });
+  }
+
   // ── Employee profile flow ──
   if (isEmployeeProfile) {
     let upsertedEmployeeId: string | null = null;
@@ -721,6 +736,44 @@ export async function POST(request: Request) {
       }
     }
 
+    // ── Documentos del expediente ──
+    if (documentUploads.uploads.length) {
+      const attached = await attachEmployeeDocumentUploads({
+        organizationId,
+        employeeId: upsertedEmployeeId,
+        actorId,
+        branchId,
+        locationScopeIds,
+        departmentId,
+        linkedUserId,
+        firstName,
+        lastName,
+        uploads: documentUploads.uploads,
+      });
+
+      if (!attached.ok) {
+        // Se revierten solo los documentos. En una edicion, tirar abajo al
+        // empleado por un archivo fallido seria peor que quedarse sin el
+        // archivo; en un alta el empleado queda creado y el aviso dice que
+        // faltan los documentos.
+        await rollbackEmployeeDocumentUploads({
+          organizationId,
+          documentIds: attached.documentIds,
+          paths: attached.paths,
+        });
+        await removeStagedEmployeeUploads(documentUploads.stagingPaths);
+
+        return NextResponse.json(
+          {
+            error: `${isEditMode ? "Se guardaron los cambios" : "Se creo el empleado"}, pero no se pudieron guardar los documentos: ${attached.message}`,
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    await removeStagedEmployeeUploads(documentUploads.stagingPaths);
+
     await logAuditEvent({
       action: isEditMode ? "employee.update" : "employee.create",
       entityType: "employee",
@@ -730,7 +783,7 @@ export async function POST(request: Request) {
       outcome: "success",
       severity: "low",
       actorId,
-      metadata: { via: "hr_delegation" },
+      metadata: { via: "hr_delegation", documentos: documentUploads.uploads.length },
     });
 
     return NextResponse.json({ ok: true, employeeId: upsertedEmployeeId });
@@ -738,6 +791,17 @@ export async function POST(request: Request) {
 
   // ── Usuario sin perfil de empleado ──
   {
+    // Un usuario sin perfil de empleado no tiene expediente donde colgar los
+    // documentos. Se avisa en vez de aceptarlos y perderlos, que es lo que
+    // hacia esta ruta antes de manejarlos.
+    if (documentUploads.uploads.length) {
+      await removeStagedEmployeeUploads(documentUploads.stagingPaths);
+      return NextResponse.json(
+        { error: "Los documentos solo se pueden guardar en un perfil de empleado" },
+        { status: 400 },
+      );
+    }
+
     let userLinkedUserId: string | null = null;
 
     if (organizationUserProfileId) {

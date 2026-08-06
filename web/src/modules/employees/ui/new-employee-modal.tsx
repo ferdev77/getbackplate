@@ -291,7 +291,13 @@ export function NewEmployeeModal({
       return;
     }
 
-    const endpoint = isEmployeeSelfMode ? selfProfileUploadEndpoint : "/api/company/employees/documents/upload";
+    // El destino sale de apiEndpoint y no de una constante: la misma pantalla
+    // corre en el panel de empresa y en el portal, y el endpoint de empresa
+    // exige rol company_admin. Apuntar siempre alli le devolvia 403 a quien
+    // tenia la gestion de empleados delegada.
+    const endpoint = isEmployeeSelfMode
+      ? selfProfileUploadEndpoint
+      : `${apiEndpoint}/documents/upload`;
     const employeeUploadInflightKey = "gbp.employee.docs.upload.inflight";
     const formData = new FormData();
     formData.set("slot", slot);
