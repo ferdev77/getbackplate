@@ -6,6 +6,7 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { revalidateDocumentsCaches } from "@/modules/documents/revalidate-cache";
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
 import { analyzeUploadedFile } from "@/shared/lib/file-security";
+import { readUploadedFile, removeUploadedFile } from "@/shared/lib/direct-upload";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
 import { assertPlanLimitForStorage, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
 import { isEmployeeLinkedDocument } from "@/shared/lib/document-domain";
@@ -81,37 +82,64 @@ export async function POST(request: Request) {
   const requestedPositions = normalizeScopeSelection(formData.getAll("position_scope").map(String), { allowAllToken: true });
   const requestedUsers = normalizeScopeSelection(formData.getAll("user_scope").map(String), { allowAllToken: true });
   const scopeMode = parseScopeIntent(formData.get("scope_mode"));
+
+  const admin = createSupabaseAdminClient();
+
+  // Dos formas de llegar aca. La normal es la subida directa: el archivo ya
+  // esta en storage y solo viaja su ruta, porque el borde corta los cuerpos de
+  // mas de 4.5 MB (ver shared/lib/direct-upload.ts). La otra es el formulario
+  // clasico con el archivo adentro, que se mantiene por compatibilidad.
+  const storagePathInput = String(formData.get("storage_path") ?? "").trim();
+  const uploadedNameInput = String(formData.get("original_file_name") ?? "").trim();
   const file = formData.get("file");
-  if (!(file instanceof File) || file.size <= 0) {
+
+  // Solo hay que limpiar el huerfano cuando los bytes ya estaban en storage
+  // antes de validarlos: en el camino clasico todavia no se subio nada.
+  let orphanPath: string | null = null;
+  const fail = async (message: string, status: number) => {
+    if (orphanPath) await removeUploadedFile(admin, orphanPath);
+    return NextResponse.json({ error: message }, { status });
+  };
+
+  let sourceFile: File;
+
+  if (storagePathInput) {
+    const expectedPrefix = `${access.tenant.organizationId}/employee-owned/${access.userId}/`;
+    if (!isSafeTenantStoragePath(storagePathInput, access.tenant.organizationId) || !storagePathInput.startsWith(expectedPrefix)) {
+      return NextResponse.json({ error: "Ruta invalida" }, { status: 400 });
+    }
+
+    const stored = await readUploadedFile(admin, storagePathInput, uploadedNameInput);
+    if (!stored.ok) {
+      return NextResponse.json({ error: stored.message }, { status: 400 });
+    }
+
+    orphanPath = storagePathInput;
+    sourceFile = stored.file;
+  } else if (file instanceof File && file.size > 0) {
+    sourceFile = file;
+  } else {
     return NextResponse.json({ error: "Selecciona un archivo" }, { status: 400 });
   }
 
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    return NextResponse.json({ error: "El archivo supera 10MB" }, { status: 400 });
+  if (sourceFile.size > MAX_FILE_SIZE_BYTES) {
+    return fail("El archivo supera 10MB", 400);
   }
 
   let analysis: Awaited<ReturnType<typeof analyzeUploadedFile>>;
   try {
-    analysis = await analyzeUploadedFile(file);
+    analysis = await analyzeUploadedFile(sourceFile);
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Archivo inválido" },
-      { status: 400 },
-    );
+    return fail(error instanceof Error ? error.message : "Archivo inválido", 400);
   }
 
   try {
-    await assertPlanLimitForStorage(access.tenant.organizationId, file.size);
+    await assertPlanLimitForStorage(access.tenant.organizationId, sourceFile.size);
   } catch (error) {
-    return NextResponse.json(
-      { error: getPlanLimitErrorMessage(error, "Limite de almacenamiento alcanzado") },
-      { status: 400 },
-    );
+    return fail(getPlanLimitErrorMessage(error, "Limite de almacenamiento alcanzado"), 400);
   }
 
-  const title = titleInput || file.name;
-
-  const admin = createSupabaseAdminClient();
+  const title = titleInput || uploadedNameInput || sourceFile.name;
 
   let folderId: string | null = null;
   const allowedLocations = await resolveEmployeeAllowedLocationIds(access.tenant.organizationId, access.userId);
@@ -128,7 +156,7 @@ export async function POST(request: Request) {
   });
 
   if (!locationPolicy.ok) {
-    return NextResponse.json({ error: "No puedes seleccionar locaciones fuera de tu alcance" }, { status: 403 });
+    return fail("No puedes seleccionar locaciones fuera de tu alcance", 403);
   }
 
   const requestedRootScope: AccessScope = {
@@ -146,7 +174,7 @@ export async function POST(request: Request) {
     userIds: requestedUsers,
   });
   if (!intentCheck.ok) {
-    return NextResponse.json({ error: intentCheck.message }, { status: 400 });
+    return fail(intentCheck.message, 400);
   }
 
   const scopeValidation = await validateTenantScopeReferences({
@@ -160,7 +188,7 @@ export async function POST(request: Request) {
   });
 
   if (!scopeValidation.ok) {
-    return NextResponse.json({ error: "El alcance seleccionado no es válido" }, { status: 400 });
+    return fail("El alcance seleccionado no es válido", 400);
   }
 
   const userScopePolicy = await validateEmployeeUserScopeWithinLocations({
@@ -175,7 +203,7 @@ export async function POST(request: Request) {
   });
 
   if (!userScopePolicy.ok) {
-    return NextResponse.json({ error: "Solo puedes agregar usuarios de tus locaciones permitidas" }, { status: 400 });
+    return fail("Solo puedes agregar usuarios de tus locaciones permitidas", 400);
   }
 
   if (folderIdInput) {
@@ -187,10 +215,10 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (!folder) {
-      return NextResponse.json({ error: "Carpeta inválida" }, { status: 400 });
+      return fail("Carpeta inválida", 400);
     }
     if (folder.created_by !== access.userId) {
-      return NextResponse.json({ error: "Solo puedes subir archivos a carpetas creadas por ti" }, { status: 403 });
+      return fail("Solo puedes subir archivos a carpetas creadas por ti", 403);
     }
 
     folderId = folder.id;
@@ -204,19 +232,23 @@ export async function POST(request: Request) {
     scope = requestedRootScope;
   }
 
-  await ensureBucketExists();
-  const path = `${access.tenant.organizationId}/employee-owned/${access.userId}/${Date.now()}-${analysis.safeName}`;
+  // En la subida directa los bytes ya estan en storage y la ruta se conserva
+  // tal cual la firmo /upload-url; solo el camino clasico tiene que subirlos.
+  const path = orphanPath ?? `${access.tenant.organizationId}/employee-owned/${access.userId}/${Date.now()}-${analysis.safeName}`;
   if (!isSafeTenantStoragePath(path, access.tenant.organizationId)) {
-    return NextResponse.json({ error: "Ruta invalida" }, { status: 400 });
+    return fail("Ruta invalida", 400);
   }
 
-  const { error: uploadError } = await admin.storage.from(BUCKET_NAME).upload(path, file, {
-    contentType: analysis.normalizedMime,
-    upsert: false,
-  });
+  if (!orphanPath) {
+    await ensureBucketExists();
+    const { error: uploadError } = await admin.storage.from(BUCKET_NAME).upload(path, sourceFile, {
+      contentType: analysis.normalizedMime,
+      upsert: false,
+    });
 
-  if (uploadError) {
-    return NextResponse.json({ error: uploadError.message }, { status: 400 });
+    if (uploadError) {
+      return NextResponse.json({ error: uploadError.message }, { status: 400 });
+    }
   }
 
   const { data: createdDoc, error: insertError } = await admin
@@ -230,7 +262,7 @@ export async function POST(request: Request) {
       mime_type: analysis.normalizedMime,
       original_file_name: analysis.originalName,
       checksum_sha256: analysis.checksumSha256,
-      file_size_bytes: file.size,
+      file_size_bytes: sourceFile.size,
       access_scope: scope,
       folder_id: folderId,
     })

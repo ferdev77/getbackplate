@@ -24,6 +24,25 @@ function sanitizeFileName(name: string) {
     .replace(/^-|-$/g, "");
 }
 
+/**
+ * Version publica de la limpieza de nombre: la subida directa necesita armar la
+ * ruta de storage antes de tener los bytes, y esa ruta tiene que coincidir con
+ * la que produce analyzeUploadedFile cuando el archivo ya esta arriba.
+ */
+export function toSafeUploadName(name: string) {
+  return sanitizeFileName(name || "archivo") || "archivo";
+}
+
+/**
+ * Chequeo por nombre que se puede correr sin leer el archivo. Es la unica
+ * barrera disponible antes de firmar la URL de subida directa; el analisis
+ * real por firma de bytes sigue corriendo despues, al registrar.
+ */
+export function isBlockedUploadExtension(name: string) {
+  const extension = getFileExtension(sanitizeFileName(name || ""));
+  return Boolean(extension) && BLOCKED_EXTENSIONS.has(extension);
+}
+
 function getFileExtension(name: string) {
   const idx = name.lastIndexOf(".");
   if (idx <= 0 || idx === name.length - 1) return "";

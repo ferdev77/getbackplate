@@ -10,6 +10,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { revalidateDocumentsCaches } from "@/modules/documents/revalidate-cache";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { analyzeUploadedFile } from "@/shared/lib/file-security";
+import { readUploadedFile, removeUploadedFile } from "@/shared/lib/direct-upload";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { assertPlanLimitForStorage, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
@@ -234,26 +235,57 @@ export async function POST(request: Request) {
   const positionScopes = normalizeScopeSelection(rawPositionScopes, { allowAllToken: true });
   const userScopes = normalizeScopeSelection(rawUserScopes, { allowAllToken: true });
   const scopeMode = formData.get("scope_mode");
+
+  const admin = createSupabaseAdminClient();
+
+  // Dos formas de llegar aca. La normal es la subida directa: el archivo ya
+  // esta en storage y solo viaja su ruta, porque el borde corta los cuerpos de
+  // mas de 4.5 MB (ver shared/lib/direct-upload.ts). La otra es el formulario
+  // clasico con el archivo adentro, que se mantiene por compatibilidad.
+  const storagePathInput = String(formData.get("storage_path") ?? "").trim();
+  const uploadedNameInput = String(formData.get("original_file_name") ?? "").trim();
   const file = formData.get("file");
 
-  if (!(file instanceof File) || file.size === 0) {
+  // Solo hay que limpiar el huerfano cuando los bytes ya estaban en storage
+  // antes de validarlos: en el camino clasico todavia no se subio nada.
+  let orphanPath: string | null = null;
+  const fail = async (message: string, status: number) => {
+    if (orphanPath) await removeUploadedFile(admin, orphanPath);
+    return NextResponse.json({ error: message }, { status });
+  };
+
+  let sourceFile: File;
+
+  if (storagePathInput) {
+    if (!isSafeTenantStoragePath(storagePathInput, tenant.organizationId)) {
+      return NextResponse.json({ error: "Ruta de archivo inválida para esta empresa" }, { status: 400 });
+    }
+
+    const stored = await readUploadedFile(admin, storagePathInput, uploadedNameInput);
+    if (!stored.ok) {
+      return NextResponse.json({ error: stored.message }, { status: 400 });
+    }
+
+    orphanPath = storagePathInput;
+    sourceFile = stored.file;
+  } else if (file instanceof File && file.size > 0) {
+    sourceFile = file;
+  } else {
     return NextResponse.json({ error: "Selecciona un archivo" }, { status: 400 });
   }
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    return NextResponse.json({ error: "El archivo supera el limite de 10MB" }, { status: 400 });
+
+  if (sourceFile.size > MAX_FILE_SIZE_BYTES) {
+    return fail("El archivo supera el limite de 10MB", 400);
   }
+
+  const fileName = uploadedNameInput || sourceFile.name;
 
   let analysis: Awaited<ReturnType<typeof analyzeUploadedFile>>;
   try {
-    analysis = await analyzeUploadedFile(file);
+    analysis = await analyzeUploadedFile(sourceFile);
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Archivo inválido" },
-      { status: 400 },
-    );
+    return fail(error instanceof Error ? error.message : "Archivo inválido", 400);
   }
-
-  await ensureBucketExists();
 
   let folderScope: DocumentScope | null = null;
   if (folderId) {
@@ -264,7 +296,7 @@ export async function POST(request: Request) {
       .eq("id", folderId)
       .maybeSingle();
     if (!folder) {
-      return NextResponse.json({ error: "Carpeta inválida para esta empresa" }, { status: 400 });
+      return fail("Carpeta inválida para esta empresa", 400);
     }
     folderScope = parseDocumentScope(folder.access_scope);
   }
@@ -288,7 +320,7 @@ export async function POST(request: Request) {
       userIds: userScopes,
     });
     if (!intentCheck.ok) {
-      return NextResponse.json({ error: intentCheck.message }, { status: 400 });
+      return fail(intentCheck.message, 400);
     }
   }
 
@@ -309,7 +341,7 @@ export async function POST(request: Request) {
       positions: "Hay puestos inválidos en el alcance",
       users: "Hay usuarios inválidos en el alcance",
     } as const;
-    return NextResponse.json({ error: messageByField[scopeValidation.field] }, { status: 400 });
+    return fail(messageByField[scopeValidation.field], 400);
   }
 
   const { data: existingDuplicate } = await supabase
@@ -317,34 +349,38 @@ export async function POST(request: Request) {
     .select("id, file_path, mime_type")
     .eq("organization_id", tenant.organizationId)
     .eq("checksum_sha256", analysis.checksumSha256)
-    .eq("file_size_bytes", file.size)
+    .eq("file_size_bytes", sourceFile.size)
     .limit(1)
     .maybeSingle();
 
-  const path = existingDuplicate?.file_path ?? `${tenant.organizationId}/${Date.now()}-${analysis.safeName}`;
+  // Si ya existia una copia identica se reusa su archivo. En la subida directa
+  // eso deja colgando el que acaba de subir el navegador, asi que se borra.
+  if (existingDuplicate && orphanPath && existingDuplicate.file_path !== orphanPath) {
+    await removeUploadedFile(admin, orphanPath);
+    orphanPath = null;
+  }
+
+  const path = existingDuplicate?.file_path ?? orphanPath ?? `${tenant.organizationId}/${Date.now()}-${analysis.safeName}`;
 
   if (!isSafeTenantStoragePath(path, tenant.organizationId)) {
-    return NextResponse.json({ error: "Ruta de archivo inválida para esta empresa" }, { status: 400 });
+    return fail("Ruta de archivo inválida para esta empresa", 400);
   }
 
   try {
-    await assertPlanLimitForStorage(tenant.organizationId, file.size);
+    await assertPlanLimitForStorage(tenant.organizationId, sourceFile.size);
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: getPlanLimitErrorMessage(
-          error,
-          "Limite de almacenamiento alcanzado. Actualiza tu plan para continuar.",
-        ),
-      },
-      { status: 400 },
+    return fail(
+      getPlanLimitErrorMessage(
+        error,
+        "Limite de almacenamiento alcanzado. Actualiza tu plan para continuar.",
+      ),
+      400,
     );
   }
 
-  const admin = createSupabaseAdminClient();
-
-  if (!existingDuplicate) {
-    const { error: uploadError } = await admin.storage.from(BUCKET_NAME).upload(path, file, {
+  if (!existingDuplicate && !orphanPath) {
+    await ensureBucketExists();
+    const { error: uploadError } = await admin.storage.from(BUCKET_NAME).upload(path, sourceFile, {
       contentType: analysis.normalizedMime,
       upsert: false,
     });
@@ -359,12 +395,12 @@ export async function POST(request: Request) {
       organization_id: tenant.organizationId,
       folder_id: folderId,
       owner_user_id: context.userId,
-      title: titleInput || file.name,
+      title: titleInput || fileName,
       file_path: path,
       mime_type: existingDuplicate?.mime_type || analysis.normalizedMime,
       original_file_name: analysis.originalName,
       checksum_sha256: analysis.checksumSha256,
-      file_size_bytes: file.size,
+      file_size_bytes: sourceFile.size,
       access_scope: effectiveScope,
     })
     .select("id")
@@ -377,7 +413,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `No se pudo registrar documento: ${documentError.message}` }, { status: 400 });
   }
 
-  if (file.size >= ASYNC_POST_PROCESS_THRESHOLD_BYTES && document?.id) {
+  if (sourceFile.size >= ASYNC_POST_PROCESS_THRESHOLD_BYTES && document?.id) {
     await supabase.from("document_processing_jobs").insert({
       organization_id: tenant.organizationId,
       document_id: document.id,
@@ -398,7 +434,7 @@ export async function POST(request: Request) {
       accessScope: effectiveScope,
       branchId: null,
       actorUserId: context.userId,
-      title: titleInput || file.name,
+      title: titleInput || fileName,
     });
   });
 
@@ -408,7 +444,7 @@ export async function POST(request: Request) {
     entityId: document?.id,
     organizationId: tenant.organizationId,
     actorId: context.userId,
-    metadata: { title: titleInput || file.name, folderId, size: file.size },
+    metadata: { title: titleInput || fileName, folderId, size: sourceFile.size },
     eventDomain: "documents",
     outcome: "success",
     severity: "high",
