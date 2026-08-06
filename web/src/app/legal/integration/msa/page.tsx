@@ -234,14 +234,14 @@ export default function IntegrationMsaPage() {
       <div className="schedule">
         <div className="schedule-label">Schedule B</div>
         <h2>Fees and Pricing</h2>
-        <p>GetBackplate offers multiple subscription Plans (Connect, Grow, Scale, and Enterprise), each consisting of a Base Subscription Fee, a one-time Setup Fee, a number of included R365 customer connections, and a monthly allowance of Invoices and Credit Memos, with a per-document Overage Fee applicable above that allowance. Customer selects a Plan during Stripe Checkout; the fees for the selected Plan are confirmed at that time and are also published at <Link href="/integrations/qbo-r365">getbackplate.com/integrations/qbo-r365</Link>, which is incorporated herein by reference and controls in the event this Schedule B becomes out of date.</p>
+        <p>GetBackplate offers multiple subscription Plans (Connect, Grow, Scale, and Enterprise), each consisting of a Base Subscription Fee, an optional one-time Setup Fee, a number of included R365 customer connections, and a monthly allowance of Invoices and Credit Memos, with a per-document Overage Fee applicable above that allowance. Customer selects a Plan during Stripe Checkout; the fees for the selected Plan are confirmed at that time and are also published at <Link href="/integrations/qbo-r365">getbackplate.com/integrations/qbo-r365</Link>, which is incorporated herein by reference and controls in the event this Schedule B becomes out of date.</p>
 
         <table>
           <thead>
             <tr>
               <th>Plan</th>
               <th>Base Subscription Fee</th>
-              <th>Setup Fee</th>
+              <th>Optional Setup Fee</th>
               <th>Included Connections / Invoices</th>
               <th>Overage</th>
             </tr>
@@ -250,28 +250,28 @@ export default function IntegrationMsaPage() {
             <tr>
               <td><strong>Connect</strong></td>
               <td>$269.00 USD / month</td>
-              <td>$799.00 USD, one-time</td>
+              <td>$799.00 USD, one-time, if selected</td>
               <td>1 R365 connection · 75 invoices/mo</td>
-              <td>+50-invoice pack for $39.00 USD, activated automatically when the monthly allowance is exceeded</td>
+              <td>$0.99 USD per invoice or credit memo over 75</td>
             </tr>
             <tr>
               <td><strong>Grow</strong></td>
               <td>$649.00 USD / month</td>
-              <td>$2,099.00 USD, one-time</td>
+              <td>$2,099.00 USD, one-time, if selected</td>
               <td>Up to 3 R365 connections · 250 invoices/mo</td>
               <td>$0.79 USD per invoice or credit memo over 250</td>
             </tr>
             <tr>
               <td><strong>Scale</strong></td>
               <td>$1,199.00 USD / month</td>
-              <td>$4,999.00 USD, one-time</td>
+              <td>$4,999.00 USD, one-time, if selected</td>
               <td>Up to 10 R365 connections · 1,000 invoices/mo</td>
-              <td>$0.49 USD per invoice or credit memo over 1,000 (waived entirely under Annual Billing)</td>
+              <td>$0.59 USD per invoice or credit memo over 1,000 (waived entirely under Annual Billing)</td>
             </tr>
             <tr>
               <td><strong>Enterprise</strong></td>
               <td>Custom — contact <a href="mailto:hello@getbackplate.com">hello@getbackplate.com</a></td>
-              <td>Custom</td>
+              <td>Custom, if selected</td>
               <td>Unlimited connections and invoices</td>
               <td>N/A</td>
             </tr>
@@ -280,7 +280,8 @@ export default function IntegrationMsaPage() {
 
         <h3>Notes</h3>
         <ul>
-          <li><strong>Annual Billing.</strong> Customer may elect Annual Billing for any Plan, under which Customer is charged ten (10) months of the Base Subscription Fee in exchange for twelve (12) months of Service, and the Setup Fee is discounted twenty-five percent (25%).</li>
+          <li><strong>Optional Setup Fee.</strong> Customer may decline the Setup Fee and complete onboarding without the corresponding setup service. If selected, the Setup Fee is charged once at the amount shown for the chosen Plan.</li>
+          <li><strong>Annual Billing.</strong> Customer may elect Annual Billing for any Plan, under which Customer is charged ten (10) months of the Base Subscription Fee in exchange for twelve (12) months of Service. If the optional Setup Fee is selected, it is discounted twenty-five percent (25%).</li>
           <li><strong>Additional connections.</strong> Customer may add R365 customer connections beyond the number included in their Plan for a one-time fee of $500.00 USD per additional connection plus a recurring fee of $99.00 USD per month per additional connection ($79.00 USD per month on the Scale Plan).</li>
           <li>Overage Fees apply to each unique Invoice or Credit Memo successfully delivered to R365 above the Plan&apos;s monthly allowance, regardless of the number of locations within a given R365 customer.</li>
           <li>Deduplication logic ensures that retries of the same document do not result in duplicate billing.</li>
