@@ -318,7 +318,7 @@ export async function PATCH(request: Request) {
 
   const employeeLinked = await isEmployeeLinkedDocument(admin, access.tenant.organizationId, documentId);
   if (employeeLinked) {
-    return NextResponse.json({ error: "Documento de legajo de empleado no editable" }, { status: 403 });
+    return NextResponse.json({ error: "Documento del expediente del empleado no editable" }, { status: 403 });
   }
 
   if (folderId !== undefined && folderId) {
@@ -397,7 +397,7 @@ export async function DELETE(request: Request) {
 
   const employeeLinked = await isEmployeeLinkedDocument(admin, access.tenant.organizationId, documentId);
   if (employeeLinked) {
-    return NextResponse.json({ error: "Documento de legajo de empleado no eliminable" }, { status: 403 });
+    return NextResponse.json({ error: "Documento del expediente del empleado no eliminable" }, { status: 403 });
   }
 
   const { error } = await admin

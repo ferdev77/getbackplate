@@ -274,8 +274,8 @@ export async function POST(request: Request) {
     void sendPushToUsers(
       [employee.user_id],
       {
-        title: t("Nuevo documento en tu legajo"),
-        body: t('Se agregó "{documento}" a tu legajo.', { documento: slotLabel }),
+        title: t("Nuevo documento en tu expediente"),
+        body: t('Se agregó "{documento}" a tu expediente.', { documento: slotLabel }),
         url: "/portal/documents",
       },
       { source: "employee_document_added", sourceId: `${employee.id}:${createdDoc.id}`, organizationId: tenant.organizationId },

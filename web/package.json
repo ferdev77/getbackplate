@@ -69,6 +69,8 @@
     "report:tenant-usage:csv": "node --env-file=.env.local scripts/generate-tenant-usage-report.mjs --format=csv",
     "verify:layout-guardrails": "node scripts/verify-layout-guardrails.mjs",
     "verify:spanish-copy": "node scripts/verify-spanish-copy.mjs",
+    "audit:notification-copy:dev": "node --env-file=.env.local scripts/audit-notification-regional-copy.mjs dev",
+    "audit:notification-copy:prod": "node --env-file=.env.production.local scripts/audit-notification-regional-copy.mjs production",
     "verify:qbo-r365-readiness": "node --env-file=.env.local --env-file=.env.development.local scripts/verify-qbo-r365-readiness.mjs",
     "verify:support-workflow": "node --env-file=.env.local scripts/verify-support-workflow.mjs",
     "backfill:qbo-realm-ownership": "tsx scripts/backfill-qbo-realm-ownership.ts",

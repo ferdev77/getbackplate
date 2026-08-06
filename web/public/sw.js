@@ -15,7 +15,7 @@ self.addEventListener("push", (event) => {
   } catch {
     // Payload no es JSON valido: mostramos un cartel generico en vez de
     // dejar que el navegador muestre su propio mensaje de "se actualizo".
-    data = { title: "Tenés una notificación nueva", body: "" };
+    data = { title: "GetBackplate", body: "" };
   }
 
   const options = {

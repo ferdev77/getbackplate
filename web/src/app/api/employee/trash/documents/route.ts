@@ -47,7 +47,7 @@ export async function PATCH(request: Request) {
 
   const employeeLinked = await isEmployeeLinkedDocument(admin, tenant.organizationId, documentId);
   if (employeeLinked) {
-    return NextResponse.json({ error: "Documento de legajo de empleado: no permitido" }, { status: 403 });
+    return NextResponse.json({ error: "Documento del expediente del empleado: no permitido" }, { status: 403 });
   }
 
   const { error } = await admin
@@ -114,7 +114,7 @@ export async function DELETE(request: Request) {
 
   const employeeLinked = await isEmployeeLinkedDocument(admin, tenant.organizationId, documentId);
   if (employeeLinked) {
-    return NextResponse.json({ error: "Documento de legajo de empleado: no permitido" }, { status: 403 });
+    return NextResponse.json({ error: "Documento del expediente del empleado: no permitido" }, { status: 403 });
   }
 
   const { error } = await admin

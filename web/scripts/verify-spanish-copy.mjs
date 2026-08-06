@@ -5,6 +5,7 @@ import ts from "typescript";
 
 const ROOT = process.cwd();
 const SRC_ROOT = path.join(ROOT, "src");
+const PUBLIC_ROOT = path.join(ROOT, "public");
 
 const USER_VISIBLE_ROOTS = [
   path.join("src", "app"),
@@ -13,6 +14,8 @@ const USER_VISIBLE_ROOTS = [
   path.join("src", "shared", "ui"),
   path.join("src", "infrastructure", "email"),
   path.join("src", "infrastructure", "notifications"),
+  path.join("src", "infrastructure", "push"),
+  path.join("public"),
 ];
 
 const EXCLUDED_SEGMENTS = new Set([
@@ -48,6 +51,7 @@ const VOSEO_FORMS = [
 ].filter((term) => !ALLOWED_PRODUCT_TERMS.has(term));
 
 const VOSEO_PATTERN = new RegExp(`\\b(?:${VOSEO_FORMS.join("|")})\\b`, "giu");
+const REGIONALISMS_PATTERN = /\b(?:legajo|legajos)\b/giu;
 
 function toRelative(filePath) {
   return path.relative(ROOT, filePath);
@@ -137,6 +141,11 @@ function scanFile(filePath, sourceText) {
       if (uniqueVoseoForms.length > 0) {
         addFinding(node, "voseo", `formas no neutrales: ${uniqueVoseoForms.map((form) => `"${form}"`).join(", ")}`);
       }
+      REGIONALISMS_PATTERN.lastIndex = 0;
+      const regionalisms = [...text.matchAll(REGIONALISMS_PATTERN)].map((match) => match[0]);
+      if (regionalisms.length > 0) {
+        addFinding(node, "regionalism", `regionalismos no mexicanos: ${[...new Set(regionalisms)].map((form) => `"${form}"`).join(", ")}`);
+      }
       if (/(^|\D)\+54(?:\D|$)/.test(text)) {
         addFinding(node, "phone-example", "ejemplo visible con código argentino +54");
       }
@@ -156,7 +165,10 @@ function scanFile(filePath, sourceText) {
 }
 
 async function main() {
-  const allFiles = await collectSourceFiles(SRC_ROOT);
+  const allFiles = [
+    ...await collectSourceFiles(SRC_ROOT),
+    ...await collectSourceFiles(PUBLIC_ROOT),
+  ];
   const targetFiles = allFiles.filter((filePath) => {
     const relativePath = toRelative(filePath);
     return isUserVisibleSource(relativePath) && !isExcluded(relativePath);
@@ -174,7 +186,8 @@ async function main() {
     console.error(
       `\nTotal: ${findings.length} `
       + `(voseo: ${countFor("voseo")}, es-AR: ${countFor("locale-es-ar")}, `
-      + `es-US: ${countFor("locale-es-us")}, +54: ${countFor("phone-example")}).`,
+      + `es-US: ${countFor("locale-es-us")}, regionalismos: ${countFor("regionalism")}, `
+      + `+54: ${countFor("phone-example")}).`,
     );
     console.error("\nUsa español mexicano. locación, locaciones y email están permitidos.\n");
     process.exitCode = 1;

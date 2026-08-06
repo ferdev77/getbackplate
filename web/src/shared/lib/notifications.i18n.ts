@@ -36,8 +36,8 @@ export const NOTIFICATIONS_EN: Record<string, string> = {
   'Se rechazó "{documento}".': '"{documento}" was rejected.',
   '"{documento}": {comentario}': '"{documento}": {comentario}',
 
-  "Nuevo documento en tu legajo": "New document added to your file",
-  'Se agregó "{documento}" a tu legajo.': '"{documento}" was added to your employee file.',
+  "Nuevo documento en tu expediente": "New document added to your file",
+  'Se agregó "{documento}" a tu expediente.': '"{documento}" was added to your employee file.',
 
   "Hay un documento para revisar": "Document submitted for review",
   '{persona} subió "{documento}".': '{persona} uploaded "{documento}".',

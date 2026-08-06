@@ -1024,7 +1024,7 @@ export async function POST(request: Request) {
 
   if (uniqueDocIds.length) {
     return NextResponse.json(
-      { error: "No se permite vincular documentos del módulo Documentos al legajo del empleado" },
+      { error: "No se permite vincular documentos del módulo Documentos al expediente del empleado" },
       { status: 400 },
     );
   }
