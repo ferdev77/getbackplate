@@ -8,6 +8,7 @@ import {
   processEmployeeDocumentPendingReminders,
 } from "@/modules/employees/services/document-expiration-reminders";
 import { reconcileOrphanReferralLeads } from "@/modules/leads/leads.service";
+import { purgeOrphanDocumentUploads } from "@/modules/documents/services/orphan-uploads.service";
 
 export const maxDuration = 60; // Attempt to allow up to 60s execution
 
@@ -170,6 +171,25 @@ export async function GET(request: Request) {
       task: "reconcileOrphanReferralLeads",
       status: leadReconciliation.ok ? 200 : 500,
       ...leadReconciliation,
+    });
+
+    // 11. Remove files left in storage by abandoned direct uploads. Only touches
+    // the two prefixes the upload flow writes to, and only after 24h without a
+    // matching row — see modules/documents/services/orphan-uploads.service.ts.
+    const orphanUploads = await purgeOrphanDocumentUploads();
+    await admin.from("system_maintenance_logs").insert({
+      task: "orphan_document_uploads",
+      status: orphanUploads.ok ? "success" : "failed",
+      records_affected: orphanUploads.deleted,
+      cutoff_at: new Date().toISOString(),
+      error_message: orphanUploads.ok ? null : orphanUploads.error,
+    });
+    results.push({
+      task: "purgeOrphanDocumentUploads",
+      status: orphanUploads.ok ? 200 : 500,
+      scanned: orphanUploads.scanned,
+      recordsDeleted: orphanUploads.deleted,
+      error: orphanUploads.ok ? null : orphanUploads.error,
     });
 
     return NextResponse.json({ ok: true, results });
