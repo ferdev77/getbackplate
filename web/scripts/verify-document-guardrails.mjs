@@ -21,7 +21,7 @@ const ALLOWED_MIME_TYPES = new Set([
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ]);
 
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024;
 const BUCKET_NAME = "tenant-documents";
 
 if (!DATABASE_URL) {

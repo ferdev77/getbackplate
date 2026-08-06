@@ -15,10 +15,17 @@ import { DOCUMENTS_BUCKET } from "@/shared/lib/direct-upload";
  *
  *   <org>/<timestamp>-<nombre>              -> panel de empresa
  *   <org>/employee-owned/<user>/<ts>-<nom>  -> portal de empleado
+ *   <org>/staging/employees/<ts>-<nombre>   -> alta de empleados
+ *   <org>/staging/maintenance/<ts>-<nom>    -> adjuntos de mantenimiento
  *
  * Los demas flujos siempre meten una subcarpeta con nombre propio (users/,
  * employees/, maintenance/, <submissionId>/), asi que nunca caen en el primer
  * patron, que toma unicamente archivos sueltos en la raiz de la organizacion.
+ *
+ * La carpeta de paso del alta es distinta a las otras dos: lo que cae ahi nunca
+ * se registra en ninguna tabla, porque el handler copia los bytes a su ruta
+ * definitiva y borra el original. Si algo sigue ahi despues de MIN_AGE_HOURS es
+ * porque el formulario quedo a medias.
  *
  * Ademas de esa restriccion por ubicacion hay dos redes mas: solo se considera
  * lo que lleva mas de MIN_AGE_HOURS sin registrarse, y antes de borrar se
@@ -141,6 +148,19 @@ export async function purgeOrphanDocumentUploads(options: { dryRun?: boolean } =
         scanned += 1;
         if (entry.created_at && new Date(entry.created_at).getTime() < cutoff) {
           candidates.push(`${ownerPrefix}/${entry.name}`);
+        }
+      }
+    }
+
+    // 3. Carpetas de paso del alta de empleados y de mantenimiento.
+    for (const staging of ["staging/employees", "staging/maintenance"]) {
+      const stagingPrefix = `${organizationId}/${staging}`;
+      const stagingEntries = await listAll(admin, stagingPrefix);
+      for (const entry of stagingEntries) {
+        if (!isFile(entry)) continue;
+        scanned += 1;
+        if (entry.created_at && new Date(entry.created_at).getTime() < cutoff) {
+          candidates.push(`${stagingPrefix}/${entry.name}`);
         }
       }
     }

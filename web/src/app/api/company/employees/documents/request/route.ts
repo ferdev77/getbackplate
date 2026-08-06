@@ -4,26 +4,17 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
+import { DOCUMENTS_BUCKET, ensureDocumentsBucket } from "@/shared/lib/direct-upload";
 import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
 import { createNotificationsTranslator } from "@/shared/lib/notifications.i18n";
 import { resolveUserLocale } from "@/shared/lib/locale";
 
-const BUCKET_NAME = "tenant-documents";
-const MAX_PLACEHOLDER_SIZE_BYTES = 1024 * 1024;
+const BUCKET_NAME = DOCUMENTS_BUCKET;
 
-let bucketExistsChecked = false;
-
+// El bucket es compartido con el resto de los documentos, asi que su tope lo
+// fija el helper comun y no el tamano del PDF de aviso que se genera aca.
 async function ensureBucketExists() {
-  if (bucketExistsChecked) return;
-  const admin = createSupabaseAdminClient();
-  const { data: bucket } = await admin.storage.getBucket(BUCKET_NAME);
-  if (!bucket) {
-    await admin.storage.createBucket(BUCKET_NAME, {
-      public: false,
-      fileSizeLimit: `${MAX_PLACEHOLDER_SIZE_BYTES}`,
-    });
-  }
-  bucketExistsChecked = true;
+  await ensureDocumentsBucket(createSupabaseAdminClient());
 }
 
 export async function POST(request: Request) {

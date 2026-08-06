@@ -10,7 +10,14 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { revalidateDocumentsCaches } from "@/modules/documents/revalidate-cache";
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { analyzeUploadedFile } from "@/shared/lib/file-security";
-import { readUploadedFile, removeUploadedFile } from "@/shared/lib/direct-upload";
+import {
+  DOCUMENTS_BUCKET,
+  MAX_UPLOAD_SIZE_BYTES,
+  MAX_UPLOAD_SIZE_LABEL,
+  ensureDocumentsBucket,
+  readUploadedFile,
+  removeUploadedFile,
+} from "@/shared/lib/direct-upload";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { assertPlanLimitForStorage, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
 import { buildScopeUsersCatalog } from "@/shared/lib/scope-users-catalog";
@@ -19,8 +26,8 @@ import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
 import { getEmployeeDocumentIdSet, isEmployeeLinkedDocument } from "@/shared/lib/document-domain";
 import { hasMissingColumnError } from "@/shared/lib/supabase-compat";
 
-const BUCKET_NAME = "tenant-documents";
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const BUCKET_NAME = DOCUMENTS_BUCKET;
+const MAX_FILE_SIZE_BYTES = MAX_UPLOAD_SIZE_BYTES;
 const ASYNC_POST_PROCESS_THRESHOLD_BYTES = 5 * 1024 * 1024;
 
 type DocumentScope = {
@@ -44,24 +51,8 @@ function parseDocumentScope(scope: unknown): DocumentScope {
   };
 }
 
-let bucketExistsChecked = false;
-
 async function ensureBucketExists() {
-  if (bucketExistsChecked) return;
-  
-  const admin = createSupabaseAdminClient();
-  const { data: bucket } = await admin.storage.getBucket(BUCKET_NAME);
-  if (bucket) {
-    bucketExistsChecked = true;
-    return;
-  }
-  
-  await admin.storage.createBucket(BUCKET_NAME, {
-    public: false,
-    fileSizeLimit: `${MAX_FILE_SIZE_BYTES}`,
-  });
-  
-  bucketExistsChecked = true;
+  await ensureDocumentsBucket(createSupabaseAdminClient());
 }
 
 async function requireContext() {
@@ -275,7 +266,7 @@ export async function POST(request: Request) {
   }
 
   if (sourceFile.size > MAX_FILE_SIZE_BYTES) {
-    return fail("El archivo supera el limite de 10MB", 400);
+    return fail(`El archivo supera el limite de ${MAX_UPLOAD_SIZE_LABEL}`, 400);
   }
 
   const fileName = uploadedNameInput || sourceFile.name;

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { camposDeAlcance } from "@/modules/employees/lib/location-sources";
@@ -28,6 +28,8 @@ import {
 import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
 import { createNotificationsTranslator } from "@/shared/lib/notifications.i18n";
 import { resolveUserLocale } from "@/shared/lib/locale";
+
+import { MAX_UPLOAD_SIZE_LABEL, readUploadedFile } from "@/shared/lib/direct-upload";
 
 import {
   ALLOWED_CREATE_MODES,
@@ -134,18 +136,77 @@ export async function POST(request: Request) {
     slotLabel: string;
     analysis: Awaited<ReturnType<typeof analyzeUploadedFile>>;
   }> = [];
-  for (const [slotKey, slotLabel] of Object.entries(DOCUMENT_SLOT_LABELS)) {
-    const file = formData.get(`document_file_${slotKey}`);
-    if (file instanceof File && file.size > 0) {
-      try {
-        const analysis = await analyzeUploadedFile(file);
-        uploadFiles.push({ slotKey, slotLabel, file, analysis });
-      } catch (error) {
-        return NextResponse.json(
-          { error: `${slotLabel}: ${error instanceof Error ? error.message : "archivo inválido"}` },
-          { status: 400 },
-        );
+
+  // El archivo no viaja dentro del formulario: el borde corta los cuerpos de
+  // mas de 4.5 MB (ver shared/lib/direct-upload.ts). El navegador ya los dejo
+  // en la carpeta de paso y aca solo llegan las rutas. Se descargan para
+  // analizarlos igual que siempre; mas abajo se copian a su ruta definitiva.
+  // El formulario clasico con el archivo adentro sigue funcionando.
+  const uploadsAdmin = createSupabaseAdminClient();
+  const stagingPaths: string[] = [];
+
+  async function resolveUploadedFile(
+    pathField: string,
+    nameField: string,
+    fileField: string,
+  ): Promise<{ ok: true; file: File | null } | { ok: false; message: string }> {
+    const stagedPath = String(formData.get(pathField) ?? "").trim();
+
+    if (stagedPath) {
+      if (!isSafeTenantStoragePath(stagedPath, tenant.organizationId)) {
+        return { ok: false, message: "ruta de archivo inválida" };
       }
+
+      const stored = await readUploadedFile(
+        uploadsAdmin,
+        stagedPath,
+        String(formData.get(nameField) ?? "").trim(),
+      );
+      if (!stored.ok) {
+        return { ok: false, message: stored.message };
+      }
+
+      stagingPaths.push(stagedPath);
+      return { ok: true, file: stored.file };
+    }
+
+    const raw = formData.get(fileField);
+    return { ok: true, file: raw instanceof File && raw.size > 0 ? raw : null };
+  }
+
+  // Los bytes de la carpeta de paso ya fueron copiados a su ruta definitiva
+  // cuando esto corre, asi que borrarlos no deja al expediente sin archivo.
+  const cleanUpStagedUploads = () => {
+    if (stagingPaths.length === 0) return;
+    after(async () => {
+      await uploadsAdmin.storage.from(BUCKET_NAME).remove(stagingPaths);
+    });
+  };
+
+  for (const [slotKey, slotLabel] of Object.entries(DOCUMENT_SLOT_LABELS)) {
+    const resolved = await resolveUploadedFile(
+      `document_file_${slotKey}__path`,
+      `document_file_${slotKey}__name`,
+      `document_file_${slotKey}`,
+    );
+
+    if (!resolved.ok) {
+      cleanUpStagedUploads();
+      return NextResponse.json({ error: `${slotLabel}: ${resolved.message}` }, { status: 400 });
+    }
+
+    const file = resolved.file;
+    if (!file) continue;
+
+    try {
+      const analysis = await analyzeUploadedFile(file);
+      uploadFiles.push({ slotKey, slotLabel, file, analysis });
+    } catch (error) {
+      cleanUpStagedUploads();
+      return NextResponse.json(
+        { error: `${slotLabel}: ${error instanceof Error ? error.message : "archivo inválido"}` },
+        { status: 400 },
+      );
     }
   }
 
@@ -153,13 +214,37 @@ export async function POST(request: Request) {
     .getAll("custom_document_title")
     .map((value) => String(value ?? "").trim());
   const customDocumentFiles = formData.getAll("custom_document_file");
+  const customDocumentPaths = formData.getAll("custom_document_path").map((value) => String(value ?? "").trim());
+  const customDocumentNames = formData.getAll("custom_document_name").map((value) => String(value ?? "").trim());
+  const customDocumentCount = Math.max(customDocumentFiles.length, customDocumentPaths.length);
 
-  for (let index = 0; index < customDocumentFiles.length; index += 1) {
-    const file = customDocumentFiles[index];
-    if (!(file instanceof File) || file.size <= 0) continue;
-
+  for (let index = 0; index < customDocumentCount; index += 1) {
     const rawTitle = customDocumentTitles[index] ?? "";
     const slotLabel = rawTitle || `Documento Adicional ${index + 1}`;
+
+    let file: File | null = null;
+    const stagedPath = customDocumentPaths[index] ?? "";
+
+    if (stagedPath) {
+      if (!isSafeTenantStoragePath(stagedPath, tenant.organizationId)) {
+        cleanUpStagedUploads();
+        return NextResponse.json({ error: `${slotLabel}: ruta de archivo inválida` }, { status: 400 });
+      }
+
+      const stored = await readUploadedFile(uploadsAdmin, stagedPath, customDocumentNames[index] ?? "");
+      if (!stored.ok) {
+        cleanUpStagedUploads();
+        return NextResponse.json({ error: `${slotLabel}: ${stored.message}` }, { status: 400 });
+      }
+
+      stagingPaths.push(stagedPath);
+      file = stored.file;
+    } else {
+      const raw = customDocumentFiles[index];
+      if (raw instanceof File && raw.size > 0) file = raw;
+    }
+
+    if (!file) continue;
 
     try {
       const analysis = await analyzeUploadedFile(file);
@@ -170,12 +255,17 @@ export async function POST(request: Request) {
         analysis,
       });
     } catch (error) {
+      cleanUpStagedUploads();
       return NextResponse.json(
         { error: `${slotLabel}: ${error instanceof Error ? error.message : "archivo inválido"}` },
         { status: 400 },
       );
     }
   }
+
+  // A partir de aca cualquier salida deja los bytes ya copiados o descartados,
+  // asi que la carpeta de paso se limpia siempre.
+  cleanUpStagedUploads();
 
   if (!firstName || !lastName || !email || !phone) {
     return NextResponse.json(
@@ -1031,7 +1121,10 @@ export async function POST(request: Request) {
 
   for (const upload of uploadFiles) {
     if (upload.file.size > MAX_FILE_SIZE_BYTES) {
-      return NextResponse.json({ error: `El archivo de ${upload.slotLabel} supera 10MB` }, { status: 400 });
+      return NextResponse.json(
+        { error: `El archivo de ${upload.slotLabel} supera ${MAX_UPLOAD_SIZE_LABEL}` },
+        { status: 400 },
+      );
     }
   }
 

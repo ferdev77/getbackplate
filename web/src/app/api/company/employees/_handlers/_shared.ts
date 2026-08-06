@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { ensureEmployeeBucketExists } from "@/modules/employees/services/company-employees-route-support";
+import { DOCUMENTS_BUCKET, MAX_UPLOAD_SIZE_BYTES } from "@/shared/lib/direct-upload";
 
 export const ALLOWED_CREATE_MODES = new Set(["without_account", "with_account"]);
 export const ALLOWED_CONTRACT_STATUSES = new Set(["draft", "active", "ended", "cancelled"]);
 export const ALLOWED_EMPLOYMENT_STATUSES = new Set(["active", "inactive", "vacation", "leave"]);
 export const ALLOWED_DOCUMENT_TYPES = new Set(["dni", "cuil", "ssn", "passport"]);
-export const BUCKET_NAME = "tenant-documents";
-export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+export const BUCKET_NAME = DOCUMENTS_BUCKET;
+export const MAX_FILE_SIZE_BYTES = MAX_UPLOAD_SIZE_BYTES;
 export const ASYNC_POST_PROCESS_THRESHOLD_BYTES = 5 * 1024 * 1024;
 
 export type DirectoryMembershipUser = {

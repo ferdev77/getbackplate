@@ -23,100 +23,13 @@ import {
 } from "@/shared/ui/scope-modal-layout";
 import { SubmitButton } from "@/shared/ui/submit-button";
 import type { ScopedUserOption } from "@/shared/contracts/scope-options";
-
-const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
-
-function formatMb(bytes: number) {
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-}
-
-/**
- * Lee la respuesta del servidor sin asumir que es JSON. Cuando el borde de la
- * plataforma rechaza algo, contesta texto plano; leerlo con JSON.parse a secas
- * dejaba al usuario con un "respuesta invalida" que no explicaba nada.
- */
-function readError(status: number, rawBody: string, fallback: string) {
-  try {
-    const parsed = JSON.parse(rawBody) as { error?: string; message?: string };
-    const message = parsed.error ?? parsed.message;
-    if (message) return message;
-  } catch {
-    if (status === 413) {
-      return `El archivo es demasiado grande para enviarlo (máximo ${formatMb(MAX_UPLOAD_SIZE_BYTES)}).`;
-    }
-  }
-  return fallback;
-}
-
-async function requestSignedUpload(
-  submitEndpoint: string,
-  file: File,
-): Promise<{ ok: true; path: string; signedUrl: string } | { ok: false; message: string }> {
-  let response: Response;
-  try {
-    response = await fetch(`${submitEndpoint}/upload-url`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fileName: file.name, fileSize: file.size }),
-    });
-  } catch {
-    return { ok: false, message: "No se pudo conectar con el servidor." };
-  }
-
-  const rawBody = await response.text();
-  if (!response.ok) {
-    return { ok: false, message: readError(response.status, rawBody, "No se pudo preparar la subida.") };
-  }
-
-  try {
-    const data = JSON.parse(rawBody) as { path?: string; signedUrl?: string };
-    if (!data.path || !data.signedUrl) {
-      return { ok: false, message: "No se pudo preparar la subida." };
-    }
-    return { ok: true, path: data.path, signedUrl: data.signedUrl };
-  } catch {
-    return { ok: false, message: "No se pudo preparar la subida." };
-  }
-}
-
-/**
- * Se sube con XHR y no con fetch solo por la barra de progreso: fetch no
- * reporta avance de carga.
- */
-function putFileToSignedUrl(
-  signedUrl: string,
-  file: File,
-  onProgress: (value: number) => void,
-): Promise<{ ok: true } | { ok: false; message: string }> {
-  return new Promise((resolve) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("PUT", signedUrl);
-    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-
-    xhr.upload.onprogress = (progressEvent) => {
-      if (!progressEvent.lengthComputable) return;
-      const next = Math.round((progressEvent.loaded / progressEvent.total) * 100);
-      // Se reserva el tramo final para el registro en la base.
-      onProgress(Math.max(4, Math.min(next, 92)));
-    };
-
-    xhr.onerror = () => resolve({ ok: false, message: "Se interrumpió la subida del archivo." });
-
-    xhr.onreadystatechange = () => {
-      if (xhr.readyState !== XMLHttpRequest.DONE) return;
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve({ ok: true });
-        return;
-      }
-      resolve({
-        ok: false,
-        message: readError(xhr.status, xhr.responseText, "No se pudo subir el archivo."),
-      });
-    };
-
-    xhr.send(file);
-  });
-}
+import {
+  assertUploadSize,
+  putFileToSignedUrl,
+  readUploadError,
+  requestSignedUpload,
+} from "@/shared/lib/direct-upload-client";
+import { MAX_UPLOAD_SIZE_LABEL } from "@/shared/lib/upload-limits";
 
 async function registerDocument(
   submitEndpoint: string,
@@ -131,7 +44,7 @@ async function registerDocument(
 
   const rawBody = await response.text();
   if (!response.ok) {
-    return { ok: false, message: readError(response.status, rawBody, "No se pudo guardar el archivo.") };
+    return { ok: false, message: readUploadError(response.status, rawBody, "No se pudo guardar el archivo.") };
   }
 
   try {
@@ -222,12 +135,13 @@ export function UploadDocumentModal({
     const formData = new FormData(form);
     const file = formData.get("file");
 
-    if (!(file instanceof File) || file.size <= 0) {
+    if (!(file instanceof File)) {
       toast.error("Selecciona un archivo.");
       return;
     }
-    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-      toast.error(`El archivo pesa ${formatMb(file.size)} y el máximo es ${formatMb(MAX_UPLOAD_SIZE_BYTES)}.`);
+    const sizeCheck = assertUploadSize(file);
+    if (!sizeCheck.ok) {
+      toast.error(sizeCheck.message);
       return;
     }
 
@@ -241,7 +155,7 @@ export function UploadDocumentModal({
     // suben los bytes directo a storage y recien despues se registra el
     // documento mandando solo la ruta.
     const result = await (async (): Promise<{ ok: boolean; message: string }> => {
-      const signed = await requestSignedUpload(submitEndpoint, file);
+      const signed = await requestSignedUpload(`${submitEndpoint}/upload-url`, file);
       if (!signed.ok) return signed;
 
       const uploaded = await putFileToSignedUrl(signed.signedUrl, file, setProgress);
@@ -303,7 +217,7 @@ export function UploadDocumentModal({
                   Arrastra el archivo o haz clic para elegirlo
                 </strong>
                 <span className="text-[11.5px] text-[var(--gbp-muted)]">
-                  PDF, Word, Excel, imágenes o texto · hasta {formatMb(MAX_UPLOAD_SIZE_BYTES)}
+                  PDF, Word, Excel, imágenes o texto · hasta {MAX_UPLOAD_SIZE_LABEL}
                 </span>
                 {selectedFileName ? (
                   <span className="mt-1 max-w-full truncate text-[12px] font-semibold text-[var(--gbp-accent)]">

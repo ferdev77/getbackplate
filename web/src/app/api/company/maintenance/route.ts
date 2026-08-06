@@ -9,6 +9,7 @@ import {
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import {
   attachMaintenanceFiles,
+  stagedMaintenanceUploadsFromFormData,
   createMaintenanceRequest,
   listMaintenanceRequests,
   maintenanceCreateSchema,
@@ -86,7 +87,12 @@ export async function POST(request: Request) {
       roleCode: access.tenant.roleCode,
     };
     const requestId = await createMaintenanceRequest(context, parsed.data);
-    await attachMaintenanceFiles(context, requestId, filesFromFormData(formData));
+    await attachMaintenanceFiles(
+      context,
+      requestId,
+      filesFromFormData(formData),
+      stagedMaintenanceUploadsFromFormData(formData),
+    );
 
     after(async () => {
       // Un borrador todavia no se envio: no se avisa a nadie hasta que lo

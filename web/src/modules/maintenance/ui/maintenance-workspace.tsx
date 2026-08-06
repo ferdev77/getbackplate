@@ -17,6 +17,7 @@ import {
   MAINTENANCE_PRIORITY_LABELS,
   MAINTENANCE_STATUS_LABELS,
 } from "@/modules/maintenance/lib/labels";
+import { uploadFileDirect } from "@/shared/lib/direct-upload-client";
 
 type BranchOption = {
   id: string;
@@ -689,7 +690,31 @@ export function MaintenanceWorkspace({
       .map((issue) => issue.name);
   }
 
+  /**
+   * Los adjuntos no viajan dentro del formulario: el borde corta los cuerpos de
+   * mas de 4.5 MB y responde texto plano, no JSON. Cada archivo se sube directo
+   * a storage y en su lugar viajan las rutas, casadas por posicion con sus
+   * nombres.
+   */
+  async function moverAdjuntosAStorage(formData: FormData) {
+    const files = formData
+      .getAll("files")
+      .filter((value): value is File => value instanceof File && value.size > 0);
+
+    formData.delete("files");
+
+    for (const file of files) {
+      const uploaded = await uploadFileDirect(`${apiBase}/upload-url`, file);
+      if (!uploaded.ok) throw new Error(uploaded.message);
+
+      formData.append("file_paths", uploaded.path);
+      formData.append("file_names", uploaded.originalName);
+    }
+  }
+
   async function submitCreate(formData: FormData) {
+    await moverAdjuntosAStorage(formData);
+
     const response = await fetch(apiBase, {
       method: "POST",
       body: formData,
@@ -725,6 +750,8 @@ export function MaintenanceWorkspace({
       if (files.length) {
         const attachmentData = new FormData();
         for (const file of files) attachmentData.append("files", file);
+        await moverAdjuntosAStorage(attachmentData);
+
         const attachmentsResponse = await fetch(`${apiBase}/${selectedRequest.id}/attachments`, {
           method: "POST",
           body: attachmentData,
@@ -744,6 +771,8 @@ export function MaintenanceWorkspace({
 
   async function submitDraftUpdate(formData: FormData) {
     if (!selectedRequest) return;
+    await moverAdjuntosAStorage(formData);
+
     const response = await fetch(`${apiBase}/${selectedRequest.id}`, {
       method: "PUT",
       body: formData,

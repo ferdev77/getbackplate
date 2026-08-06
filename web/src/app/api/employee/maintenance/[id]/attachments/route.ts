@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
-import { attachMaintenanceFiles } from "@/modules/maintenance/services";
+import {
+  attachMaintenanceFiles,
+  stagedMaintenanceUploadsFromFormData,
+} from "@/modules/maintenance/services";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -36,6 +39,7 @@ export async function POST(request: Request, context: RouteContext) {
       },
       id,
       filesFromFormData(formData),
+      stagedMaintenanceUploadsFromFormData(formData),
     );
 
     return NextResponse.json({ ok: true });

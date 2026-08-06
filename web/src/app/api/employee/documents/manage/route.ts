@@ -6,7 +6,14 @@ import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admi
 import { revalidateDocumentsCaches } from "@/modules/documents/revalidate-cache";
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
 import { analyzeUploadedFile } from "@/shared/lib/file-security";
-import { readUploadedFile, removeUploadedFile } from "@/shared/lib/direct-upload";
+import {
+  DOCUMENTS_BUCKET,
+  MAX_UPLOAD_SIZE_BYTES,
+  MAX_UPLOAD_SIZE_LABEL,
+  ensureDocumentsBucket,
+  readUploadedFile,
+  removeUploadedFile,
+} from "@/shared/lib/direct-upload";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
 import { assertPlanLimitForStorage, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
 import { isEmployeeLinkedDocument } from "@/shared/lib/document-domain";
@@ -22,27 +29,11 @@ import {
 import { enforceLocationPolicy } from "@/shared/lib/scope-policy";
 import { resolveEmployeeAllowedLocationIds } from "@/shared/lib/employee-api-scope";
 
-const BUCKET_NAME = "tenant-documents";
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-
-let bucketExistsChecked = false;
+const BUCKET_NAME = DOCUMENTS_BUCKET;
+const MAX_FILE_SIZE_BYTES = MAX_UPLOAD_SIZE_BYTES;
 
 async function ensureBucketExists() {
-  if (bucketExistsChecked) return;
-
-  const admin = createSupabaseAdminClient();
-  const { data: bucket } = await admin.storage.getBucket(BUCKET_NAME);
-  if (bucket) {
-    bucketExistsChecked = true;
-    return;
-  }
-
-  await admin.storage.createBucket(BUCKET_NAME, {
-    public: false,
-    fileSizeLimit: `${MAX_FILE_SIZE_BYTES}`,
-  });
-
-  bucketExistsChecked = true;
+  await ensureDocumentsBucket(createSupabaseAdminClient());
 }
 
 
@@ -123,7 +114,7 @@ export async function POST(request: Request) {
   }
 
   if (sourceFile.size > MAX_FILE_SIZE_BYTES) {
-    return fail("El archivo supera 10MB", 400);
+    return fail(`El archivo supera ${MAX_UPLOAD_SIZE_LABEL}`, 400);
   }
 
   let analysis: Awaited<ReturnType<typeof analyzeUploadedFile>>;

@@ -1,29 +1,13 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { assertPlanLimitForStorage } from "@/shared/lib/plan-limits";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
+import { DOCUMENTS_BUCKET, ensureDocumentsBucket } from "@/shared/lib/direct-upload";
 import { camposDeAlcance } from "@/modules/employees/lib/location-sources";
 
-const BUCKET_NAME = "tenant-documents";
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-
-let bucketExistsChecked = false;
+const BUCKET_NAME = DOCUMENTS_BUCKET;
 
 export async function ensureEmployeeBucketExists() {
-  if (bucketExistsChecked) return;
-
-  const admin = createSupabaseAdminClient();
-  const { data: bucket } = await admin.storage.getBucket(BUCKET_NAME);
-  if (bucket) {
-    bucketExistsChecked = true;
-    return;
-  }
-
-  await admin.storage.createBucket(BUCKET_NAME, {
-    public: false,
-    fileSizeLimit: `${MAX_FILE_SIZE_BYTES}`,
-  });
-
-  bucketExistsChecked = true;
+  await ensureDocumentsBucket(createSupabaseAdminClient());
 }
 
 export async function rollbackEmployeeCreateFlow(input: {

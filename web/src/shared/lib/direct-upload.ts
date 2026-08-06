@@ -1,17 +1,18 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { isBlockedUploadExtension, toSafeUploadName } from "@/shared/lib/file-security";
+import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_LABEL } from "@/shared/lib/upload-limits";
 
 export const DOCUMENTS_BUCKET = "tenant-documents";
-export const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
+export { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_LABEL };
 
 /**
  * Por que existe la subida directa
  * --------------------------------
  * La plataforma corta el cuerpo de cualquier request a las funciones en 4.5 MB
  * y responde 413 en texto plano, antes de que este codigo llegue a ejecutarse.
- * Un archivo de 6 MB nunca alcanzaba la validacion de 10 MB de mas abajo: moria
- * en el borde y el navegador recibia una respuesta que no era JSON.
+ * Un archivo de 6 MB nunca alcanzaba la validacion de tamano de mas abajo:
+ * moria en el borde y el navegador recibia una respuesta que no era JSON.
  *
  * Por eso el archivo ya no viaja por la funcion. El navegador pide una URL
  * firmada, sube los bytes directo a storage, y despues llama al endpoint de
@@ -44,7 +45,7 @@ export function assertUploadCandidate(input: { fileName: string; fileSize: numbe
     return { ok: false as const, message: "Selecciona un archivo" };
   }
   if (size > MAX_UPLOAD_SIZE_BYTES) {
-    return { ok: false as const, message: "El archivo supera 10MB" };
+    return { ok: false as const, message: `El archivo supera ${MAX_UPLOAD_SIZE_LABEL}` };
   }
   if (isBlockedUploadExtension(input.fileName)) {
     return { ok: false as const, message: "Tipo de archivo bloqueado por seguridad" };
@@ -55,6 +56,15 @@ export function assertUploadCandidate(input: { fileName: string; fileSize: numbe
 
 let bucketChecked = false;
 
+/**
+ * Crea el bucket si falta y, si ya existe, le reescribe el tope de tamano.
+ *
+ * El update no es decorativo: el bucket se creo con un limite mas bajo y
+ * storage lo aplica del lado del servidor. Cambiar la constante de arriba sin
+ * tocar el bucket dejaba a la app aceptando un archivo que storage despues
+ * rechazaba con "Payload too large". Todos los modulos que guardan en
+ * tenant-documents entran por aca para que el tope viva en un solo lugar.
+ */
 export async function ensureDocumentsBucket(admin: SupabaseClient) {
   if (bucketChecked) return;
 
@@ -62,6 +72,13 @@ export async function ensureDocumentsBucket(admin: SupabaseClient) {
   if (!bucket) {
     await admin.storage.createBucket(DOCUMENTS_BUCKET, {
       public: false,
+      fileSizeLimit: `${MAX_UPLOAD_SIZE_BYTES}`,
+    });
+  } else if (String(bucket.file_size_limit ?? "") !== String(MAX_UPLOAD_SIZE_BYTES)) {
+    // Se reusa la visibilidad que ya tenia el bucket: aca solo se corrige el
+    // tope, nunca si es publico o privado.
+    await admin.storage.updateBucket(DOCUMENTS_BUCKET, {
+      public: bucket.public,
       fileSizeLimit: `${MAX_UPLOAD_SIZE_BYTES}`,
     });
   }
@@ -101,7 +118,7 @@ export async function readUploadedFile(
     return { ok: false, message: "El archivo subido llego vacio" };
   }
   if (data.size > MAX_UPLOAD_SIZE_BYTES) {
-    return { ok: false, message: "El archivo supera 10MB" };
+    return { ok: false, message: `El archivo supera ${MAX_UPLOAD_SIZE_LABEL}` };
   }
 
   return { ok: true, file: new File([data], originalName || "archivo", { type: data.type }) };

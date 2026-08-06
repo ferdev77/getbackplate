@@ -4,6 +4,14 @@ import { z } from "zod";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { analyzeUploadedFile } from "@/shared/lib/file-security";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
+import {
+  DOCUMENTS_BUCKET,
+  MAX_UPLOAD_SIZE_BYTES,
+  MAX_UPLOAD_SIZE_LABEL,
+  ensureDocumentsBucket,
+  readUploadedFile,
+  removeUploadedFile,
+} from "@/shared/lib/direct-upload";
 import { assertPlanLimitForStorage, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
 import { resolveEmployeeAllowedLocationIds } from "@/shared/lib/employee-api-scope";
 import { nombreDelActor as nombreDelActorCompartido } from "@/shared/lib/actor-names";
@@ -20,10 +28,8 @@ import {
   type MaintenanceStatus,
 } from "@/modules/maintenance/types";
 
-const BUCKET_NAME = "tenant-documents";
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-
-let bucketExistsChecked = false;
+const BUCKET_NAME = DOCUMENTS_BUCKET;
+const MAX_FILE_SIZE_BYTES = MAX_UPLOAD_SIZE_BYTES;
 
 const nullableString = z.preprocess(
   (value) => (value === "" || value === null || value === undefined ? null : String(value).trim()),
@@ -132,18 +138,7 @@ type UpdateCatalogInput = {
 };
 
 async function ensureBucketExists() {
-  if (bucketExistsChecked) return;
-
-  const admin = createSupabaseAdminClient();
-  const { data: bucket } = await admin.storage.getBucket(BUCKET_NAME);
-  if (!bucket) {
-    await admin.storage.createBucket(BUCKET_NAME, {
-      public: false,
-      fileSizeLimit: `${MAX_FILE_SIZE_BYTES}`,
-    });
-  }
-
-  bucketExistsChecked = true;
+  await ensureDocumentsBucket(createSupabaseAdminClient());
 }
 
 async function getAllowedLocationIds(context: ActorContext) {
@@ -954,8 +949,30 @@ export async function addMaintenanceUpdate(
   });
 }
 
-export async function attachMaintenanceFiles(context: ActorContext, requestId: string, files: File[]) {
-  if (!files.length) return;
+export type StagedMaintenanceUpload = { path: string; name: string };
+
+/**
+ * Los adjuntos ya no viajan dentro del formulario: el borde corta los cuerpos
+ * de mas de 4.5 MB (ver shared/lib/direct-upload.ts). El navegador los deja en
+ * la carpeta de paso y manda las rutas en file_paths / file_names, casadas por
+ * posicion. El campo files sigue aceptandose para el camino clasico.
+ */
+export function stagedMaintenanceUploadsFromFormData(formData: FormData): StagedMaintenanceUpload[] {
+  const paths = formData.getAll("file_paths").map((value) => String(value ?? "").trim());
+  const names = formData.getAll("file_names").map((value) => String(value ?? "").trim());
+
+  return paths
+    .map((path, index) => ({ path, name: names[index] ?? "" }))
+    .filter((upload) => upload.path.length > 0);
+}
+
+export async function attachMaintenanceFiles(
+  context: ActorContext,
+  requestId: string,
+  files: File[],
+  staged: StagedMaintenanceUpload[] = [],
+) {
+  if (!files.length && !staged.length) return;
 
   const admin = createSupabaseAdminClient() as AnySupabase;
   const { data: requestRow } = await admin
@@ -976,10 +993,49 @@ export async function attachMaintenanceFiles(context: ActorContext, requestId: s
 
   await ensureBucketExists();
 
+  // Los bytes de la carpeta de paso se traen para analizarlos igual que los del
+  // formulario clasico. Se copian a su ruta definitiva mas abajo y el original
+  // se borra al terminar.
+  const stagedPathsToClean: string[] = [];
+  const stagedFiles: File[] = [];
+
+  for (const upload of staged) {
+    if (!isSafeTenantStoragePath(upload.path, context.organizationId)) {
+      throw new Error("Ruta de archivo invalida");
+    }
+
+    const stored = await readUploadedFile(admin, upload.path, upload.name);
+    if (!stored.ok) {
+      throw new Error(stored.message);
+    }
+
+    stagedPathsToClean.push(upload.path);
+    stagedFiles.push(stored.file);
+  }
+
+  const cleanUpStaged = async () => {
+    for (const path of stagedPathsToClean) {
+      await removeUploadedFile(admin, path);
+    }
+  };
+
+  try {
+    await uploadMaintenanceAttachments(admin, context, requestId, [...files, ...stagedFiles]);
+  } finally {
+    await cleanUpStaged();
+  }
+}
+
+async function uploadMaintenanceAttachments(
+  admin: AnySupabase,
+  context: ActorContext,
+  requestId: string,
+  files: File[],
+) {
   for (const file of files) {
     if (file.size <= 0) continue;
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      throw new Error("Un archivo supera 10MB");
+      throw new Error(`Un archivo supera ${MAX_UPLOAD_SIZE_LABEL}`);
     }
 
     let analysis: Awaited<ReturnType<typeof analyzeUploadedFile>>;

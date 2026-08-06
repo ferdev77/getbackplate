@@ -119,6 +119,7 @@ import {
   formatDateTimeForUi,
   postFormDataWithProgress,
 } from "./new-employee-modal-helpers";
+import { uploadFileDirect } from "@/shared/lib/direct-upload-client";
 
 export function NewEmployeeModal({
   open,
@@ -294,7 +295,6 @@ export function NewEmployeeModal({
     const employeeUploadInflightKey = "gbp.employee.docs.upload.inflight";
     const formData = new FormData();
     formData.set("slot", slot);
-    formData.set("file", file);
     if (customTitle) {
       formData.set("customTitle", customTitle);
     }
@@ -316,6 +316,36 @@ export function NewEmployeeModal({
     }
 
     try {
+      // El archivo no viaja por la API: el borde corta los cuerpos de mas de
+      // 4.5 MB y responde texto plano, no JSON. Se pide una URL firmada, se
+      // suben los bytes directo a storage y recien despues se registra el
+      // documento mandando solo la ruta.
+      const uploaded = await uploadFileDirect(`${endpoint}/upload-url`, file, {
+        extra: {
+          slot,
+          ...(customTitle ? { customTitle } : {}),
+          ...(isCompanyInstant ? { employeeId: initialEmployee?.id ?? "" } : {}),
+        },
+        onProgress: (percent) => {
+          setUploadUiBySlot((prev) => ({
+            ...prev,
+            [slot]: {
+              phase: "uploading",
+              progress: percent,
+              fileName: file.name,
+              message: "Subiendo...",
+            },
+          }));
+        },
+      });
+
+      if (!uploaded.ok) {
+        throw new Error(uploaded.message);
+      }
+
+      formData.set("storage_path", uploaded.path);
+      formData.set("original_file_name", uploaded.originalName);
+
       const { status, data } = await postFormDataWithProgress(endpoint, formData, (percent) => {
         setUploadUiBySlot((prev) => ({
           ...prev,
@@ -329,7 +359,11 @@ export function NewEmployeeModal({
       });
 
       if (status < 200 || status >= 300 || !data.ok || typeof data.slot !== "string" || typeof data.documentId !== "string") {
-        throw new Error("Unable to upload the document.");
+        throw new Error(
+          typeof data.error === "string" && data.error.trim().length > 0
+            ? data.error
+            : "Unable to upload the document.",
+        );
       }
 
       const uploadedSlot = data.slot;
@@ -377,8 +411,13 @@ export function NewEmployeeModal({
           router.refresh();
         });
       }
-    } catch {
-      const message = "Unable to upload the document.";
+    } catch (error) {
+      // El mensaje real (tamano, limite de plan, permisos) ya viene armado
+      // desde el servidor: perderlo dejaba al usuario sin saber que corregir.
+      const message =
+        error instanceof Error && error.message.trim().length > 0
+          ? error.message
+          : "Unable to upload the document.";
       setUploadUiBySlot((prev) => ({
         ...prev,
         [slot]: {
@@ -532,6 +571,74 @@ export function NewEmployeeModal({
 
     try {
       const formData = new FormData(form);
+
+      // Los archivos no viajan dentro del formulario: el borde corta los
+      // cuerpos de mas de 4.5 MB y responde texto plano, no JSON. Cada uno se
+      // sube directo a storage y en su lugar viaja la ruta resultante.
+      //
+      // Un destino que no expone /upload-url (404) sigue recibiendo el archivo
+      // adentro, exactamente como antes. Hoy es el caso del alta desde el
+      // portal, cuya API todavia no guarda los documentos del expediente.
+      const stagingEndpoint = `${apiEndpoint}/upload-url`;
+      let admiteSubidaDirecta = true;
+
+      const subirODejarComoEstaba = async (file: File) => {
+        if (!admiteSubidaDirecta) return null;
+
+        const uploaded = await uploadFileDirect(stagingEndpoint, file);
+        if (uploaded.ok) return uploaded;
+
+        if (uploaded.status === 404) {
+          admiteSubidaDirecta = false;
+          return null;
+        }
+
+        throw new Error(uploaded.message);
+      };
+
+      for (const key of Array.from(new Set(formData.keys()))) {
+        if (!key.startsWith("document_file_")) continue;
+
+        const value = formData.get(key);
+        formData.delete(key);
+        if (!(value instanceof File) || value.size <= 0) continue;
+
+        const uploaded = await subirODejarComoEstaba(value);
+        if (!uploaded) {
+          formData.set(key, value);
+          continue;
+        }
+
+        formData.set(`${key}__path`, uploaded.path);
+        formData.set(`${key}__name`, uploaded.originalName);
+      }
+
+      // Los adicionales se casan por posicion con custom_document_title, asi
+      // que se emite una entrada por fila aunque venga vacia. Si el destino no
+      // admite subida directa se reponen los archivos originales en su orden.
+      const customFiles = formData.getAll("custom_document_file");
+      formData.delete("custom_document_file");
+
+      const customSubidos: Array<{ path: string; originalName: string } | null> = [];
+      for (const value of customFiles) {
+        if (!(value instanceof File) || value.size <= 0) {
+          customSubidos.push(null);
+          continue;
+        }
+        customSubidos.push(await subirODejarComoEstaba(value));
+      }
+
+      if (admiteSubidaDirecta) {
+        for (const subido of customSubidos) {
+          formData.append("custom_document_path", subido?.path ?? "");
+          formData.append("custom_document_name", subido?.originalName ?? "");
+        }
+      } else {
+        for (const value of customFiles) {
+          formData.append("custom_document_file", value);
+        }
+      }
+
       const response = await fetch(apiEndpoint, {
         method: "POST",
         body: formData,

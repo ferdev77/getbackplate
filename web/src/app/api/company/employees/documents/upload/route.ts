@@ -10,28 +10,25 @@ import {
   type EmployeeDocumentSlotKey,
 } from "@/shared/lib/employee-document-slots";
 import { analyzeUploadedFile } from "@/shared/lib/file-security";
+import {
+  DOCUMENTS_BUCKET,
+  MAX_UPLOAD_SIZE_BYTES,
+  MAX_UPLOAD_SIZE_LABEL,
+  ensureDocumentsBucket,
+  readUploadedFile,
+  removeUploadedFile,
+} from "@/shared/lib/direct-upload";
 import { assertPlanLimitForStorage, getPlanLimitErrorMessage } from "@/shared/lib/plan-limits";
 import { isSafeTenantStoragePath } from "@/shared/lib/storage-guardrails";
 import { sendPushToUsers } from "@/infrastructure/push/send-to-org";
 import { createNotificationsTranslator } from "@/shared/lib/notifications.i18n";
 import { resolveUserLocale } from "@/shared/lib/locale";
 
-const BUCKET_NAME = "tenant-documents";
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-
-let bucketExistsChecked = false;
+const BUCKET_NAME = DOCUMENTS_BUCKET;
+const MAX_FILE_SIZE_BYTES = MAX_UPLOAD_SIZE_BYTES;
 
 async function ensureBucketExists() {
-  if (bucketExistsChecked) return;
-  const admin = createSupabaseAdminClient();
-  const { data: bucket } = await admin.storage.getBucket(BUCKET_NAME);
-  if (!bucket) {
-    await admin.storage.createBucket(BUCKET_NAME, {
-      public: false,
-      fileSizeLimit: `${MAX_FILE_SIZE_BYTES}`,
-    });
-  }
-  bucketExistsChecked = true;
+  await ensureDocumentsBucket(createSupabaseAdminClient());
 }
 
 function isValidSlot(value: string): value is EmployeeDocumentSlotKey {
@@ -56,16 +53,47 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Solicitud inválida" }, { status: 400 });
   }
 
-  if (!(file instanceof File) || file.size <= 0) {
+  const slot = slotRaw;
+  const admin = createSupabaseAdminClient();
+
+  // Dos formas de llegar aca. La normal es la subida directa: el archivo ya
+  // esta en storage y solo viaja su ruta, porque el borde corta los cuerpos de
+  // mas de 4.5 MB (ver shared/lib/direct-upload.ts). La otra es el formulario
+  // clasico con el archivo adentro, que se mantiene por compatibilidad.
+  const storagePathInput = String(formData.get("storage_path") ?? "").trim();
+  const uploadedNameInput = String(formData.get("original_file_name") ?? "").trim();
+
+  // Solo hay que limpiar el huerfano cuando los bytes ya estaban en storage
+  // antes de validarlos: en el camino clasico todavia no se subio nada.
+  let orphanPath: string | null = null;
+  const fail = async (message: string, status: number) => {
+    if (orphanPath) await removeUploadedFile(admin, orphanPath);
+    return NextResponse.json({ error: message }, { status });
+  };
+
+  let sourceFile: File;
+
+  if (storagePathInput) {
+    if (!isSafeTenantStoragePath(storagePathInput, tenant.organizationId)) {
+      return NextResponse.json({ error: "Ruta de almacenamiento inválida" }, { status: 400 });
+    }
+
+    const stored = await readUploadedFile(admin, storagePathInput, uploadedNameInput);
+    if (!stored.ok) {
+      return NextResponse.json({ error: stored.message }, { status: 400 });
+    }
+
+    orphanPath = storagePathInput;
+    sourceFile = stored.file;
+  } else if (file instanceof File && file.size > 0) {
+    sourceFile = file;
+  } else {
     return NextResponse.json({ error: "Archivo requerido" }, { status: 400 });
   }
 
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    return NextResponse.json({ error: "El archivo supera 10MB" }, { status: 400 });
+  if (sourceFile.size > MAX_FILE_SIZE_BYTES) {
+    return fail(`El archivo supera ${MAX_UPLOAD_SIZE_LABEL}`, 400);
   }
-
-  const slot = slotRaw;
-  const admin = createSupabaseAdminClient();
 
   const { data: employee } = await admin
     .from("employees")
@@ -75,34 +103,32 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (!employee?.id) {
-    return NextResponse.json({ error: "Empleado no encontrado" }, { status: 404 });
+    return fail("Empleado no encontrado", 404);
   }
 
   let analysis: Awaited<ReturnType<typeof analyzeUploadedFile>>;
   try {
-    analysis = await analyzeUploadedFile(file);
+    analysis = await analyzeUploadedFile(sourceFile);
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Archivo inválido" },
-      { status: 400 },
-    );
+    return fail(error instanceof Error ? error.message : "Archivo inválido", 400);
   }
 
   try {
-    await assertPlanLimitForStorage(tenant.organizationId, file.size);
+    await assertPlanLimitForStorage(tenant.organizationId, sourceFile.size);
   } catch (error) {
-    return NextResponse.json(
-      { error: getPlanLimitErrorMessage(error, `Límite de almacenamiento alcanzado para ${getEmployeeDocumentSlotLabel(slot)}.`) },
-      { status: 400 },
+    return fail(
+      getPlanLimitErrorMessage(error, `Límite de almacenamiento alcanzado para ${getEmployeeDocumentSlotLabel(slot)}.`),
+      400,
     );
   }
 
   await ensureBucketExists();
 
   const safeName = analysis.safeName || "archivo";
-  const path = `${tenant.organizationId}/employees/${employee.id}/company/${slot}/${Date.now()}-${safeName}`;
+  const path =
+    orphanPath ?? `${tenant.organizationId}/employees/${employee.id}/company/${slot}/${Date.now()}-${safeName}`;
   if (!isSafeTenantStoragePath(path, tenant.organizationId)) {
-    return NextResponse.json({ error: "Ruta de almacenamiento inválida" }, { status: 400 });
+    return fail("Ruta de almacenamiento inválida", 400);
   }
 
   const customTitle = formData.get("customTitle");
@@ -111,15 +137,19 @@ export async function POST(request: Request) {
     : getEmployeeDocumentSlotLabel(slot as EmployeeDocumentSlotKey);
   const fullName = `${employee.first_name ?? ""} ${employee.last_name ?? ""}`.trim() || "Empleado";
 
-  const { data: uploadResult, error: uploadError } = await admin.storage
-    .from(BUCKET_NAME)
-    .upload(path, file, {
-      contentType: analysis.normalizedMime,
-      upsert: false,
-    });
+  // Con subida directa los bytes ya estan en su ruta final: no se vuelven a
+  // mandar, solo se registran.
+  if (!orphanPath) {
+    const { data: uploadResult, error: uploadError } = await admin.storage
+      .from(BUCKET_NAME)
+      .upload(path, sourceFile, {
+        contentType: analysis.normalizedMime,
+        upsert: false,
+      });
 
-  if (uploadError || !uploadResult?.path) {
-    return NextResponse.json({ error: `No se pudo subir documento: ${uploadError?.message ?? "error"}` }, { status: 400 });
+    if (uploadError || !uploadResult?.path) {
+      return NextResponse.json({ error: `No se pudo subir documento: ${uploadError?.message ?? "error"}` }, { status: 400 });
+    }
   }
 
   const { data: createdDoc, error: createDocError } = await admin
@@ -133,7 +163,7 @@ export async function POST(request: Request) {
       mime_type: analysis.normalizedMime,
       original_file_name: analysis.originalName,
       checksum_sha256: analysis.checksumSha256,
-      file_size_bytes: file.size,
+      file_size_bytes: sourceFile.size,
       access_scope: {
         locations: employee.branch_id ? [employee.branch_id] : [],
         department_ids: employee.department_id ? [employee.department_id] : [],

@@ -6,6 +6,7 @@ import { notifyMaintenanceRequested } from "@/modules/maintenance/services/maint
 import { assertEmployeeCapabilityApi } from "@/shared/lib/access";
 import {
   attachMaintenanceFiles,
+  stagedMaintenanceUploadsFromFormData,
   maintenanceCreateSchema,
   nombreDelActor,
   updateMaintenanceDraft,
@@ -61,7 +62,12 @@ export async function PUT(request: Request, context: RouteContext) {
     };
 
     await updateMaintenanceDraft(actorContext, id, parsed.data);
-    await attachMaintenanceFiles(actorContext, id, filesFromFormData(formData));
+    await attachMaintenanceFiles(
+      actorContext,
+      id,
+      filesFromFormData(formData),
+      stagedMaintenanceUploadsFromFormData(formData),
+    );
 
     if (parsed.data.action === "submit") {
       after(async () => {
