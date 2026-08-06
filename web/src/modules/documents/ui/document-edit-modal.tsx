@@ -126,7 +126,7 @@ export function DocumentEditModal({ document, folders, branches, departments, po
 
               <ScopeModalNote>
                 {folderId
-                  ? "El documento hereda los permisos de su carpeta. Editá la carpeta para cambiar quién accede."
+                  ? "El documento hereda los permisos de su carpeta. Edita la carpeta para cambiar quién accede."
                   : "El alcance de la derecha define quién puede abrirlo y descargarlo."}
               </ScopeModalNote>
             </ScopeModalContent>

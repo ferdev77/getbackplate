@@ -1,4 +1,5 @@
 import { THEMES, THEME_DARK_PRO, THEME_DEFAULT } from "@/shared/ui/company-shell.config";
+import { resolveOrganizationLocale, type AppLocale } from "@/shared/lib/locale-policy";
 
 // ── Navigation ────────────────────────────────────────────────────────────────
 
@@ -25,16 +26,10 @@ export function isActive(pathname: string, searchParams: URLSearchParams, href: 
 
 export function resolveCompanyShellLocale({
   integrationPlanId,
-  preferredLanguage,
-  hasIntegrationModule,
 }: {
   integrationPlanId: string | null | undefined;
-  preferredLanguage: string | null | undefined;
-  hasIntegrationModule: boolean;
-}): "es" | "en" {
-  if (integrationPlanId) return "en";
-  if (preferredLanguage === "en" || preferredLanguage === "es") return preferredLanguage;
-  return hasIntegrationModule ? "en" : "es";
+}): AppLocale {
+  return resolveOrganizationLocale(integrationPlanId);
 }
 
 // ── Theme ─────────────────────────────────────────────────────────────────────

@@ -7,7 +7,7 @@
  * devuelve la clave tal cual, así nunca queda un hueco vacío en pantalla.
  *
  * Quién ve inglés lo decide resolveUserLocale: los planes de integración son
- * inglés por contrato, el resto ve español salvo preferencia explícita.
+ * inglés por contrato y las empresas solo de plataforma ven español mexicano.
  *
  * Este diccionario nació porque siete mensajes del servicio estaban escritos
  * en inglés a mano, así que un cliente de plataforma leía "Unable to delete
@@ -15,8 +15,8 @@
  */
 export const CHECKLISTS_EN: Record<string, string> = {
   // ── Validaciones al guardar ───────────────────────────────────
-  "Poné un nombre para el checklist": "Enter a name for the checklist",
-  "Agregá al menos un ítem": "Add at least one item",
+  "Ingresa un nombre para el checklist": "Enter a name for the checklist",
+  "Agrega al menos un ítem": "Add at least one item",
   "La locación base no pertenece a esta organización":
     "The base location does not belong to this organization",
   "El departamento base no pertenece a esta organización":
@@ -32,10 +32,15 @@ export const CHECKLISTS_EN: Record<string, string> = {
   "No se pudieron reemplazar las secciones del checklist": "Unable to replace the checklist sections",
   "El checklist se guardó, pero falló una sección": "The checklist was saved, but a section failed",
   "El checklist se guardó, pero fallaron los ítems": "The checklist was saved, but the items failed",
-  "El checklist recibió una respuesta mientras se editaba. Volvé a intentar para aplicar los cambios de forma segura.":
+  "El checklist recibió una respuesta mientras se editaba. Vuelve a intentarlo para aplicar los cambios de forma segura.":
     "The checklist changed while you were editing it. Try again to apply the changes safely.",
-  "No se pueden cambiar los ítems: este checklist ya tiene {n} {respuestas} y no tiene una frecuencia definida, así que no hay un próximo reparto donde aplicarlos sin mezclar los resultados. Podés duplicarlo como checklist nuevo, o asignarle una frecuencia y editarlo después.":
+  "No se pueden cambiar los ítems: este checklist ya tiene {n} {respuestas} y no tiene una frecuencia definida, así que no hay un próximo reparto donde aplicarlos sin mezclar los resultados. Puedes duplicarlo como un checklist nuevo o asignarle una frecuencia y editarlo después.":
     "The items cannot be changed: this checklist already has {n} {respuestas} and no frequency set, so there is no next run to apply them to without mixing the results. You can duplicate it as a new checklist, or set a frequency and edit it afterwards.",
+
+  "Algunas locaciones seleccionadas no son válidas": "Some selected scope locations are invalid",
+  "Algunos departamentos seleccionados no son válidos": "Some selected scope departments are invalid",
+  "Algunos puestos seleccionados no son válidos": "Some selected scope positions are invalid",
+  "Algunos usuarios seleccionados no son válidos": "Some selected users are invalid",
 
   // ── Borrado ───────────────────────────────────────────────────
   "No se encontró el checklist": "Checklist not found",

@@ -278,7 +278,7 @@ export async function notifyMaintenanceUpdate(params: {
   );
 
   const cuerpo = params.scheduledVisitAt
-    ? `Visita programada para el ${new Date(params.scheduledVisitAt).toLocaleDateString("es-AR", {
+    ? `Visita programada para el ${new Date(params.scheduledVisitAt).toLocaleDateString("es-MX", {
         day: "numeric",
         month: "long",
       })}`

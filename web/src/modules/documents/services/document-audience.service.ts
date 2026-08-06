@@ -124,7 +124,7 @@ export async function notifyDocumentAccessGranted(input: {
     organizationId: input.organizationId,
     userIds: nuevos,
     payload: {
-      title: input.kind === "document" ? "Tenés acceso a un documento" : "Tenés acceso a una carpeta",
+      title: input.kind === "document" ? "Tienes acceso a un documento" : "Tienes acceso a una carpeta",
       body: input.title,
     },
     adminUrl: "/app/documents",

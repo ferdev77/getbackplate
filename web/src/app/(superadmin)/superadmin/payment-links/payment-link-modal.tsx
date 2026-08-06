@@ -184,7 +184,7 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
                   <p className="mb-1 text-xs font-bold uppercase tracking-widest text-emerald-700">Link generado</p>
                   <p className="mb-4 text-sm text-emerald-800">
-                    Copiá el link y enviáselo a <strong>{selectedOrg?.name}</strong>. Expira en <strong>24 horas</strong> (límite de Stripe).
+                    Copia el link y envíaselo a <strong>{selectedOrg?.name}</strong>. Expira en <strong>24 horas</strong> (límite de Stripe).
                   </p>
                   <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-3.5 text-xs font-mono text-emerald-900 break-all">
                     <Link2 className="h-4 w-4 shrink-0 text-emerald-500" />
@@ -219,7 +219,7 @@ export function PaymentLinkModal({ organizations, modules }: Props) {
                     onChange={e => setOrgId(e.target.value)}
                     required
                   >
-                    <option value="">Seleccioná una org…</option>
+                    <option value="">Selecciona una org…</option>
                     {organizations.map(o => (
                       <option key={o.id} value={o.id}>{o.name}</option>
                     ))}
@@ -404,7 +404,7 @@ function ItemCard({ idx, item, modules, canRemove, onRemove, onChange }: ItemCar
           onChange={e => onChange({ moduleCode: e.target.value })}
           required
         >
-          <option value="">Seleccioná un módulo…</option>
+          <option value="">Selecciona un módulo…</option>
           {modules.map(m => (
             <option key={m.id} value={m.code}>{m.name}</option>
           ))}

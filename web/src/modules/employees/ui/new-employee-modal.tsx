@@ -820,7 +820,7 @@ export function NewEmployeeModal({
   const previewDepartment = selectedDept ? (departmentNameById.get(selectedDept) ?? "Sin departamento") : "Sin departamento";
   const previewPosition = selectedPosition ? (positionNameById.get(selectedPosition) ?? "Puesto no definido") : "Puesto no definido";
   const previewHireDate = hireDate
-    ? new Intl.DateTimeFormat("es-US", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${hireDate}T00:00:00`))
+    ? new Intl.DateTimeFormat("es-MX", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${hireDate}T00:00:00`))
     : "[Fecha de ingreso]";
 
   const contractTypeLabelMap: Record<string, string> = {
@@ -842,7 +842,7 @@ export function NewEmployeeModal({
   const salaryCurrency = initialEmployee?.salary_currency ?? "USD";
   const salaryNumeric = salaryAmount.trim() ? Number(salaryAmount) : NaN;
   const previewSalary = Number.isFinite(salaryNumeric)
-    ? new Intl.NumberFormat("es-US", { style: "currency", currency: salaryCurrency }).format(salaryNumeric)
+    ? new Intl.NumberFormat("es-MX", { style: "currency", currency: salaryCurrency }).format(salaryNumeric)
     : "[Salario]";
 
   const contractReady =
@@ -878,7 +878,7 @@ export function NewEmployeeModal({
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(96, 109, 128);
-    const generatedAt = new Intl.DateTimeFormat("es-US", {
+    const generatedAt = new Intl.DateTimeFormat("es-MX", {
       day: "2-digit",
       month: "short",
       year: "numeric",

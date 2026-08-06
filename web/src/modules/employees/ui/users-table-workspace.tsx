@@ -210,7 +210,7 @@ export function UsersTableWorkspace({ users, roleOptions, branchOptions, onCreat
       ["Rol", roleLabel(user.roleCode)],
       ["Acceso a plataforma", statusLabel(user.status)],
       ["Locación", user.branchName],
-      ["Alta", new Date(user.createdAt).toLocaleDateString("es-US")],
+      ["Alta", new Date(user.createdAt).toLocaleDateString("es-MX")],
     ];
     doc.setFontSize(11);
     for (const [label, value] of rowsText) {

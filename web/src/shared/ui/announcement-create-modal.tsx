@@ -131,7 +131,7 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
     const formAnnouncementId = String(formData.get("announcement_id") ?? "").trim();
 
     if (!title || !body) {
-      toast.error("Poné un título y un mensaje.");
+      toast.error("Pon un título y un mensaje.");
       return;
     }
 
@@ -259,7 +259,7 @@ export function AnnouncementCreateModal({ onClose, branches, departments, positi
                   name="body"
                   required
                   defaultValue={initial?.body ?? ""}
-                  placeholder="Escribí el mensaje completo"
+                  placeholder="Escribe el mensaje completo"
                   data-testid="announcement-body-textarea"
                   className={SCOPE_MODAL_TEXTAREA}
                 />

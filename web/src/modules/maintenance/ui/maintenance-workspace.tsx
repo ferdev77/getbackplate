@@ -482,7 +482,7 @@ function dateLabel(value: string | null) {
   if (!value) return "Sin fecha";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Sin fecha";
-  return new Intl.DateTimeFormat("es", {
+  return new Intl.DateTimeFormat("es-MX", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
@@ -492,7 +492,7 @@ function visitDateLabel(value: string | null) {
   if (!value) return "Sin fecha";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Sin fecha";
-  return new Intl.DateTimeFormat("es", {
+  return new Intl.DateTimeFormat("es-MX", {
     dateStyle: "medium",
   }).format(date);
 }
@@ -1023,7 +1023,7 @@ export function MaintenanceWorkspace({
                       value={draftForm.issue}
                       onChange={(value) => setDraftForm((prev) => ({ ...prev, issue: value }))}
                       options={getIssueOptions(draftForm.category, draftForm.serviceItem)}
-                      placeholder={draftForm.serviceItem.trim() ? "Busca o crea un issue" : "Primero elegi un item"}
+                      placeholder={draftForm.serviceItem.trim() ? "Busca o crea un issue" : "Primero elige un item"}
                       disabled={!draftForm.serviceItem.trim()}
                     />
                     <label className="space-y-1 text-sm font-semibold text-[var(--gbp-text)]">
@@ -1260,7 +1260,7 @@ export function MaintenanceWorkspace({
                   value={createForm.issue}
                   onChange={(value) => setCreateForm((prev) => ({ ...prev, issue: value }))}
                   options={getIssueOptions(createForm.category, createForm.serviceItem)}
-                  placeholder={createForm.serviceItem.trim() ? "Busca o crea un issue" : "Primero elegi un item"}
+                  placeholder={createForm.serviceItem.trim() ? "Busca o crea un issue" : "Primero elige un item"}
                   disabled={!createForm.serviceItem.trim()}
                 />
               </div>

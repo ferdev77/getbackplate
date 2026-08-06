@@ -67,10 +67,10 @@ export async function GET() {
     "Locación",
     "Departamento",
     "Puesto",
-    "UsuariosScope",
-    "TipoMime",
-    "TamañoBytes",
-    "Creado",
+    "Usuarios con acceso",
+    "Tipo MIME",
+    "Tamaño (bytes)",
+    "Fecha de creación",
   ];
 
   const rows = companyDocs.map((doc) => {

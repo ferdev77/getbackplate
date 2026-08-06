@@ -154,7 +154,7 @@ export function DocumentFolderModal({
               </ScopeModalField>
 
               <ScopeModalNote>
-                Los documentos que se guarden acá sin alcance propio usarán el de esta carpeta.
+                Los documentos que se guarden aquí sin alcance propio usarán el de esta carpeta.
               </ScopeModalNote>
             </ScopeModalContent>
 

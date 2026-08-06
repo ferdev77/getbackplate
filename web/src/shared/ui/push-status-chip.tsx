@@ -42,7 +42,7 @@ export function PushStatusChip({
         setEnabled(true);
         toast.success(t("Notificaciones activadas"));
       } else {
-        toast.error(t("No se pudo activar. Revisá el permiso de notificaciones del navegador."));
+        toast.error(t("No se pudo activar. Revisa el permiso de notificaciones del navegador."));
       }
     } finally {
       setIsPending(false);
@@ -54,7 +54,7 @@ export function PushStatusChip({
     // recibir push, lo hace desde el permiso de notificaciones del navegador.
     return (
       <span
-        title={t("Para desactivarlas, hacelo desde la configuración de notificaciones de tu navegador (ícono de candado junto a la URL).")}
+        title={t("Para desactivarlas, hazlo desde la configuración de notificaciones de tu navegador (ícono de candado junto a la URL).")}
         className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-600"
       >
         <BellRing className="h-3.5 w-3.5" /> {t("Push activado")}
@@ -65,7 +65,7 @@ export function PushStatusChip({
   if (isBlocked) {
     return (
       <span
-        title={t("Bloqueaste las notificaciones para este sitio. Habilitalas desde la configuración del navegador (ícono de candado junto a la URL) y recargá la página.")}
+        title={t("Bloqueaste las notificaciones para este sitio. Habilítalas desde la configuración del navegador (ícono de candado junto a la URL) y recarga la página.")}
         className="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600"
       >
         <BellOff className="h-3.5 w-3.5" /> {t("Push bloqueado")}

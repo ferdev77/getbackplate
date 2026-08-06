@@ -189,7 +189,7 @@ export default async function SuperadminModulesPage({ searchParams }: Superadmin
                             <SuperadminInputField label="Stripe Price ID del Add-on" name="addon_stripe_price_id" defaultValue={module.addon_stripe_price_id ?? ""} placeholder="price_..." spellCheck={false} className="mt-3" />
                             {module.addon_price_amount != null && (
                               <p className="text-xs text-muted-foreground mt-1">
-                                Precio detectado: <strong>{new Intl.NumberFormat("es-US", { style: "currency", currency: module.addon_currency_code ?? "USD" }).format(module.addon_price_amount)}</strong> / mes
+                                Precio detectado: <strong>{new Intl.NumberFormat("es-MX", { style: "currency", currency: module.addon_currency_code ?? "USD" }).format(module.addon_price_amount)}</strong> / mes
                               </p>
                             )}
                           </>

@@ -25,7 +25,7 @@ function formatRelativeTime(iso: string, locale: Locale): string {
   if (diffH < 24) return locale === "en" ? `${diffH} h ago` : `Hace ${diffH} h`;
   const diffD = Math.round(diffH / 24);
   if (diffD < 7) return locale === "en" ? `${diffD} d ago` : `Hace ${diffD} d`;
-  return new Date(iso).toLocaleDateString(locale === "en" ? "en-US" : "es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  return new Date(iso).toLocaleDateString(locale === "en" ? "en-US" : "es-MX", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 export function NotificationChannelBadge({ channel, locale = "es" }: { channel: "email" | "push" | "in_app"; locale?: Locale }) {

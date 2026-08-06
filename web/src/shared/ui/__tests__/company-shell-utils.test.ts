@@ -31,29 +31,15 @@ describe("isActive", () => {
 });
 
 describe("resolveCompanyShellLocale", () => {
-  it("forces English for integration-plan organizations with a saved Spanish preference", () => {
+  it("forces English for integration-plan organizations", () => {
     expect(resolveCompanyShellLocale({
       integrationPlanId: "integration-plan-id",
-      preferredLanguage: "es",
-      hasIntegrationModule: true,
     })).toBe("en");
   });
 
-  it("preserves normal organization preferences and defaults", () => {
+  it("forces Spanish for platform-only organizations", () => {
     expect(resolveCompanyShellLocale({
       integrationPlanId: null,
-      preferredLanguage: "es",
-      hasIntegrationModule: false,
-    })).toBe("es");
-    expect(resolveCompanyShellLocale({
-      integrationPlanId: null,
-      preferredLanguage: "en",
-      hasIntegrationModule: false,
-    })).toBe("en");
-    expect(resolveCompanyShellLocale({
-      integrationPlanId: null,
-      preferredLanguage: null,
-      hasIntegrationModule: false,
     })).toBe("es");
   });
 });

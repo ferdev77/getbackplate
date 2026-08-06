@@ -93,7 +93,7 @@ export async function upsertAnnouncement(
       return { ok: false, message: "No se encontró el aviso que se quiere editar" };
     }
     if (error?.code === "40001") {
-      return { ok: false, message: "El aviso se está repartiendo en este momento. Volvé a intentar en unos minutos." };
+      return { ok: false, message: "El aviso se está repartiendo en este momento. Vuelve a intentarlo en unos minutos." };
     }
     return { ok: false, message: `No se pudo guardar el aviso: ${error?.message ?? "error"}` };
   }

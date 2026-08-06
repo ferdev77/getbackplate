@@ -49,7 +49,7 @@ function formatLastChecked(value: string | null, t: (s: string) => string, local
     return t("Sin verificación reciente");
   }
 
-  return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "es-US", {
+  return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "es-MX", {
     day: "2-digit",
     month: "short",
     hour: "2-digit",
@@ -94,7 +94,7 @@ function ConfirmDeleteModal({ locale, domain, isPrimary, onConfirm, onCancel }: 
           {t("Eliminar dominio")}
         </h2>
         <p className="mt-1 text-sm text-[var(--gbp-text2)]">
-          {t("¿Estás seguro que querés eliminar")}{" "}
+          {t("¿Estás seguro de que quieres eliminar")}{" "}
           <strong className="text-[var(--gbp-text)]">{domain}</strong>?
         </p>
 

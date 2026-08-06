@@ -419,7 +419,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
       });
     } else if (status === "error" && message === "qbo_cancelado") {
       toast.info(t("Conexión cancelada"), {
-        description: t("Cancelaste la autorización de QuickBooks. Podés volver a intentarlo cuando quieras."),
+        description: t("Cancelaste la autorización de QuickBooks. Puedes volver a intentarlo cuando quieras."),
       });
     } else if (status === "error") {
       toast.error(t("Error al conectar QuickBooks"), {
@@ -628,9 +628,9 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
   async function handleCreateSync(e: React.FormEvent) {
     e.preventDefault();
     if (newSyncCustomers.length === 0) { toast.error(t("Selecciona al menos un cliente QuickBooks")); return; }
-    if (!newSyncName.trim()) { toast.error(t("Ingresá un nombre para la sincronización")); return; }
+    if (!newSyncName.trim()) { toast.error(t("Ingresa un nombre para la sincronización")); return; }
     if (newSyncBackfillEnabled && !newSyncBackfillFromDate) {
-      toast.error(t("Elegí una fecha de inicio para la importación histórica"));
+      toast.error(t("Elige una fecha de inicio para la importación histórica"));
       return;
     }
     setIsSavingSync(true);
@@ -699,7 +699,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
     e.preventDefault();
     if (!editingSyncConfigId) return;
     if (newSyncCustomers.length === 0) { toast.error(t("Selecciona al menos un cliente QuickBooks")); return; }
-    if (!newSyncName.trim()) { toast.error(t("Ingresá un nombre para la sincronización")); return; }
+    if (!newSyncName.trim()) { toast.error(t("Ingresa un nombre para la sincronización")); return; }
     setIsSavingSync(true);
     try {
       const original = syncConfigs.find((c) => c.id === editingSyncConfigId);
@@ -795,7 +795,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
         setUnifiedHistoryKey((p) => p + 1);
       }
     } catch {
-      setFetchDocNumberResult({ ok: false, message: t("Error de red — revisá la conexión e intentá de nuevo.") });
+      setFetchDocNumberResult({ ok: false, message: t("Error de red — revisa la conexión e intenta de nuevo.") });
     } finally {
       setFetchDocNumberLoading(false);
     }
@@ -822,7 +822,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
         setUnifiedHistoryKey((p) => p + 1);
       }
     } catch {
-      setFetchDocNumberResult({ ok: false, message: t("Error de red — revisá la conexión e intentá de nuevo.") });
+      setFetchDocNumberResult({ ok: false, message: t("Error de red — revisa la conexión e intenta de nuevo.") });
     } finally {
       setFetchDocNumberLoading(false);
     }
@@ -1779,7 +1779,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
             {maxR365Connections == null && syncConfigs.length === 0 && !syncConfigsLoading && (
               <div className="col-span-full rounded-[14px] border-[1.5px] border-dashed border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-6 py-10 text-center">
                 <p className="text-sm font-semibold text-[var(--gbp-text2)]">{t("No hay conexiones configuradas")}</p>
-                <p className="mt-1 text-xs text-[var(--gbp-muted)]">{t("Creá una conexión para enviar facturas de un cliente a R365.")}</p>
+                <p className="mt-1 text-xs text-[var(--gbp-muted)]">{t("Crea una conexión para enviar facturas de un cliente a R365.")}</p>
               </div>
             )}
           </div>
@@ -1836,7 +1836,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
               <div>
                 <h3 id="disconnect-qbo-title" className="text-base font-bold text-[var(--gbp-text)]">{t("¿Desconectar QuickBooks Online?")}</h3>
                 <p className="mt-2 text-sm leading-6 text-[var(--gbp-text2)]">
-                  {t("La entrega de facturas a Restaurant365 para {companyName} se detendrá. Podés reconectar en cualquier momento, pero tendrás que autorizar nuevamente.").replace("{companyName}", orgName || "your company")}
+                  {t("La entrega de facturas a Restaurant365 para {companyName} se detendrá. Puedes reconectar en cualquier momento, pero tendrás que autorizar nuevamente.").replace("{companyName}", orgName || "your company")}
                 </p>
               </div>
             </div>
@@ -1989,7 +1989,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
                 <label className="block">
                   <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">
                     {t("Nombre del proveedor en R365")}
-                    <FieldHelp text={t("Escribí el nombre de tu empresa como figura en la cuenta de R365 de tu cliente. Es el proveedor al que se le van a asignar las facturas.")} />
+                    <FieldHelp text={t("Escribe el nombre de tu empresa como figura en la cuenta de R365 de tu cliente. Es el proveedor al que se le van a asignar las facturas.")} />
                   </span>
                   <input
                     type="text"
@@ -2038,7 +2038,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
                   <label className="block">
                     <span className="mb-1.5 block text-xs font-bold text-[var(--gbp-text2)]">
                       Remote Path
-                      <FieldHelp text={t("La carpeta del FTP donde R365 lee los archivos. Si tu cliente no indicó otra, dejá la que viene por defecto.")} />
+                      <FieldHelp text={t("La carpeta del FTP donde R365 lee los archivos. Si tu cliente no indicó otra, deja la que viene por defecto.")} />
                     </span>
                     <input type="text" value={newSyncFtpPath} onChange={(e) => setNewSyncFtpPath(e.target.value)}
                       className="h-10 w-full rounded-lg border-[1.5px] border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-3 text-sm focus:border-[var(--gbp-accent)] focus:outline-none" />

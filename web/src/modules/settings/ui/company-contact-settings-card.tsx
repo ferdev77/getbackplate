@@ -270,7 +270,7 @@ export function CompanyContactSettingsCard({
             name="support_phone"
             value={phoneValue}
             onChange={(event) => setPhoneValue(event.target.value)}
-            placeholder={locale === "en" ? "+1 555 123 4567" : "+54 11 ..."}
+            placeholder="+1 555 123 4567"
             disabled={!isEditing || isSaving}
             className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] disabled:cursor-not-allowed disabled:bg-[var(--gbp-bg)] disabled:text-[var(--gbp-muted)]"
           />
@@ -281,7 +281,7 @@ export function CompanyContactSettingsCard({
             name="feedback_whatsapp"
             value={whatsappValue}
             onChange={(event) => setWhatsappValue(event.target.value)}
-            placeholder={locale === "en" ? "+1 555 123 4567" : "+54 9 11 ..."}
+            placeholder="+1 555 123 4567"
             disabled={!isEditing || isSaving}
             className="rounded-lg border border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-3 py-2 text-sm text-[var(--gbp-text)] placeholder:text-[var(--gbp-muted)] disabled:cursor-not-allowed disabled:bg-[var(--gbp-bg)] disabled:text-[var(--gbp-muted)]"
           />

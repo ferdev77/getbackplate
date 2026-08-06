@@ -1,5 +1,5 @@
 export function formatDate(dateText: string) {
-  return new Date(dateText).toLocaleDateString("es-US");
+  return new Date(dateText).toLocaleDateString("es-MX");
 }
 
 export function formatSize(bytes: number | null) {

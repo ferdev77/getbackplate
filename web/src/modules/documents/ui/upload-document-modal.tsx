@@ -184,7 +184,7 @@ export function UploadDocumentModal({
 
               <label className="flex shrink-0 cursor-pointer flex-col items-center gap-1 rounded-[11px] border-[1.5px] border-dashed border-[var(--gbp-border2)] bg-[var(--gbp-surface)] px-4 py-5 text-center transition hover:border-[var(--gbp-accent)]">
                 <strong className="text-[13px] font-bold text-[var(--gbp-text)]">
-                  Arrastrá el archivo o hacé clic para elegirlo
+                  Arrastra el archivo o haz clic para elegirlo
                 </strong>
                 <span className="text-[11.5px] text-[var(--gbp-muted)]">PDF, DOCX, XLSX · hasta 10 MB</span>
                 {selectedFileName ? (
@@ -204,7 +204,7 @@ export function UploadDocumentModal({
               <ScopeModalField label="Título (opcional)">
                 <input
                   name="title"
-                  placeholder="Se usa el nombre del archivo si lo dejás vacío"
+                  placeholder="Se usa el nombre del archivo si lo dejas vacío"
                   className={SCOPE_MODAL_INPUT}
                 />
               </ScopeModalField>
@@ -260,7 +260,7 @@ export function UploadDocumentModal({
                     >
                       <p className="truncate text-[12.5px] font-semibold text-[var(--gbp-text)]">{document.title}</p>
                       <p className="mt-0.5 text-[11px] text-[var(--gbp-muted)]">
-                        {branchName} · {new Date(document.created_at).toLocaleDateString("es-AR")}
+                        {branchName} · {new Date(document.created_at).toLocaleDateString("es-MX")}
                       </p>
                     </div>
                   );

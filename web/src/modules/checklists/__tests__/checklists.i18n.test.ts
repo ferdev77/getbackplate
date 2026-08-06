@@ -23,7 +23,7 @@ describe("createChecklistsTranslator", () => {
   it("en inglés traduce los mensajes del servicio", () => {
     const t = createChecklistsTranslator("en");
     expect(t("No se pudo borrar el checklist")).toBe("Unable to delete the checklist");
-    expect(t("Poné un nombre para el checklist")).toBe("Enter a name for the checklist");
+    expect(t("Ingresa un nombre para el checklist")).toBe("Enter a name for the checklist");
     expect(t("Checklist eliminado.")).toBe("Checklist deleted.");
   });
 

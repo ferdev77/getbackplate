@@ -128,7 +128,7 @@ describe("notifyDocumentAccessGranted", () => {
     });
 
     expect(sendPushToUsers.mock.calls.at(-1)?.[1]).toMatchObject({
-      title: "Tenés acceso a una carpeta",
+      title: "Tienes acceso a una carpeta",
       body: "Manuales",
     });
   });

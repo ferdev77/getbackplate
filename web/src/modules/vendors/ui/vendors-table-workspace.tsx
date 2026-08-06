@@ -152,7 +152,7 @@ function getChangesSummary(metadata: Record<string, unknown> | null): string[] |
 }
 
 function formatDate(iso: string) {
-  return new Intl.DateTimeFormat("es-US", {
+  return new Intl.DateTimeFormat("es-MX", {
     day: "2-digit", month: "short", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   }).format(new Date(iso));
@@ -608,7 +608,7 @@ function VendorFormModal({ vendor, branches, categories, onCategoriesChange, cat
         <div className={`flex justify-between items-center px-6 py-4 border-b border-[var(--gbp-border)] sticky top-0 z-10 rounded-t-2xl bg-[var(--gbp-surface)]`}>
           <div>
             <h2 className={`text-base font-bold ${TEXT_STRONG}`}>{isEdit ? "Editar proveedor" : "Nuevo proveedor"}</h2>
-            <p className={`text-xs mt-0.5 ${TEXT_MUTED}`}>{isEdit ? "Actualizá los datos del proveedor" : "Completá los datos para agregar el proveedor"}</p>
+            <p className={`text-xs mt-0.5 ${TEXT_MUTED}`}>{isEdit ? "Actualiza los datos del proveedor" : "Completa los datos para agregar el proveedor"}</p>
           </div>
           <button onClick={onClose} className={ACTION_BTN}><X className="h-3.5 w-3.5" /></button>
         </div>
@@ -694,7 +694,7 @@ function VendorFormModal({ vendor, branches, categories, onCategoriesChange, cat
             <label className={labelCls}>WhatsApp</label>
             <input className={inputCls} value={form.contact_whatsapp}
               onChange={(e) => setForm((p) => ({ ...p, contact_whatsapp: e.target.value }))}
-              placeholder="+54 9 11 1234 5678" maxLength={50} />
+              placeholder="+1 555 123 4567" maxLength={50} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -730,7 +730,7 @@ function VendorFormModal({ vendor, branches, categories, onCategoriesChange, cat
             ) : (
               <div className="rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg)] p-3">
                 <p className="mb-2 text-[11px] text-[var(--gbp-text2)]">
-                  Elegí las locaciones donde será visible este proveedor.
+                  Elige las locaciones donde será visible este proveedor.
                 </p>
                 <label className="mb-2 inline-flex items-center gap-2 border-b border-[var(--gbp-border)] pb-2 text-xs font-semibold text-[var(--gbp-text)]">
                   <input
@@ -1106,8 +1106,8 @@ export default function VendorsTableWorkspace({
             icon={Truck}
             title={search || filterCategory || filterBranch ? "Sin resultados" : "Sin proveedores aún"}
             description={search || filterCategory || filterBranch
-              ? "Probá ajustando los filtros de búsqueda."
-              : "Agregá tu primer proveedor para comenzar a gestionar el directorio."}
+              ? "Prueba ajustando los filtros de búsqueda."
+              : "Agrega tu primer proveedor para comenzar a gestionar el directorio."}
             action={canCreate && !search && !filterCategory && !filterBranch ? (
               <button onClick={() => { setEditingVendor(null); setModalOpen(true); }}
                 className="mt-1 inline-flex h-9 items-center gap-1.5 rounded-lg bg-[var(--gbp-text)] px-4 text-xs font-bold text-[var(--gbp-bg)] hover:bg-[var(--gbp-accent)] transition-colors">

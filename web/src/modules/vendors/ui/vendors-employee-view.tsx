@@ -363,7 +363,7 @@ export default function VendorsEmployeeView({ initialVendors, branches }: Props)
           </h3>
           <p style={{ margin: 0, fontSize: 14, color: "var(--text-muted, #94a3b8)", textAlign: "center" }}>
             {search || filterCategory || filterBranch
-              ? "Probá ajustando los filtros."
+              ? "Prueba ajustando los filtros."
               : "Aún no hay proveedores asignados a tu locación."}
           </p>
         </div>

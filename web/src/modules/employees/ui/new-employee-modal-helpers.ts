@@ -21,7 +21,7 @@ export function formatDateForUi(value: string | null | undefined): string {
   if (!value) return "";
   const parsed = new Date(`${value}T00:00:00.000Z`);
   if (Number.isNaN(parsed.getTime())) return value;
-  return new Intl.DateTimeFormat("es-US", {
+  return new Intl.DateTimeFormat("es-MX", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -53,7 +53,7 @@ export function formatDateTimeForUi(value: string | null | undefined): string {
   if (!value) return "";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
-  return new Intl.DateTimeFormat("es-US", {
+  return new Intl.DateTimeFormat("es-MX", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

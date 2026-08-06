@@ -296,7 +296,7 @@ export async function POST(request: Request) {
     const newBranches = allLocations ? [] : locationScopeIds;
     const branchesOutOfScope = newBranches.filter((id) => !scopeIds.includes(id));
     if (branchesOutOfScope.length > 0) {
-      return NextResponse.json({ error: "No tenés permisos para asignar empleados a esas locaciones" }, { status: 403 });
+      return NextResponse.json({ error: "No tienes permisos para asignar empleados a esas locaciones" }, { status: 403 });
     }
   }
 
@@ -312,7 +312,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Empleado no encontrado" }, { status: 404 });
     }
     if (!isEmployeeInScope(targetEmp, scopeIds)) {
-      return NextResponse.json({ error: "No tenés permisos para editar este empleado" }, { status: 403 });
+      return NextResponse.json({ error: "No tienes permisos para editar este empleado" }, { status: 403 });
     }
   }
 
@@ -331,7 +331,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Usuario no encontrado para convertir" }, { status: 404 });
     }
     if (!isEmployeeInScope(targetProfile, scopeIds)) {
-      return NextResponse.json({ error: "No tenés permisos para convertir este usuario" }, { status: 403 });
+      return NextResponse.json({ error: "No tienes permisos para convertir este usuario" }, { status: 403 });
     }
   }
 
@@ -752,7 +752,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Usuario no encontrado para editar" }, { status: 404 });
       }
       if (!isEmployeeInScope(existingProfile, scopeIds)) {
-        return NextResponse.json({ error: "No tenés permisos para editar este usuario" }, { status: 403 });
+        return NextResponse.json({ error: "No tienes permisos para editar este usuario" }, { status: 403 });
       }
 
       userLinkedUserId = existingProfile.user_id;
@@ -920,7 +920,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
     }
     if (!isEmployeeInScope(previousProfile, scopeIds)) {
-      return NextResponse.json({ error: "No tenés permisos para editar este usuario" }, { status: 403 });
+      return NextResponse.json({ error: "No tienes permisos para editar este usuario" }, { status: 403 });
     }
 
     const { error: profileError } = await admin
@@ -975,7 +975,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Empleado no encontrado" }, { status: 404 });
   }
   if (!isEmployeeInScope(previousEmployee, scopeIds)) {
-    return NextResponse.json({ error: "No tenés permisos para editar este empleado" }, { status: 403 });
+    return NextResponse.json({ error: "No tienes permisos para editar este empleado" }, { status: 403 });
   }
 
   const { error } = await supabase
@@ -1041,7 +1041,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
     }
     if (!isEmployeeInScope(existingProfile, scopeIds)) {
-      return NextResponse.json({ error: "No tenés permisos para eliminar este usuario" }, { status: 403 });
+      return NextResponse.json({ error: "No tienes permisos para eliminar este usuario" }, { status: 403 });
     }
 
     const { data: deletedProfiles, error: deleteProfileError } = await admin
@@ -1084,7 +1084,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Empleado no encontrado" }, { status: 404 });
   }
   if (!isEmployeeInScope(employee, scopeIds)) {
-    return NextResponse.json({ error: "No tenés permisos para eliminar este empleado" }, { status: 403 });
+    return NextResponse.json({ error: "No tienes permisos para eliminar este empleado" }, { status: 403 });
   }
 
   const { data: deletedEmployees, error: deleteError } = await supabase

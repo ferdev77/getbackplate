@@ -29,8 +29,7 @@ import { DEFAULT_CUSTOM_DOMAIN_CNAME_TARGET } from "@/shared/lib/custom-domains"
 import { normalizeRequestHost } from "@/shared/lib/custom-domains";
 import { PageContent } from "@/shared/ui/page-content";
 import { hasMissingColumnError } from "@/shared/lib/supabase-compat";
-import { resolveUserLocale } from "@/shared/lib/locale";
-import { getCurrentUser } from "@/modules/memberships/queries";
+import { resolveOrganizationLocale } from "@/shared/lib/locale-policy";
 import { createTranslator } from "@/modules/settings/ui/settings.i18n";
 
 type CompanySettingsPageProps = {
@@ -76,7 +75,6 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
   const requestHost = normalizeRequestHost(requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host"));
   const tenant = await requireTenantModule("settings");
   const supabase = await createSupabaseServerClient();
-  const user = await getCurrentUser();
   const [customBrandingEnabled, { data: organization }] = await Promise.all([
     isModuleEnabledForOrganization(tenant.organizationId, "custom_branding"),
     supabase
@@ -85,9 +83,7 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
       .eq("id", tenant.organizationId)
       .maybeSingle(),
   ]);
-  const locale = organization?.integration_plan_id
-    ? "en"
-    : await resolveUserLocale({ organizationId: tenant.organizationId, userId: user?.id ?? null });
+  const locale = resolveOrganizationLocale(organization?.integration_plan_id);
   const t = createTranslator(locale);
 
   const [

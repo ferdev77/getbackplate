@@ -72,7 +72,7 @@ export const SETTINGS_EN: Record<string, string> = {
   "debe estar activo para usar dominio personalizado.": "must be active to use a custom domain.",
   Cerrar: "Close",
   "Eliminar dominio": "Delete domain",
-  "¿Estás seguro que querés eliminar": "Are you sure you want to delete",
+  "¿Estás seguro de que quieres eliminar": "Are you sure you want to delete",
   "Este es tu dominio principal.": "This is your primary domain.",
   "Al eliminarlo, se desactiva el acceso por dominio personalizado hasta que cargues uno nuevo.":
     "Deleting it disables custom-domain access until you add a new one.",

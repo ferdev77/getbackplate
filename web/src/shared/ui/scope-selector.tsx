@@ -533,7 +533,7 @@ export function ScopeSelector({
                   : `Alcanza a las ${audience.group.length} personas de la organización, y a quien entre más adelante.`}
               </p>
               <p className={`mt-1 ${HINT}`}>
-                Si querés acotarlo, elegí <strong>Un grupo</strong> o <strong>Personas específicas</strong>.
+                Si quieres acotarlo, elige <strong>Un grupo</strong> o <strong>Personas específicas</strong>.
               </p>
             </div>
           ) : null}
@@ -570,7 +570,7 @@ export function ScopeSelector({
                     Todavía no cargaste departamentos ni puestos
                   </p>
                   <p className={`mt-1 ${HINT}`}>
-                    Por ahora podés filtrar por locación. Para filtrar por área o por puesto, cargalos en
+                    Por ahora puedes filtrar por locación. Para filtrar por área o por puesto, cárgalos en
                     Configuración › Estructura Organizacional.
                   </p>
                 </div>
@@ -602,11 +602,11 @@ export function ScopeSelector({
                   <div className={BLOCK}>
                     <p className={KICKER}>Puesto</p>
                     {departmentsWithPositionsShown.length === 0 ? (
-                      <p className={`mt-1 ${HINT}`}>Marcá un departamento para poder filtrar por puesto.</p>
+                      <p className={`mt-1 ${HINT}`}>Marca un departamento para poder filtrar por puesto.</p>
                     ) : (
                       <>
                         <p className={`mt-1 ${HINT}`}>
-                          Si no marcás ninguno, entran todos los del departamento.
+                          Si no marcas ninguno, entran todos los del departamento.
                         </p>
                         <div className="mt-2 flex flex-col gap-2">
                           {departmentsWithPositionsShown.map((department) => {
@@ -667,7 +667,7 @@ export function ScopeSelector({
 
           {mode === "people" ? (
             <div className={BLOCK}>
-              <p className={KICKER}>Elegí las personas</p>
+              <p className={KICKER}>Elige las personas</p>
               {peopleSearch()}
               {peopleGrid(false)}
             </div>
@@ -710,7 +710,7 @@ export function ScopeSelector({
         {blocked || total === 0 ? (
           <p className={HINT}>
             {blocked
-              ? "Definí el alcance para ver quiénes quedan incluidos."
+              ? "Define el alcance para ver quiénes quedan incluidos."
               : "Ninguna persona cumple con lo marcado."}
           </p>
         ) : (

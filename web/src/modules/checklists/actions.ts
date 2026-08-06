@@ -20,7 +20,7 @@ import { parseChecklistSections, type ChecklistSection } from "@/modules/checkli
 
 const createChecklistSchema = z.object({
   template_id: z.string().trim().optional().transform(v => v || null),
-  name: z.string().trim().min(1, "Poné un nombre para el checklist"),
+  name: z.string().trim().min(1, "Ingresa un nombre para el checklist"),
   checklist_type: z.enum(["opening", "closing", "prep", "custom"]).catch("custom"),
   checklist_type_other: z.string().trim().optional(),
   branch_id: z.string().trim().optional().transform(v => v || null),
@@ -84,7 +84,7 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   });
 
   if (!parsed.success) {
-    return { success: false, message: parsed.error.issues[0]?.message || "Invalid data" };
+    return { success: false, message: parsed.error.issues[0]?.message || "Datos inválidos" };
   }
 
   // --- Normalize sections ---
@@ -224,9 +224,9 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   // --- Build response ---
   const notificationsSummary: string[] = [];
   if (notifyByEmail) {
-    notificationsSummary.push(`Emails sent: ${checklistAudienceEmailCount}`);
+    notificationsSummary.push(`Emails enviados: ${checklistAudienceEmailCount}`);
   }
-  notificationsSummary.push(`Push notifications sent: ${checklistAudiencePushCount}`);
+  notificationsSummary.push(`Notificaciones push enviadas: ${checklistAudiencePushCount}`);
 
   // Cuando la vuelta actual ya tenia respuestas, los items quedaron pendientes
   // y se aplican al iniciar la vuelta siguiente (ver upsertChecklistTemplate).
@@ -234,8 +234,8 @@ export async function createChecklistTemplateAction(_prevState: unknown, formDat
   const pendingMessage = result.pendingUntil
     ? (() => {
         const cuando = new Date(result.pendingUntil);
-        const fecha = cuando.toLocaleDateString("es-AR", { day: "numeric", month: "long" });
-        const hora = cuando.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+        const fecha = cuando.toLocaleDateString("es-MX", { day: "numeric", month: "long" });
+        const hora = cuando.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
         return `Los datos del checklist se guardaron. Como ya hay respuestas de esta vuelta, los cambios en los ítems se aplican el ${fecha} a las ${hora}, al iniciar el próximo reparto.`;
       })()
     : null;
@@ -256,7 +256,7 @@ export async function deleteChecklistTemplateAction(_prevState: unknown, formDat
   const supabase = await createSupabaseServerClient();
 
   if (tenant.roleCode !== "company_admin") {
-    return { success: false, message: "No tenés permiso para eliminar checklists" };
+    return { success: false, message: "No tienes permiso para eliminar checklists" };
   }
 
   const templateId = String(formData.get("template_id") ?? "").trim();

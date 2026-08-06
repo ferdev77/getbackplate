@@ -44,7 +44,7 @@ export async function manageSupportRequestAction(
 
   if (error) {
     const message = error.message.includes("Identity verification")
-      ? "Verificá la identidad antes de procesar o resolver esta solicitud"
+      ? "Verifica la identidad antes de procesar o resolver esta solicitud"
       : error.message;
     return { ok: false, error: message };
   }

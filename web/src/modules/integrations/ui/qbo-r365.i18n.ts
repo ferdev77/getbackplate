@@ -16,7 +16,7 @@ export const QUICKBOOKS_R365_EN: Record<string, string> = {
   "Omitir por ahora": "Skip for now",
   "Guardar y continuar": "Save and continue",
   "¿Desconectar QuickBooks Online?": "Disconnect QuickBooks Online?",
-  "La entrega de facturas a Restaurant365 para {companyName} se detendrá. Podés reconectar en cualquier momento, pero tendrás que autorizar nuevamente.":
+  "La entrega de facturas a Restaurant365 para {companyName} se detendrá. Puedes reconectar en cualquier momento, pero tendrás que autorizar nuevamente.":
     "Document delivery to Restaurant365 for {companyName} will stop. You can reconnect anytime, but you'll need to authorize again.",
   Cancelar: "Cancel",
   Desconectar: "Disconnect",
@@ -31,7 +31,7 @@ export const QUICKBOOKS_R365_EN: Record<string, string> = {
   "slots usados": "slots used",
   "Nueva conexión": "New connection",
   "No hay conexiones configuradas": "No connections configured",
-  "Creá una conexión para enviar facturas de un cliente a R365.": "Create a connection to send a customer's documents to R365.",
+  "Crea una conexión para enviar facturas de un cliente a R365.": "Create a connection to send a customer's documents to R365.",
   Activa: "Active",
   Pausada: "Paused",
   "FTP ok": "FTP ok",
@@ -78,14 +78,14 @@ export const QUICKBOOKS_R365_EN: Record<string, string> = {
     "Your customer's QuickBooks locations included in this connection. Each one's Account No. is what R365 uses as the Location: if any is missing, its invoices arrive with no location assigned.",
   "Un nombre para reconocer esta conexión dentro del panel. No se envía a R365 ni aparece en las facturas.":
     "A name to recognize this connection inside the panel. It is not sent to R365 and does not appear on invoices.",
-  "Escribí el nombre de tu empresa como figura en la cuenta de R365 de tu cliente. Es el proveedor al que se le van a asignar las facturas.":
+  "Escribe el nombre de tu empresa como figura en la cuenta de R365 de tu cliente. Es el proveedor al que se le van a asignar las facturas.":
     "Enter your company name exactly as it appears in your customer's R365 account. This is the vendor the invoices will be assigned to.",
   "La dirección del servidor FTP de R365 de tu cliente. Te la da tu cliente junto con el usuario y la contraseña.":
     "The address of your customer's R365 FTP server. Your customer provides it along with the username and password.",
   "El usuario del FTP de R365 de tu cliente.": "The username for your customer's R365 FTP.",
   "La contraseña del FTP de R365 de tu cliente. Queda guardada cifrada y no vuelve a mostrarse.":
     "The password for your customer's R365 FTP. It is stored encrypted and never shown again.",
-  "La carpeta del FTP donde R365 lee los archivos. Si tu cliente no indicó otra, dejá la que viene por defecto.":
+  "La carpeta del FTP donde R365 lee los archivos. Si tu cliente no indicó otra, deja la que viene por defecto.":
     "The FTP folder where R365 reads the files. Unless your customer specified another one, keep the default.",
   "Trae las facturas ya emitidas desde la fecha que elijas, además de las nuevas. Corre en segundo plano y solo se puede pedir al crear la conexión.":
     "Brings in invoices already issued since the date you pick, on top of the new ones. It runs in the background and can only be requested when creating the connection.",
@@ -191,15 +191,15 @@ export const QUICKBOOKS_R365_EN: Record<string, string> = {
   "QuickBooks conectado": "QuickBooks connected",
   "La conexión con QuickBooks Online se realizó correctamente.": "The connection with QuickBooks Online was completed successfully.",
   "Conexión cancelada": "Connection cancelled",
-  "Cancelaste la autorización de QuickBooks. Podés volver a intentarlo cuando quieras.": "You cancelled the QuickBooks authorization. You can try again anytime.",
+  "Cancelaste la autorización de QuickBooks. Puedes volver a intentarlo cuando quieras.": "You cancelled the QuickBooks authorization. You can try again anytime.",
   "Error al conectar QuickBooks": "Error connecting QuickBooks",
   "No se pudo completar la conexión.": "The connection could not be completed.",
   "¿Eliminar esta sincronización? Los runs históricos quedarán sin referencia.": "Delete this connection? Historical runs will be left without a reference.",
   "Sincronización eliminada": "Connection deleted",
   "No se pudo eliminar": "Could not delete",
   "Selecciona al menos un cliente QuickBooks": "Select at least one QuickBooks customer",
-  "Ingresá un nombre para la sincronización": "Enter a name for the connection",
-  "Elegí una fecha de inicio para la importación histórica": "Choose a start date for the historical import",
+  "Ingresa un nombre para la sincronización": "Enter a name for the connection",
+  "Elige una fecha de inicio para la importación histórica": "Choose a start date for the historical import",
   "Sincronización creada": "Connection created",
   "No se pudo crear": "Could not create",
   "Error al crear": "Error creating connection",
@@ -210,7 +210,7 @@ export const QUICKBOOKS_R365_EN: Record<string, string> = {
   "Error al guardar": "Error saving changes",
   "No se pudo traer la factura": "Could not fetch the document",
   "agregada al historial.": "added to the history.",
-  "Error de red — revisá la conexión e intentá de nuevo.": "Network error — check your connection and try again.",
+  "Error de red — revisa la conexión e intenta de nuevo.": "Network error — check your connection and try again.",
   "No se pudo reemplazar la factura": "Could not replace the document",
   "reemplazada en el historial.": "replaced in the history.",
   "Mapeando factura...": "Mapping document...",
@@ -262,11 +262,11 @@ export const QUICKBOOKS_R365_EN: Record<string, string> = {
   Conexiones: "Connections",
   Plan: "Plan",
   "Configuración inicial": "Initial setup",
-  "Activá tu integración QuickBooks → R365": "Activate your QuickBooks → R365 integration",
+  "Activa tu integración QuickBooks → R365": "Activate your QuickBooks → R365 integration",
   "Configurar más tarde": "Configure later",
   "Cuenta conectada correctamente": "Account connected successfully",
-  "Necesitás autorizar el acceso a tus facturas de QuickBooks.": "You need to authorize access to your QuickBooks documents.",
-  "QuickBooks ya está conectado. Podés continuar al siguiente paso.": "QuickBooks is already connected. You can continue to the next step.",
+  "Necesitas autorizar el acceso a tus facturas de QuickBooks.": "You need to authorize access to your QuickBooks documents.",
+  "QuickBooks ya está conectado. Puedes continuar al siguiente paso.": "QuickBooks is already connected. You can continue to the next step.",
   "Esta información identifica a tu empresa como vendor en las facturas que se envían a R365.":
     "This information identifies your company as the vendor on documents sent to R365.",
   "Compañía": "Company",
@@ -280,17 +280,17 @@ export const QUICKBOOKS_R365_EN: Record<string, string> = {
   Configurado: "Configured",
   Libre: "Available",
   "¿Cómo configurar una conexión?": "How do I set up a connection?",
-  "Desde el dashboard de integración podés configurar cada slot: nombre del cliente en R365, Account Number de QuickBooks y credenciales FTP del servidor de R365. Podés hacerlo ahora o en cualquier momento.":
+  "Desde el dashboard de integración puedes configurar cada slot: nombre del cliente en R365, Account Number de QuickBooks y credenciales FTP del servidor de R365. Puedes hacerlo ahora o en cualquier momento.":
     "From the integration dashboard you can configure each slot: the customer's name in R365, the QuickBooks Account Number, and the R365 server's FTP credentials. You can do this now or at any time.",
   "Atrás": "Back",
   Continuar: "Continue",
   "Guardando...": "Saving...",
   Finalizar: "Finish",
   "No se pudo iniciar la conexión con QuickBooks": "Could not start the connection with QuickBooks",
-  "¡Onboarding completado! Ya podés gestionar tus conexiones.": "Onboarding complete! You can now manage your connections.",
+  "¡Onboarding completado! Ya puedes gestionar tus conexiones.": "Onboarding complete! You can now manage your connections.",
   "No se pudo guardar la configuración": "Could not save the configuration",
-  "Completá compañía, nombre de contacto y email.": "Please fill in company, contact name, and email.",
-  "Podés completar la configuración más tarde desde Integraciones.": "You can finish the setup later from Integrations.",
+  "Completa compañía, nombre de contacto y email.": "Please fill in company, contact name, and email.",
+  "Puedes completar la configuración más tarde desde Integraciones.": "You can finish the setup later from Integrations.",
   "Configurar primera conexión": "Set up first connection",
   Auto: "Auto",
 };

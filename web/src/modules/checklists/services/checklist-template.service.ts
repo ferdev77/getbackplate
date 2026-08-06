@@ -230,11 +230,11 @@ export async function upsertChecklistTemplate(
   );
 
   if (!name) {
-    return { ok: false, message: t("Poné un nombre para el checklist") };
+    return { ok: false, message: t("Ingresa un nombre para el checklist") };
   }
 
   if (!totalItems) {
-    return { ok: false, message: t("Agregá al menos un ítem") };
+    return { ok: false, message: t("Agrega al menos un ítem") };
   }
 
   // Validate branch
@@ -292,10 +292,10 @@ export async function upsertChecklistTemplate(
 
   if (!scopeValidation.ok) {
     const messageByField = {
-      locations: "Some selected scope locations are invalid",
-      departments: "Some selected scope departments are invalid",
-      positions: "Some selected scope positions are invalid",
-      users: "Some selected users are invalid",
+      locations: t("Algunas locaciones seleccionadas no son válidas"),
+      departments: t("Algunos departamentos seleccionados no son válidos"),
+      positions: t("Algunos puestos seleccionados no son válidos"),
+      users: t("Algunos usuarios seleccionados no son válidos"),
     } as const;
     return {
       ok: false,
@@ -406,7 +406,7 @@ export async function upsertChecklistTemplate(
     return {
       ok: false,
       message: t(
-        "No se pueden cambiar los ítems: este checklist ya tiene {n} {respuestas} y no tiene una frecuencia definida, así que no hay un próximo reparto donde aplicarlos sin mezclar los resultados. Podés duplicarlo como checklist nuevo, o asignarle una frecuencia y editarlo después.",
+        "No se pueden cambiar los ítems: este checklist ya tiene {n} {respuestas} y no tiene una frecuencia definida, así que no hay un próximo reparto donde aplicarlos sin mezclar los resultados. Puedes duplicarlo como un checklist nuevo o asignarle una frecuencia y editarlo después.",
       )
         .replace("{n}", String(responsesInCycle))
         .replace("{respuestas}", t(responsesInCycle === 1 ? "respuesta" : "respuestas")),
@@ -448,7 +448,7 @@ export async function upsertChecklistTemplate(
     return {
       ok: false,
       message: saveError?.code === "40001"
-        ? t("El checklist recibió una respuesta mientras se editaba. Volvé a intentar para aplicar los cambios de forma segura.")
+        ? t("El checklist recibió una respuesta mientras se editaba. Vuelve a intentarlo para aplicar los cambios de forma segura.")
         : `${t("No se pudo crear el checklist")}: ${saveError?.message ?? "error"}`,
     };
   }

@@ -119,7 +119,7 @@ export function FolderEditModal({ folder, folders, branches, departments, positi
               </ScopeModalField>
 
               <ScopeModalNote>
-                Los documentos guardados acá que no tengan alcance propio usan el de esta carpeta.
+                Los documentos guardados aquí que no tengan alcance propio usan el de esta carpeta.
               </ScopeModalNote>
             </ScopeModalContent>
 

@@ -1147,8 +1147,8 @@ export async function POST(req: Request) {
             const reminderValues = integrationAddon
               ? formatIntegrationRenewalReminder(invoice.amount_due, invoice.currency, invoice.period_end)
               : {
-                  amount: new Intl.NumberFormat('es-US', { style: 'currency', currency: invoice.currency.toUpperCase() }).format(invoice.amount_due / 100),
-                  renewalDate: new Date(invoice.period_end * 1000).toLocaleDateString('es-US'),
+                  amount: new Intl.NumberFormat('es-MX', { style: 'currency', currency: invoice.currency.toUpperCase() }).format(invoice.amount_due / 100),
+                  renewalDate: new Date(invoice.period_end * 1000).toLocaleDateString('es-MX'),
                 };
 
             // Lineas reales de la factura de Stripe en este momento (plan + slot

@@ -91,6 +91,7 @@ import {
   normalizePlanPeriod,
   formatPlanPrice,
 } from "@/shared/ui/company-shell-utils";
+import { getFormattingLocale, type AppLocale } from "@/shared/lib/locale-policy";
 
 type SettingsSnapshot = {
   billingPlan: string;
@@ -100,7 +101,6 @@ type SettingsSnapshot = {
   paymentLast4: string;
   invoiceEmailsEnabled: boolean;
   theme: string;
-  language: string;
   dateFormat: string;
   timezoneMode: string;
   timezoneManual: string;
@@ -116,8 +116,7 @@ type CompanyShellProps = {
   sessionRoleLabel: string;
   sessionAvatarUrl: string;
   tenantId: string;
-  locale?: "es" | "en";
-  integrationEnglishOnly?: boolean;
+  locale?: AppLocale;
   settingsSnapshot: SettingsSnapshot;
   availablePlans: Array<{
     id: string;
@@ -194,7 +193,6 @@ export function CompanyShell({
   sessionAvatarUrl,
   tenantId,
   locale,
-  integrationEnglishOnly = false,
   settingsSnapshot,
   availablePlans,
   currentPlanCode,
@@ -349,7 +347,6 @@ export function CompanyShell({
   const [billingPeriod, setBillingPeriod] = useState(settingsSnapshot.billingPeriod);
   const [billedTo] = useState(settingsSnapshot.billedTo);
   const [billingEmail] = useState(settingsSnapshot.billingEmail);
-  const [language, setLanguage] = useState(settingsSnapshot.language);
   const [dateFormat, setDateFormat] = useState(settingsSnapshot.dateFormat);
   const [timezoneMode, setTimezoneMode] = useState(settingsSnapshot.timezoneMode);
   const [timezoneManual, setTimezoneManual] = useState(settingsSnapshot.timezoneManual);
@@ -649,7 +646,7 @@ export function CompanyShell({
     if (!trialStatus?.endsAt) return null;
     const date = new Date(trialStatus.endsAt);
     if (Number.isNaN(date.getTime())) return null;
-    return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "es-US", {
+    return new Intl.DateTimeFormat(getFormattingLocale(locale ?? "es"), {
       day: "2-digit",
       month: "short",
     }).format(date);
@@ -1266,13 +1263,13 @@ export function CompanyShell({
               <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--gbp-accent)]">{billingGateT("Activación requerida")}</p>
               <h2 className="mt-1 text-xl font-bold">
                 {isIntegrationLandingCheckout
-                  ? billingGateT("Elegí tu plan de integración QuickBooks")
-                  : billingGate?.reason === "trial_expired" ? billingGateT("Tu prueba venció — reactivá tu suscripción") : billingGateT("Elegí tu plan para desbloquear el panel")}
+                  ? billingGateT("Elige tu plan de integración QuickBooks")
+                  : billingGate?.reason === "trial_expired" ? billingGateT("Tu prueba venció — reactiva tu suscripción") : billingGateT("Elige tu plan para desbloquear el panel")}
               </h2>
               <p className={`mt-1.5 text-sm ${isDarkTheme ? "text-white/65" : "text-[var(--gbp-text2)]"}`}>
                 {isIntegrationLandingCheckout
-                  ? billingGateT("Conectá QuickBooks Online con Restaurant365 y sincronizá facturas automáticamente.")
-                  : billingGateT("Contratá un plan de plataforma para gestionar tu operación, o un plan de integración para conectar QuickBooks® Online con R365.")}
+                  ? billingGateT("Conecta QuickBooks Online con Restaurant365 y sincroniza facturas automáticamente.")
+                  : billingGateT("Contrata un plan de plataforma para gestionar tu operación, o un plan de integración para conectar QuickBooks® Online con R365.")}
               </p>
 
               {/* ── Plataforma ──────────────────────────────────── */}
@@ -1350,7 +1347,7 @@ export function CompanyShell({
               {isIntegrationLandingCheckout && integrationPlans.length > 0 && (
                 <div className="mt-5">
                   <p className={`mb-4 text-xs ${isDarkTheme ? "text-white/50" : "text-[var(--gbp-text2)]"}`}>
-                    {billingGateT("Conectá tu QuickBooks Online con Restaurant365 y sincronizá facturas automáticamente. No requiere un plan de plataforma.")}
+                    {billingGateT("Conecta tu QuickBooks Online con Restaurant365 y sincroniza facturas automáticamente. No requiere un plan de plataforma.")}
                   </p>
                   <div className={`mb-4 inline-flex rounded-lg border p-1 text-xs font-semibold ${isDarkTheme ? "border-white/15 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                     <button
@@ -1572,8 +1569,8 @@ export function CompanyShell({
                   </div>
                   <div className={`rounded-lg border p-3 ${isDarkTheme ? "border-white/10 bg-white/[0.03]" : "border-[var(--gbp-border)] bg-[var(--gbp-bg)]"}`}>
                     <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.08em] ${isDarkTheme ? "text-white/40" : "text-[var(--gbp-muted)]"}`}>Language & Time</p>
-                    <div><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Language</span><select value={integrationEnglishOnly ? "en" : language} disabled={integrationEnglishOnly} onChange={(event) => setLanguage(event.target.value)} className={`mt-1 w-full rounded-md border px-2 py-1.5 disabled:cursor-not-allowed disabled:opacity-60 ${isDarkTheme ? "border-white/10 bg-white/5 text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text)]"}`}>{!integrationEnglishOnly && <option value="es">Español</option>}<option value="en">English</option></select></div>
-                    <div className="mt-2"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Date Format</span><select value={dateFormat} onChange={(event) => setDateFormat(event.target.value)} className={`mt-1 w-full rounded-md border px-2 py-1.5 ${isDarkTheme ? "border-white/10 bg-white/5 text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text)]"}`}><option>DD/MM/YYYY</option><option>MM/DD/YYYY</option><option>YYYY-MM-DD</option></select></div>
+                    <div><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>{locale === "en" ? "Language" : "Idioma"}</span><div className={`mt-1 rounded-md border px-2 py-1.5 ${isDarkTheme ? "border-white/10 bg-white/5 text-white/70" : "border-[var(--gbp-border)] bg-[var(--gbp-surface2)] text-[var(--gbp-text2)]"}`}>{locale === "en" ? "English (set by organization plan)" : "Español (México, definido por el plan)"}</div></div>
+                    <div className="mt-2"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>{locale === "en" ? "Date format" : "Formato de fecha"}</span><select value={dateFormat} onChange={(event) => setDateFormat(event.target.value)} className={`mt-1 w-full rounded-md border px-2 py-1.5 ${isDarkTheme ? "border-white/10 bg-white/5 text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text)]"}`}><option>MM/DD/YYYY</option><option>DD/MM/YYYY</option><option>YYYY-MM-DD</option></select></div>
                     <div className="mt-2"><span className={`${isDarkTheme ? "text-white/55" : "text-[var(--gbp-text2)]"}`}>Time Zone</span><div className={`mt-1 space-y-1 ${isDarkTheme ? "text-white/80" : "text-[var(--gbp-text)]"}`}><label className="flex items-center gap-2"><input type="radio" checked={timezoneMode === "auto"} onChange={() => setTimezoneMode("auto")} />Automatic by location</label><label className="flex items-center gap-2"><input type="radio" checked={timezoneMode === "manual"} onChange={() => setTimezoneMode("manual")} />Manual</label></div></div>
                     {timezoneMode === "manual" ? <select value={timezoneManual} onChange={(event) => setTimezoneManual(event.target.value)} className={`mt-1 w-full rounded-md border px-2 py-1.5 ${isDarkTheme ? "border-white/10 bg-white/5 text-white" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] text-[var(--gbp-text)]"}`}><option>America/Chicago (CST)</option><option>America/New_York (EST)</option><option>America/Los_Angeles (PST)</option><option>America/Denver (MST)</option><option>Europe/London (GMT)</option><option>Europe/Madrid (CET)</option></select> : null}
                   </div>
@@ -1609,7 +1606,7 @@ export function CompanyShell({
                       </>
                     )}
                   </div>
-                  <button type="button" disabled={busy} onClick={() => saveSettings("preferences", { theme, language: integrationEnglishOnly ? "en" : language, dateFormat, timezoneMode, timezoneManual, analyticsEnabled })} className={`w-full rounded-md px-2 py-2 font-semibold disabled:opacity-60 ${isDarkTheme ? "bg-white text-[var(--gbp-text)]" : "bg-[var(--gbp-text)] text-white"}`}>{t("Guardar preferences")}</button>
+                  <button type="button" disabled={busy} onClick={() => saveSettings("preferences", { theme, dateFormat, timezoneMode, timezoneManual, analyticsEnabled })} className={`w-full rounded-md px-2 py-2 font-semibold disabled:opacity-60 ${isDarkTheme ? "bg-white text-[var(--gbp-text)]" : "bg-[var(--gbp-text)] text-white"}`}>{t("Guardar preferences")}</button>
                 </div>
               </div>
             ) : null}
@@ -1823,7 +1820,7 @@ export function CompanyShell({
                   ? integrationPlans.find((p) => p.id === orgAddon.integrationPlanId)
                   : null;
                 const formattedPrice = !isTiered && addon.priceAmount != null
-                  ? new Intl.NumberFormat("es-US", { style: "currency", currency: addon.currencyCode, minimumFractionDigits: 0 }).format(addon.priceAmount)
+                  ? new Intl.NumberFormat(getFormattingLocale(locale ?? "es"), { style: "currency", currency: addon.currencyCode, minimumFractionDigits: 0 }).format(addon.priceAmount)
                   : null;
 
                 return (

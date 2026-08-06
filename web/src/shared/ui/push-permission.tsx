@@ -30,7 +30,7 @@ export function PushPermissionManager({ orgId, locale = "es" }: Props) {
           // Safari exige que el permiso se pida desde un clic real del usuario;
           // el intento automático queda "sin decidir" ahí, así que ofrecemos un botón.
           if (Notification.permission === "default") {
-            toast.message(t("Activá las notificaciones para no perderte novedades importantes"), {
+            toast.message(t("Activa las notificaciones para no perderte novedades importantes"), {
               duration: Infinity,
               action: { label: t("Activar"), onClick: activate },
             });

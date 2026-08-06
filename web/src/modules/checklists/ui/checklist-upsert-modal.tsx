@@ -122,7 +122,7 @@ export function ChecklistUpsertModal({
     const legacyItems = String(formData.get("items") ?? "").trim();
 
     if (!name) {
-      toast.error("Poné un nombre para el checklist.");
+      toast.error("Pon un nombre para el checklist.");
       return;
     }
 
@@ -139,7 +139,7 @@ export function ChecklistUpsertModal({
     }
 
     if (!items.trim()) {
-      toast.error("Agregá al menos un ítem.");
+      toast.error("Agrega al menos un ítem.");
       return;
     }
 

@@ -51,7 +51,7 @@ const ETIQUETA_DE_ORIGEN: Record<RepartoDelHistorial["origen"], string> = {
 function fechaLegible(iso: string) {
   const fecha = new Date(iso);
   if (Number.isNaN(fecha.getTime())) return iso;
-  return `${fecha.toLocaleDateString("es-AR", { day: "numeric", month: "short" })} · ${fecha.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}`;
+  return `${fecha.toLocaleDateString("es-MX", { day: "numeric", month: "short" })} · ${fecha.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
 /** Los primeros nombres y cuantos quedaron afuera, para no romper el ancho. */

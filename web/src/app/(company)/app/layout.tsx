@@ -141,11 +141,8 @@ export default async function CompanyLayout({
     ...(enabledModuleCodesSet.has("qbo_r365") ? ["qbo_r365"] : []),
   ];
 
-  const integrationEnglishOnly = Boolean(organization?.integration_plan_id);
   const resolvedLocale = resolveCompanyShellLocale({
     integrationPlanId: organization?.integration_plan_id,
-    preferredLanguage: preferences?.language,
-    hasIntegrationModule: enabledModuleCodesSet.has("qbo_r365"),
   });
 
   const roleLabelByCode: Record<string, string> = resolvedLocale === "en"
@@ -176,7 +173,6 @@ export default async function CompanyLayout({
       sessionAvatarUrl={avatarUrl}
       tenantId={tenant.organizationId}
       locale={resolvedLocale}
-      integrationEnglishOnly={integrationEnglishOnly}
       settingsSnapshot={{
         billingPlan: inferredCurrentPlan?.name ?? orgSettings?.billing_plan ?? (resolvedLocale === "en" ? "No plan" : "Sin plan"),
         billingPeriod: orgSettings?.billing_period ?? inferredCurrentPlan?.billing_period ?? "monthly",
@@ -185,8 +181,7 @@ export default async function CompanyLayout({
         paymentLast4: orgSettings?.payment_last4 ?? "",
         invoiceEmailsEnabled: orgSettings?.invoice_emails_enabled ?? true,
         theme: preferences?.theme ?? "default",
-        language: resolvedLocale,
-        dateFormat: preferences?.date_format ?? "DD/MM/YYYY",
+        dateFormat: preferences?.date_format ?? "MM/DD/YYYY",
         timezoneMode: preferences?.timezone_mode ?? "auto",
         timezoneManual: preferences?.timezone_manual ?? "America/Chicago (CST)",
         analyticsEnabled: preferences?.analytics_enabled ?? true,

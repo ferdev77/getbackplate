@@ -359,7 +359,7 @@ export default async function EmployeeHomePage() {
             </div>
             <div className="text-[11px] leading-tight">
               <p className="font-medium text-[var(--gbp-text)]">{authorNameMap.get(heroAnnouncement?.created_by ?? "") || "Dirección General"}</p>
-              <p className="text-[var(--gbp-muted)]">{heroAnnouncement?.publish_at ? new Date(heroAnnouncement.publish_at).toLocaleDateString("es-US") : "-"}</p>
+              <p className="text-[var(--gbp-muted)]">{heroAnnouncement?.publish_at ? new Date(heroAnnouncement.publish_at).toLocaleDateString("es-MX") : "-"}</p>
             </div>
           </div>
         </div>
@@ -422,7 +422,7 @@ export default async function EmployeeHomePage() {
                         <h4 className="truncate text-sm font-bold text-[var(--gbp-text)] transition-colors group-hover:text-[var(--gbp-accent)]">{doc.title}</h4>
                         <p className="mt-1 mt-0.5 flex gap-2 text-[11px] text-[var(--gbp-text2)]">
                            <span className="uppercase">{doc.mime_type}</span>
-                           <span>{new Date(doc.created_at).toLocaleDateString("es-US")}</span>
+                           <span>{new Date(doc.created_at).toLocaleDateString("es-MX")}</span>
                         </p>
                       </div>
                     </article>
@@ -477,7 +477,7 @@ export default async function EmployeeHomePage() {
                       {authorNameMap.get(item.created_by ?? "") || "Dirección General"}
                     </span>
                     <span className="text-[11px] text-[var(--gbp-muted)]">•</span>
-                    <span className="text-[11px] font-medium text-[var(--gbp-muted)]">{item.publish_at ? new Date(item.publish_at).toLocaleDateString("es-US") : "-"}</span>
+                    <span className="text-[11px] font-medium text-[var(--gbp-muted)]">{item.publish_at ? new Date(item.publish_at).toLocaleDateString("es-MX") : "-"}</span>
                   </div>
                 </div>
               </article>

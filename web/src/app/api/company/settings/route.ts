@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { assertCompanyAdminModuleApi } from "@/shared/lib/access";
 import { logAuditEvent } from "@/shared/lib/audit";
 import { isSuperadminImpersonating } from "@/shared/lib/impersonation";
+import { resolveOrganizationLocale } from "@/shared/lib/locale-policy";
 
 const requestSchema = z.object({
   kind: z.enum(["profile", "preferences", "billing", "theme"]),
@@ -13,7 +14,7 @@ const requestSchema = z.object({
   twoFactorEnabled: z.boolean().optional(),
   twoFactorMethod: z.enum(["app", "sms", "email"]).optional(),
   theme: z.string().trim().min(1).max(40).optional(),
-  language: z.string().trim().min(2).max(10).optional(),
+  language: z.enum(["es", "en"]).optional(),
   dateFormat: z.string().trim().min(4).max(24).optional(),
   timezoneMode: z.enum(["auto", "manual"]).optional(),
   timezoneManual: z.string().trim().max(80).optional(),
@@ -161,16 +162,33 @@ export async function POST(request: Request) {
   }
 
   if (kind === "preferences") {
+    const { data: organization, error: organizationError } = await supabase
+      .from("organizations")
+      .select("integration_plan_id")
+      .eq("id", tenant.organizationId)
+      .maybeSingle();
+
+    if (organizationError || !organization) {
+      return NextResponse.json({ error: organizationError?.message ?? "Organization not found" }, { status: 400 });
+    }
+
+    const enforcedLanguage = resolveOrganizationLocale(organization.integration_plan_id);
+    const { data: existingPreferences } = await supabase
+      .from("user_preferences")
+      .select("theme, date_format, timezone_mode, timezone_manual, analytics_enabled")
+      .eq("organization_id", tenant.organizationId)
+      .eq("user_id", userId)
+      .maybeSingle();
     const { error } = await supabase.from("user_preferences").upsert(
       {
         user_id: userId,
         organization_id: tenant.organizationId,
-        theme: body.theme ?? "default",
-        language: body.language ?? "es",
-        date_format: body.dateFormat ?? "DD/MM/YYYY",
-        timezone_mode: body.timezoneMode ?? "auto",
-        timezone_manual: body.timezoneManual ?? "",
-        analytics_enabled: Boolean(body.analyticsEnabled),
+        theme: body.theme ?? existingPreferences?.theme ?? "default",
+        language: enforcedLanguage,
+        date_format: body.dateFormat ?? existingPreferences?.date_format ?? "MM/DD/YYYY",
+        timezone_mode: body.timezoneMode ?? existingPreferences?.timezone_mode ?? "auto",
+        timezone_manual: body.timezoneManual ?? existingPreferences?.timezone_manual ?? "",
+        analytics_enabled: body.analyticsEnabled ?? existingPreferences?.analytics_enabled ?? true,
       },
       { onConflict: "organization_id,user_id" },
     );

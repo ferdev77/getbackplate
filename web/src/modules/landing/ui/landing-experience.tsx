@@ -218,15 +218,15 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
           realityTitle: "Tu POS corre tus ventas.",
           realityTitleAccent: "GetBackplate corre tu restaurante.",
           realityBody: "Entre los clipboards, los emails, los grupos de WhatsApp y los checklists impresos — tu restaurante corre con herramientas que nunca fueron hechas para como los restaurantes realmente funcionan.",
-          realityWith: "Con GetBackplate finalmente tenés:",
+          realityWith: "Con GetBackplate finalmente tienes:",
           modulesTitle: "Todo lo que tu equipo maneja en herramientas separadas",
           aiTitle: "El jefe de turno que",
           aiTitleAccent: "nunca cierra.",
           pricingTitle: "Precios claros + trial de 30 días",
-          pricingSub: "Empezá con cualquier plan. Si eres elegible, tenés 30 días de prueba y el primer cobro llega al final del trial.",
+          pricingSub: "Empieza con cualquier plan. Si eres elegible, tienes 30 días de prueba y el primer cobro llega al final del trial.",
           faqTitle: "Preguntas frecuentes",
           firstTrialTitle: "Trial de 30 días para cualquier plan",
-          firstTrialBody: "Creás tu cuenta, cargás tarjeta y probás la plataforma completa. El primer cobro llega al finalizar el trial.",
+          firstTrialBody: "Creas tu cuenta, cargas la tarjeta y pruebas la plataforma completa. El primer cobro llega al finalizar el trial.",
         },
       };
     }
@@ -359,20 +359,20 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
     () =>
       lang === "es"
         ? [
-            ["¿Es GetBackplate un sistema POS?", "No. GetBackplate es una plataforma de operaciones para restaurantes — no un POS. Gestiona todo lo que tu POS ignora: tu personal, tus procesos, los estándares de cocina, el cumplimiento y la comunicación. Funciona junto a Toast, Square, Clover y cualquier POS que ya usás."],
+            ["¿Es GetBackplate un sistema POS?", "No. GetBackplate es una plataforma de operaciones para restaurantes — no un POS. Gestiona todo lo que tu POS ignora: tu personal, tus procesos, los estándares de cocina, el cumplimiento y la comunicación. Funciona junto a Toast, Square, Clover y cualquier POS que ya usas."],
             ["¿Necesito reemplazar mi POS actual?", "Para nada. GetBackplate no es un reemplazo — es un complemento. Tu POS maneja transacciones. GetBackplate maneja todo lo demás. Ambos funcionan de forma independiente, sin integración necesaria."],
             ["¿Puedo personalizar los checklists y módulos para mi concepto?", "Sí. Los checklists son completamente personalizables por departamento, turno y locación. Cada concepto opera de forma diferente, y GetBackplate está construido para reflejar tus estándares específicos — no una plantilla genérica."],
-            ["¿Cuánto tiempo lleva la configuración?", "GetBackplate está diseñado para que lo configures vos — sin conocimiento técnico. La plataforma es intuitiva y la mayoría de los operadores están completamente configurados en pocos días. Si manejás una operación compleja y preferís ayuda, ofrecemos un servicio de configuración por única vez desde $299."],
+            ["¿Cuánto tiempo lleva la configuración?", "GetBackplate está diseñado para que lo configures tú — sin conocimiento técnico. La plataforma es intuitiva y la mayoría de los operadores están completamente configurados en pocos días. Si manejas una operación compleja y prefieres ayuda, ofrecemos un servicio de configuración por una sola vez desde $299."],
             ["¿Mis empleados necesitan sus propios dispositivos?", "No. GetBackplate es web y funciona en cualquier dispositivo — teléfono, tablet o computadora. No requiere descarga de app. Cada usuario tiene sus propias credenciales y puede acceder desde cualquier dispositivo con conexión a internet."],
             ["¿GetBackplate está disponible en español?", "El soporte en español está en la hoja de ruta y es una prioridad dado el perfil de la mayoría de los equipos en EE.UU. Los Miembros First Table tendrán participación directa en el calendario de lanzamiento y las prioridades de traducción."],
             ["¿Qué pasa si un empleado no completa un checklist?", "Los managers tienen visibilidad en tiempo real del estado de completitud por turno y departamento. Los ítems incompletos quedan marcados hasta resolverse. GetBackplate AI (planes Growth y Pro) también puede detectar patrones de incumplimiento recurrente de forma proactiva."],
             ["¿Qué es el Programa First Table?", "First Table es nuestro programa de soft launch — limitado a 100 restaurantes. Los miembros obtienen precios fijos para siempre, acceso prioritario antes del lanzamiento público, y contacto directo con el equipo. Es solo por invitación y cierra cuando se llenan todos los lugares."],
-            ["¿El precio realmente queda fijo para siempre?", "Sí. El plan al que te unís durante el Programa First Table es tu plan permanente — sin aumentos, nunca. Cuando GetBackplate lance públicamente, los precios reflejarán el producto completo. Los Miembros First Table conservan su plan fundador."],
-            ["¿Hay contratos a largo plazo?", "No. GetBackplate es mes a mes en facturación mensual, o anual si querés el descuento. Podés cancelar cuando quieras. Creemos que el producto debe ganarse tu negocio cada mes."],
-            ["¿Puedo cambiar de plan?", "Sí. Podés cambiar de plan en cualquier momento. Los upgrades aplican de inmediato. Los downgrades aplican en el siguiente ciclo de facturación. El precio First Table se mantiene sin importar en qué nivel de plan estés."],
+            ["¿El precio realmente queda fijo para siempre?", "Sí. El plan al que te unes durante el Programa First Table es tu plan permanente — sin aumentos, nunca. Cuando GetBackplate lance públicamente, los precios reflejarán el producto completo. Los Miembros First Table conservan su plan fundador."],
+            ["¿Hay contratos a largo plazo?", "No. GetBackplate es mes a mes en facturación mensual, o anual si quieres el descuento. Puedes cancelar cuando quieras. Creemos que el producto debe ganarse tu negocio cada mes."],
+            ["¿Puedo cambiar de plan?", "Sí. Puedes cambiar de plan en cualquier momento. Los upgrades aplican de inmediato. Los downgrades aplican en el siguiente ciclo de facturación. El precio First Table se mantiene sin importar en qué nivel de plan estés."],
             ["¿Dónde se almacenan mis datos? ¿Son seguros?", "Todos los datos están cifrados en tránsito y en reposo, almacenados en infraestructura cloud segura. Contratos de empleo, registros de RRHH y datos operativos están protegidos con controles de acceso basados en roles."],
-            ["¿Puedo exportar mis datos si me voy?", "Sí. Tus datos son tuyos. Podés exportar todos los registros — checklists, archivos de empleados, contratos, logs — en cualquier momento. No retenemos tus datos como rehén."],
-            ["¿Necesito conocimiento técnico para usar las funciones de IA?", "Para nada. La IA en GetBackplate funciona en lenguaje natural — escribís una oración, genera un borrador. Hacés una pregunta, responde con tus propios datos operativos. Sin prompts, sin configuración, sin curva de aprendizaje."],
+            ["¿Puedo exportar mis datos si me voy?", "Sí. Tus datos son tuyos. Puedes exportar todos los registros — checklists, archivos de empleados, contratos, logs — en cualquier momento. No retenemos tus datos como rehén."],
+            ["¿Necesito conocimiento técnico para usar las funciones de IA?", "Para nada. La IA en GetBackplate funciona en lenguaje natural — escribes una oración, genera un borrador. Haces una pregunta, responde con tus propios datos operativos. Sin prompts, sin configuración, sin curva de aprendizaje."],
           ]
         : [
             ["Is GetBackplate a POS system?", "No. GetBackplate is a restaurant operations platform — not a POS. It manages everything your POS ignores: your people, your processes, your kitchen standards, your compliance, and your communication. It works alongside Toast, Square, Clover, and any POS you already use."],
@@ -401,7 +401,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
             ["02", "People & RRHH", "Onboarding, turnos, solicitudes de ausencia, historial de capacitación, evaluaciones de desempeño, registros disciplinarios y firmas digitales de contratos — toda tu capa de personas, organizada."],
             ["03", "Cocina y Menú", "Archivo de recetas con escalado automático de porciones, costeo de menú vinculado directamente a las recetas, y directorio completo de proveedores con historial de pedidos y contactos."],
             ["04", "Comunicación", "Las notificaciones en plataforma y por email mantienen a tu equipo conectado en tiempo real — sin el caos de una app de terceros que nadie usa."],
-            ["05", "Marketing y Calidad", "Gestioná tu ficha de Google My Business, organizá concursos de reseñas dentro de la plataforma y hacé seguimiento de evaluaciones de mystery shopper con puntuación ponderada e informes de tendencia."],
+            ["05", "Marketing y Calidad", "Gestiona tu ficha de Google My Business, organiza concursos de reseñas dentro de la plataforma y haz seguimiento de evaluaciones de mystery shopper con puntuación ponderada e informes de tendencia."],
             ["06", "Roles y Permisos", "Cada módulo está controlado por una capa unificada de roles y permisos. Los dueños ven todo. Los managers ven lo que necesitan. El staff ve lo relevante para su turno."],
           ]
         : [
@@ -421,7 +421,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
         ? [
             ["Fluidez", "Cada interacción tiene que sentirse natural. Si requiere más de un clic, preguntamos por qué. Hacemos el trabajo duro de nuestro lado para que nuestros clientes no tengan que hacerlo del suyo."],
             ["Empatía", "Trabajamos cada turno. Construimos para la persona que todavía está en el piso a medianoche — que no tiene tiempo de aprender software nuevo ni leer tutoriales."],
-            ["Claridad", "Todo lo que un usuario necesita está visible en una pantalla. Sin menús enterrados, sin confusión. Una plataforma que se explica sola desde el momento en que la abrís."],
+            ["Claridad", "Todo lo que un usuario necesita está visible en una pantalla. Sin menús enterrados, sin confusión. Una plataforma que se explica sola desde el momento en que la abres."],
             ["Responsabilidad", "Ayudamos a los equipos a construir una cultura de propiedad — por turno, departamento y persona. Cada acción firmada. Cada estándar trazado."],
           ]
         : [
@@ -1035,7 +1035,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
               </div>
               <p className="text-[16px] leading-[1.8] text-[var(--gbp-text2)]">
                 {lang === "es"
-                  ? "GetBackplate es modular por diseño. Empezá con lo que necesitás, agregá módulos mientras crecés — y dejá que nuestra IA trabaje en todos ellos para mostrar lo que importa."
+                  ? "GetBackplate es modular por diseño. Empieza con lo que necesitas, agrega módulos mientras creces — y deja que nuestra IA trabaje en todos ellos para mostrar lo que importa."
                   : "GetBackplate is modular by design. Start with what you need, add modules as you grow — and let our AI work across all of them to surface what matters."}
               </p>
             </div>
@@ -1147,9 +1147,9 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                 <div className="flex gap-px overflow-hidden rounded-t-xl border border-[var(--gbp-border)] bg-[var(--gbp-border)]" style={{ flexDirection: "row" }}>
                   {(["draft", "know", "ask"] as const).map((tab) => {
                     const labels: Record<string, { verb: string; desc: string }> = {
-                      draft: { verb: lang === "es" ? "Redactá." : "Draft it.", desc: lang === "es" ? "Escribí una frase. Obtené un borrador listo." : "Write one sentence. Get a publish-ready draft." },
-                      know: { verb: lang === "es" ? "Detectá." : "Know it.", desc: lang === "es" ? "Detectá problemas antes que tu manager." : "Surface problems before your manager does." },
-                      ask: { verb: lang === "es" ? "Preguntá." : "Ask it.", desc: lang === "es" ? "Tus operaciones, en el idioma que pensás." : "Your operations, in the language you think in." },
+                      draft: { verb: lang === "es" ? "Redacta." : "Draft it.", desc: lang === "es" ? "Escribe una frase. Obtén un borrador listo." : "Write one sentence. Get a publish-ready draft." },
+                      know: { verb: lang === "es" ? "Detecta." : "Know it.", desc: lang === "es" ? "Detecta problemas antes que tu manager." : "Surface problems before your manager does." },
+                      ask: { verb: lang === "es" ? "Pregunta." : "Ask it.", desc: lang === "es" ? "Tus operaciones, en el idioma que piensas." : "Your operations, in the language you think in." },
                     };
                     return (
                       <button
@@ -1171,7 +1171,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                     <motion.div key="draft" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.22 }}>
                       <div className="mb-3 flex items-center gap-2">
                         <span className="inline-flex rounded-full border border-[var(--gbp-violet)]/20 bg-[var(--gbp-violet-soft)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-violet)]">Growth Plan</span>
-                        <p className="text-[14px] font-semibold text-[var(--gbp-text2)]">{lang === "es" ? "Escribí una frase. Obtené un borrador listo para publicar." : "Write one sentence. Get a publish-ready draft."}</p>
+                        <p className="text-[14px] font-semibold text-[var(--gbp-text2)]">{lang === "es" ? "Escribe una frase. Obtén un borrador listo para publicar." : "Write one sentence. Get a publish-ready draft."}</p>
                       </div>
                       <div className="overflow-hidden rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg2)]">
                         <div className="flex items-center gap-1.5 border-b border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-3 py-2">
@@ -1212,7 +1212,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                     <motion.div key="know" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.22 }}>
                       <div className="mb-3 flex items-center gap-2">
                         <span className="inline-flex rounded-full border border-[var(--gbp-violet)]/20 bg-[var(--gbp-violet-soft)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-violet)]">Growth Plan</span>
-                        <p className="text-[14px] font-semibold text-[var(--gbp-text2)]">{lang === "es" ? "Detectá problemas antes de que tu manager lo haga." : "Surface problems before your manager does."}</p>
+                        <p className="text-[14px] font-semibold text-[var(--gbp-text2)]">{lang === "es" ? "Detecta problemas antes de que tu manager lo haga." : "Surface problems before your manager does."}</p>
                       </div>
                       <div className="overflow-hidden rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg2)]">
                         <div className="flex items-center gap-1.5 border-b border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-3 py-2">
@@ -1264,7 +1264,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
                     <motion.div key="ask" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.22 }}>
                       <div className="mb-3 flex items-center gap-2">
                         <span className="inline-flex rounded-full border border-[var(--gbp-violet)]/20 bg-[var(--gbp-violet-soft)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--gbp-violet)]">Pro Plan</span>
-                        <p className="text-[14px] font-semibold text-[var(--gbp-text2)]">{lang === "es" ? "Tus datos en español o inglés — tú decidís." : "Your data in plain English or Spanish — tú decides."}</p>
+                        <p className="text-[14px] font-semibold text-[var(--gbp-text2)]">{lang === "es" ? "Tus datos en español o inglés — tú decides." : "Your data in plain English or Spanish — you decide."}</p>
                       </div>
                       <div className="overflow-hidden rounded-lg border border-[var(--gbp-border)] bg-[var(--gbp-bg2)]">
                         <div className="flex items-center gap-1.5 border-b border-[var(--gbp-border)] bg-[var(--gbp-surface2)] px-3 py-2">
@@ -1374,7 +1374,7 @@ export function LandingExperience({ plans, integrationPlans }: Props) {
               </p>
               <div className="flex flex-col gap-[18px]">
                 {[
-                  { icon: "🔒", title: lang === "es" ? "Precio Bloqueado — Para Siempre" : "Locked-In Pricing — Forever", desc: lang === "es" ? "La tarifa con la que entrás es la que conservás. Sin aumentos de precio. Nunca." : "The rate you join at is the rate you keep. No price increases. Ever." },
+                  { icon: "🔒", title: lang === "es" ? "Precio Bloqueado — Para Siempre" : "Locked-In Pricing — Forever", desc: lang === "es" ? "La tarifa con la que entras es la que conservas. Sin aumentos de precio. Nunca." : "The rate you join at is the rate you keep. No price increases. Ever." },
                   { icon: "⚡", title: lang === "es" ? "Acceso Prioritario Antes del Lanzamiento Público" : "Priority Access Before Public Launch", desc: lang === "es" ? "Los miembros del First Table salen en vivo antes que todos. Sin lista de espera." : "First Table Members go live before anyone else. No waiting in line." },
                   { icon: "🤝", title: lang === "es" ? "Línea Directa con el Equipo" : "Direct Line to the Team", desc: lang === "es" ? "Una persona real. No un ticket. Tu feedback moldea lo que se construye después." : "A real person. Not a ticket. Your feedback shapes what gets built next." },
                   { icon: "🏆", title: lang === "es" ? "Insignia de Miembro First Table" : "First Table Member Badge", desc: lang === "es" ? "Permanentemente en tu cuenta. Llegaste primero — y se nota." : "Permanently on your account. You were here first — and it shows." },

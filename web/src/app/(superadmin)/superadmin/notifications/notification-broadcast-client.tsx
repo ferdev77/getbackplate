@@ -634,7 +634,7 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
                   </select>
                 </div>
                 {hourOptions.length === 0 && (
-                  <p className="col-span-2 text-[11px] text-amber-600">No quedan horas disponibles hoy — elegí otra fecha.</p>
+                  <p className="col-span-2 text-[11px] text-amber-600">No quedan horas disponibles hoy — elige otra fecha.</p>
                 )}
               </div>
             )}
@@ -770,7 +770,7 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
                         <p className="truncate text-sm font-semibold text-[var(--gbp-text)]">{s.title}</p>
                         <p className="truncate text-xs text-[var(--gbp-muted)]">{s.body}</p>
                         <p className="mt-1 text-[11px] font-medium text-[var(--gbp-accent)]">
-                          {new Date(s.scheduled_at).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })} · {audienceLabel}
+                          {new Date(s.scheduled_at).toLocaleString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })} · {audienceLabel}
                         </p>
                       </div>
                       <button
@@ -836,7 +836,7 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
                     <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{parseUserAgent(sub.user_agent)}</td>
                     <td className="px-4 py-3 text-xs text-[var(--gbp-text2)]">{parseBrowser(sub.user_agent)}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-xs text-[var(--gbp-text2)]">
-                      {new Date(sub.created_at).toLocaleDateString("es-US", {
+                      {new Date(sub.created_at).toLocaleDateString("es-MX", {
                         day: "2-digit",
                         month: "2-digit",
                         year: "numeric",
@@ -901,7 +901,7 @@ export function NotificationBroadcastClient({ orgs, logs: initialLogs, subscribe
                       className={`border-b border-[var(--gbp-border)] transition-colors hover:bg-[var(--gbp-bg)] ${i % 2 === 0 ? "" : "bg-[var(--gbp-surface-alt,var(--gbp-bg))]"}`}
                     >
                       <td className="whitespace-nowrap px-6 py-3 text-xs text-[var(--gbp-text2)]">
-                        {new Date(log.created_at).toLocaleString("es-US", {
+                        {new Date(log.created_at).toLocaleString("es-MX", {
                           day: "2-digit",
                           month: "2-digit",
                           year: "numeric",

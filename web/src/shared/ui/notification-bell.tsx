@@ -122,7 +122,7 @@ export function NotificationBell({ viewAllHref, locale = "es" }: NotificationBel
 
             <div className="max-h-96 overflow-y-auto p-2">
               {items.length === 0 ? (
-                <p className="px-3 py-8 text-center text-sm text-[var(--gbp-text2)]">{t("No tenés notificaciones todavía.")}</p>
+                <p className="px-3 py-8 text-center text-sm text-[var(--gbp-text2)]">{t("No tienes notificaciones todavía.")}</p>
               ) : (
                 <div className="flex flex-col gap-1">
                   {items.map((item) => (

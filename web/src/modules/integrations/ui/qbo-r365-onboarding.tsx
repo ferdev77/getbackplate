@@ -152,7 +152,7 @@ export function QboR365Onboarding({ qboConnected, vendorProfile, maxConnections,
 
   async function saveVendorAndContinue() {
     if (!company.trim() || !contactName.trim() || !email.trim()) {
-      toast.error(t("Completá compañía, nombre de contacto y email."));
+      toast.error(t("Completa compañía, nombre de contacto y email."));
       return;
     }
     const saved = await updateOnboarding(
@@ -178,14 +178,14 @@ export function QboR365Onboarding({ qboConnected, vendorProfile, maxConnections,
     }
     const completed = await updateOnboarding({ complete: true }, setSkipping);
     if (!completed) return;
-    toast.success(t("¡Onboarding completado! Ya podés gestionar tus conexiones."));
+    toast.success(t("¡Onboarding completado! Ya puedes gestionar tus conexiones."));
     onComplete();
   }
 
   async function skipOnboarding() {
     const skipped = await updateOnboarding({ skip: true }, setSkipping);
     if (!skipped) return;
-    toast.info(t("Podés completar la configuración más tarde desde Integraciones."));
+    toast.info(t("Puedes completar la configuración más tarde desde Integraciones."));
     onComplete();
   }
 
@@ -208,7 +208,7 @@ export function QboR365Onboarding({ qboConnected, vendorProfile, maxConnections,
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gbp-accent)]">
                 {t("Plan")} {planName} · {t("Configuración inicial")}
               </p>
-              <h2 className="mt-0.5 text-xl font-bold text-foreground">{t("Activá tu integración QuickBooks → R365")}</h2>
+              <h2 className="mt-0.5 text-xl font-bold text-foreground">{t("Activa tu integración QuickBooks → R365")}</h2>
             </div>
             <button
               type="button"
@@ -236,7 +236,7 @@ export function QboR365Onboarding({ qboConnected, vendorProfile, maxConnections,
                   <div className="flex-1">
                     <p className="font-bold text-foreground">QuickBooks® Online</p>
                     <p className="text-xs text-muted-foreground">
-                      {qboConnected ? t("Cuenta conectada correctamente") : t("Necesitás autorizar el acceso a tus facturas de QuickBooks.")}
+                      {qboConnected ? t("Cuenta conectada correctamente") : t("Necesitas autorizar el acceso a tus facturas de QuickBooks.")}
                     </p>
                   </div>
                   {qboConnected && <CheckCircle2 className="h-5 w-5 text-emerald-500" />}
@@ -251,7 +251,7 @@ export function QboR365Onboarding({ qboConnected, vendorProfile, maxConnections,
               </div>
               {qboConnected && (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                  ✓ {t("QuickBooks ya está conectado. Podés continuar al siguiente paso.")}
+                  ✓ {t("QuickBooks ya está conectado. Puedes continuar al siguiente paso.")}
                 </div>
               )}
             </div>
@@ -330,7 +330,7 @@ export function QboR365Onboarding({ qboConnected, vendorProfile, maxConnections,
               <div className="rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-bg)] px-4 py-4 text-sm text-muted-foreground">
                 <p className="font-semibold text-foreground">{t("¿Cómo configurar una conexión?")}</p>
                 <p className="mt-1 text-xs leading-relaxed">
-                  {t("Desde el dashboard de integración podés configurar cada slot: nombre del cliente en R365, Account Number de QuickBooks y credenciales FTP del servidor de R365. Podés hacerlo ahora o en cualquier momento.")}
+                  {t("Desde el dashboard de integración puedes configurar cada slot: nombre del cliente en R365, Account Number de QuickBooks y credenciales FTP del servidor de R365. Puedes hacerlo ahora o en cualquier momento.")}
                 </p>
               </div>
             </div>
