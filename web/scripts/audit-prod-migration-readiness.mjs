@@ -105,6 +105,44 @@ try {
   if (rls[0].disabled !== 0) {
     throw new Error(`${rls[0].disabled} public tables have RLS disabled`);
   }
+  const { rows: tenantGoogleOauthTables } = await client.query(`
+    select
+      class.relname,
+      class.relrowsecurity,
+      has_table_privilege('anon', class.oid, 'select') as anon_select,
+      has_table_privilege('authenticated', class.oid, 'select') as authenticated_select,
+      has_table_privilege('service_role', class.oid, 'select') as service_select
+    from pg_class class
+    join pg_namespace namespace on namespace.oid = class.relnamespace
+    where namespace.nspname = 'public'
+      and class.relname in (
+        'organization_google_oauth_configs',
+        'organization_google_oauth_identities',
+        'organization_google_oauth_attempts'
+      )
+    order by class.relname
+  `);
+  if (
+    tenantGoogleOauthTables.length !== 3
+    || tenantGoogleOauthTables.some((table) => (
+      !table.relrowsecurity
+      || table.anon_select
+      || table.authenticated_select
+      || !table.service_select
+    ))
+  ) {
+    throw new Error("Tenant Google OAuth tables or grants are not production-safe");
+  }
+  const { rows: tenantGoogleOauthVersionColumn } = await client.query(`
+    select count(*)::integer as count
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'organization_google_oauth_identities'
+      and column_name = 'credential_version'
+  `);
+  if (tenantGoogleOauthVersionColumn[0]?.count !== 1) {
+    throw new Error("Tenant Google OAuth identity credential version is missing");
+  }
   const { rows: functions } = await client.query(`
     select
       signature,
@@ -125,9 +163,10 @@ try {
       'public.apply_stripe_increment_once(text,text,uuid,uuid,text,integer)',
       'public.queue_stripe_event_reconciliation(text,text)',
       'public.apply_manual_payment_order_transaction_v2(uuid,text,text,uuid,integer,integer,text,text,text,timestamp with time zone)',
-      'public.cleanup_ai_assistant_data(integer,integer,integer)',
-      'public.get_user_id_by_email(text)',
-      'public.create_employee_transaction(uuid,uuid,uuid,uuid,uuid,text,text,text,text,text,text,text,timestamp with time zone,date,text,text,text,text,text,text,text,text,text,text,text,boolean,uuid,text,text,text,date,date,numeric,text,text,text,text,timestamp with time zone,jsonb)',
+       'public.cleanup_ai_assistant_data(integer,integer,integer)',
+       'public.get_user_id_by_email(text)',
+       'public.consume_organization_google_oauth_attempt(text,text)',
+       'public.create_employee_transaction(uuid,uuid,uuid,uuid,uuid,text,text,text,text,text,text,text,timestamp with time zone,date,text,text,text,text,text,text,text,text,text,text,text,boolean,uuid,text,text,text,date,date,numeric,text,text,text,text,timestamp with time zone,jsonb)',
       'public.submit_checklist_transaction(uuid,uuid,uuid,uuid,uuid,jsonb,timestamp with time zone)'
     ]) signature
   `);
@@ -166,6 +205,8 @@ try {
     stripeStatusDefault: "processed",
     stripeEventHealth: stripeEventHealthRows[0],
     rlsDisabledTables: rls[0].disabled,
+    tenantGoogleOauthTables,
+    tenantGoogleOauthIdentityVersionColumn: tenantGoogleOauthVersionColumn[0].count,
     impactCounts: stats[0],
     privilegedFunctions: functions,
     stripeReconciliation: reconciliation,

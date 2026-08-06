@@ -8,6 +8,10 @@ const mocks = vi.hoisted(() => ({
   getFlow: vi.fn(),
   createBinding: vi.fn(),
   valueMatches: vi.fn(),
+  activeTenantConfig: vi.fn(),
+  startTenant: vi.fn(),
+  resolveHint: vi.fn(),
+  rateLimit: vi.fn(),
 }));
 
 vi.mock("@/infrastructure/supabase/client/server", () => ({
@@ -23,6 +27,17 @@ vi.mock("@/modules/auth/google-login-flow", () => ({
   getGoogleLoginFlow: mocks.getFlow,
   createGoogleLoginBrowserBinding: mocks.createBinding,
   browserBindingValueMatches: mocks.valueMatches,
+}));
+vi.mock("@/modules/auth/google-tenant/service", () => ({
+  getActiveTenantGoogleOAuthConfig: mocks.activeTenantConfig,
+  startTenantGoogleOAuth: mocks.startTenant,
+  TENANT_GOOGLE_BROWSER_COOKIE: "gb_tenant_google_browser",
+}));
+vi.mock("@/shared/lib/tenant-auth-branding", () => ({
+  resolveOrganizationIdFromAuthHint: mocks.resolveHint,
+}));
+vi.mock("@/shared/lib/ai-runtime-store", () => ({
+  applySharedRateLimit: mocks.rateLimit,
 }));
 
 const ORG_ID = "00000000-0000-4000-8000-000000000001";
@@ -42,6 +57,10 @@ describe("GET /api/auth/google/start", () => {
       : { cookieName: "gb_google_flow_0123456789abcdef", value: "browser-binding", hash: "binding-hash" });
     mocks.valueMatches.mockReturnValue(true);
     mocks.signIn.mockResolvedValue({ data: { url: "https://google.example/oauth" }, error: null });
+    mocks.activeTenantConfig.mockResolvedValue(null);
+    mocks.startTenant.mockResolvedValue({ url: "https://accounts.google.com/tenant-oauth", browserToken: "B".repeat(43) });
+    mocks.resolveHint.mockResolvedValue(ORG_ID);
+    mocks.rateLimit.mockResolvedValue(true);
   });
 
   it("derives a custom-domain destination from the actual request host", async () => {
@@ -69,6 +88,38 @@ describe("GET /api/auth/google/start", () => {
     expect(html).toContain('name="binding" value="browser-binding"');
     expect(response.headers.get("set-cookie")).toContain("gb_google_flow_0123456789abcdef=browser-binding");
     expect(mocks.signIn).not.toHaveBeenCalled();
+  });
+
+  it("uses a tested tenant OAuth configuration directly on its custom domain", async () => {
+    mocks.activeTenantConfig.mockResolvedValue({ status: "active" });
+    const { GET } = await import("./route");
+    const response = await GET(new Request(`https://client.example.com/api/auth/google/start?org=${ORG_ID}`));
+
+    expect(mocks.startTenant).toHaveBeenCalledWith({
+      organizationId: ORG_ID,
+      mode: "login",
+      redirectUri: "https://client.example.com/api/auth/google/tenant/callback",
+      targetHost: "client.example.com",
+      billingTrack: "platform",
+    });
+    expect(response.headers.get("location")).toBe("https://accounts.google.com/tenant-oauth");
+    expect(response.headers.get("set-cookie")).toContain("gb_tenant_google_browser=");
+    expect(mocks.createFlow).not.toHaveBeenCalled();
+    expect(mocks.signIn).not.toHaveBeenCalled();
+  });
+
+  it("keeps the established relay available when tenant OAuth cannot start", async () => {
+    mocks.activeTenantConfig.mockResolvedValue({ status: "active" });
+    mocks.startTenant.mockRejectedValue(new Error("temporary failure"));
+    const { GET } = await import("./route");
+    const response = await GET(new Request(`https://client.example.com/api/auth/google/start?org=${ORG_ID}`));
+
+    expect(response.status).toBe(200);
+    await expect(response.text()).resolves.toContain('method="post"');
+    expect(mocks.createFlow).toHaveBeenCalledWith(expect.objectContaining({
+      phase: "custom_handoff",
+      targetOrganizationId: ORG_ID,
+    }));
   });
 
   it("ignores injected destination parameters on the canonical host", async () => {

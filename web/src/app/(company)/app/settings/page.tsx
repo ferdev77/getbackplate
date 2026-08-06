@@ -1,4 +1,5 @@
 import { Building2, MapPin, Settings2 } from "lucide-react";
+import { headers } from "next/headers";
 
 import { createSupabaseServerClient } from "@/infrastructure/supabase/client/server";
 import {
@@ -19,10 +20,13 @@ import { InlineBranchForm } from "@/modules/settings/ui/inline-branch-form";
 import { InlineDepartmentForm } from "@/modules/settings/ui/inline-department-form";
 import { CompanyContactSettingsCard } from "@/modules/settings/ui/company-contact-settings-card";
 import { CustomDomainSettingsCard } from "@/modules/settings/ui/custom-domain-settings-card";
+import { GoogleOAuthSettingsCard } from "@/modules/settings/ui/google-oauth-settings-card";
+import { getTenantGoogleOAuthStatus } from "@/modules/auth/google-tenant/service";
 import { BranchList } from "@/modules/settings/ui/branch-list";
 import { ReorderableDepartmentList } from "@/modules/settings/ui/reorderable-department-list";
 import { isModuleEnabledForOrganization, requireTenantModule } from "@/shared/lib/access";
 import { DEFAULT_CUSTOM_DOMAIN_CNAME_TARGET } from "@/shared/lib/custom-domains";
+import { normalizeRequestHost } from "@/shared/lib/custom-domains";
 import { PageContent } from "@/shared/ui/page-content";
 import { hasMissingColumnError } from "@/shared/lib/supabase-compat";
 import { resolveUserLocale } from "@/shared/lib/locale";
@@ -30,7 +34,7 @@ import { getCurrentUser } from "@/modules/memberships/queries";
 import { createTranslator } from "@/modules/settings/ui/settings.i18n";
 
 type CompanySettingsPageProps = {
-  searchParams: Promise<{ status?: string; message?: string; action?: string; departmentId?: string }>;
+  searchParams: Promise<{ status?: string; message?: string; action?: string; departmentId?: string; google_oauth?: string }>;
 };
 
 const CARD = "border-[var(--gbp-border)] bg-[var(--gbp-surface)]";
@@ -68,6 +72,8 @@ type PositionRow = {
 
 export default async function CompanySettingsPage({ searchParams }: CompanySettingsPageProps) {
   const params = await searchParams;
+  const requestHeaders = await headers();
+  const requestHost = normalizeRequestHost(requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host"));
   const tenant = await requireTenantModule("settings");
   const supabase = await createSupabaseServerClient();
   const user = await getCurrentUser();
@@ -159,6 +165,23 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: false })
     .limit(200);
+
+  const canManageGoogleOAuth = tenant.roleCode === "company_admin";
+  const googleOAuthStatus = canManageGoogleOAuth
+    ? await getTenantGoogleOAuthStatus(tenant.organizationId)
+    : null;
+  const activeCustomDomain = (customDomains ?? []).find((row) => row.status === "active" && row.is_primary)
+    ?? (customDomains ?? []).find((row) => row.status === "active");
+  const googleCallbackUrls = activeCustomDomain
+    ? [`https://${activeCustomDomain.domain}/api/auth/google/tenant/callback`]
+    : [];
+  const googleOAuthDisabledReason = !customBrandingEnabled
+    ? undefined
+    : !activeCustomDomain
+      ? "Primero activa el dominio personalizado de la empresa."
+      : requestHost !== activeCustomDomain.domain
+        ? `Abre estos ajustes desde https://${activeCustomDomain.domain}/app/settings para guardar y probar Google.`
+        : undefined;
 
   const positionsData: PositionRow[] = hasMissingColumnError(positionsResult.error, "sort_order")
     ? (
@@ -255,6 +278,16 @@ export default async function CompanySettingsPage({ searchParams }: CompanySetti
           }))}
           defaultCnameTarget={DEFAULT_CUSTOM_DOMAIN_CNAME_TARGET}
         />
+        {googleOAuthStatus ? (
+          <GoogleOAuthSettingsCard
+            enabled={customBrandingEnabled}
+            initialStatus={googleOAuthStatus}
+            callbackUrls={googleCallbackUrls}
+            disabledReason={googleOAuthDisabledReason}
+            result={params.google_oauth}
+            resultMessage={params.message}
+          />
+        ) : null}
       </section>
 
       <section id="org-structure" className="grid gap-4 xl:grid-cols-2">

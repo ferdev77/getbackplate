@@ -119,7 +119,8 @@ export async function proxy(request: NextRequest) {
   const hasTokenFlow = request.nextUrl.searchParams.has("token") && isSupportedAuthType;
   const shouldBypassAuthCodeRedirect =
     path.startsWith("/api/company/integrations/qbo-r365/oauth/callback") ||
-    path.startsWith("/api/auth/intuit/callback");
+    path.startsWith("/api/auth/intuit/callback") ||
+    path.startsWith("/api/auth/google/tenant/callback");
 
   if (
     !shouldBypassAuthCodeRedirect

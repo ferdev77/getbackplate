@@ -28,6 +28,8 @@ const SENSITIVE_METADATA_KEYS = new Set([
   "apikey",
   "api_key",
   "service_role_key",
+  "client_secret",
+  "clientsecret",
 ]);
 
 export function sanitizeMetadataValue(value: unknown): unknown {

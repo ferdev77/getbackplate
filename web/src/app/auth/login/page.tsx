@@ -11,6 +11,8 @@ import { PasswordInput } from "@/shared/ui/password-input";
 import { IntuitSignInButton } from "@/shared/ui/intuit-sign-in-button";
 import { GoogleSignInButton } from "@/shared/ui/google-sign-in-button";
 import { GooglePopupSignInButton } from "@/shared/ui/google-popup-sign-in-button";
+import { getActiveTenantGoogleOAuthConfig } from "@/modules/auth/google-tenant/service";
+import { resolveOrganizationIdFromReadyAuthDomain } from "@/shared/lib/custom-domains";
 
 type LoginPageProps = {
   searchParams: Promise<{ error?: string; org?: string; desde?: string }>;
@@ -67,7 +69,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   // por un puente. En el dominio canonico no hay salto que evitar, asi que ahi
   // se deja el camino de siempre. Sin client_id configurado tampoco se activa.
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
-  const useGooglePopup = Boolean(googleClientId) && Boolean(tenantBranding);
+  const googleOrganizationId = await resolveOrganizationIdFromReadyAuthDomain(requestHost).catch(() => null);
+  const tenantGoogleActive = googleOrganizationId
+    ? await getActiveTenantGoogleOAuthConfig(googleOrganizationId).then(Boolean).catch(() => false)
+    : false;
+  const useGooglePopup = !tenantGoogleActive && Boolean(googleClientId) && Boolean(tenantBranding);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_var(--gbp-surface)_0%,_var(--gbp-bg)_48%,_var(--gbp-bg2)_100%)] px-6 py-10">

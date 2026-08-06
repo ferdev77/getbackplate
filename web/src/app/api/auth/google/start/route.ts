@@ -15,6 +15,12 @@ import {
   getGoogleLoginFlow,
   type GoogleLoginFlow,
 } from "@/modules/auth/google-login-flow";
+import {
+  getActiveTenantGoogleOAuthConfig,
+  startTenantGoogleOAuth,
+  TENANT_GOOGLE_BROWSER_COOKIE,
+} from "@/modules/auth/google-tenant/service";
+import { applySharedRateLimit } from "@/shared/lib/ai-runtime-store";
 
 const RELAY_HEADERS = {
   "Cache-Control": "no-store, max-age=0",
@@ -55,6 +61,45 @@ function canonicalOrigin(request: Request) {
   return process.env.NODE_ENV === "production"
     ? new URL(getCanonicalAppUrl()).origin
     : getRequestOrigin(request);
+}
+
+function requestSource(request: Request) {
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return forwarded || request.headers.get("x-real-ip") || "unknown";
+}
+
+async function hasActiveTenantGoogleConfig(organizationId: string | null) {
+  if (!organizationId) return false;
+  try {
+    return Boolean(await getActiveTenantGoogleOAuthConfig(organizationId));
+  } catch {
+    // A tenant-specific integration must never take down the global fallback.
+    return false;
+  }
+}
+
+async function startTenantOAuth(params: {
+  organizationId: string;
+  origin: string;
+  targetHost: string | null;
+  billingTrack: "integracion" | "plataforma";
+}) {
+  const started = await startTenantGoogleOAuth({
+    organizationId: params.organizationId,
+    mode: "login",
+    redirectUri: `${params.origin}/api/auth/google/tenant/callback`,
+    targetHost: params.targetHost,
+    billingTrack: params.billingTrack === "integracion" ? "integration" : "platform",
+  });
+  const response = NextResponse.redirect(started.url, { headers: RELAY_HEADERS });
+  response.cookies.set(TENANT_GOOGLE_BROWSER_COOKIE, started.browserToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/api/auth/google/tenant/callback",
+    maxAge: 10 * 60,
+  });
+  return response;
 }
 
 async function startCanonicalOAuth(params: {
@@ -124,6 +169,26 @@ export async function GET(request: Request) {
   const targetOrganizationId = await resolveOrganizationIdFromReadyAuthDomain(originHost);
   if (!originHost || !targetOrganizationId) {
     return loginError(appOrigin, "This custom domain is not ready for sign-in.");
+  }
+
+  if (await hasActiveTenantGoogleConfig(targetOrganizationId)) {
+    try {
+      const allowed = await applySharedRateLimit({
+        userId: `tenant-google:${targetOrganizationId}:${requestSource(request)}`,
+        windowMs: 5 * 60 * 1000,
+        maxRequests: 10,
+      });
+      if (allowed) {
+        return await startTenantOAuth({
+          organizationId: targetOrganizationId,
+          origin: requestOrigin,
+          targetHost: originHost,
+          billingTrack,
+        });
+      }
+    } catch {
+      // Preserve the established GetBackplate OAuth relay as the safe fallback.
+    }
   }
 
   const browserBinding = createGoogleLoginBrowserBinding();
