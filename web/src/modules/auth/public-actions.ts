@@ -121,21 +121,24 @@ export async function registerPublicAction(formData: FormData) {
       redirect("/auth/register?error=" + qs("Your organization could not be created. Contact support."));
     }
 
-    // 3. Assign Core Modules
-    const { data: modules } = await supabaseAdmin
-      .from("module_catalog")
-      .select("id")
-      .eq("is_core", true);
+    // Integration-only organizations receive exactly their plan modules after
+    // checkout; assigning platform core modules here leaks unrelated navigation.
+    if (!integrationPlanIdParam) {
+      const { data: modules } = await supabaseAdmin
+        .from("module_catalog")
+        .select("id")
+        .eq("is_core", true);
 
-    if (modules?.length) {
-      await supabaseAdmin.from("organization_modules").insert(
-        modules.map((mod) => ({
-          organization_id: org.id,
-          module_id: mod.id,
-          is_enabled: true,
-          enabled_at: new Date().toISOString(),
-        }))
-      );
+      if (modules?.length) {
+        await supabaseAdmin.from("organization_modules").insert(
+          modules.map((mod) => ({
+            organization_id: org.id,
+            module_id: mod.id,
+            is_enabled: true,
+            enabled_at: new Date().toISOString(),
+          }))
+        );
+      }
     }
 
     // 4. Assign Company Admin Role

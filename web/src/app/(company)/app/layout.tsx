@@ -7,13 +7,12 @@ import {
   getOrganizationSettingsCached,
   getEnabledModulesCached,
   getLatestSubscriptionCached,
-  getOrganizationBillingGateCached,
   getUserPreferencesCached,
   getOrganizationByIdCached,
   getAvailableAddonsCached,
   getOrganizationAddonsCached,
 } from "@/modules/organizations/cached-queries";
-import { getActiveBranches } from "@/modules/organizations/queries";
+import { getActiveBranches, getEnabledModules, getOrganizationBillingGate } from "@/modules/organizations/queries";
 import { requireCompanyAccess } from "@/shared/lib/access";
 import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
 import { CompanyShell } from "@/shared/ui/company-shell";
@@ -95,15 +94,15 @@ export default async function CompanyLayout({
     getActivePlansCached(),
     getIntegrationPlansCached("qbo_r365"),
     getPlanModulesMapCached(),
-    getEnabledModulesCached(tenant.organizationId),
+    getEnabledModules(tenant.organizationId),
     getActiveBranches(tenant.organizationId),
     getLatestSubscriptionCached(tenant.organizationId),
-    getOrganizationBillingGateCached(tenant.organizationId),
+    getOrganizationBillingGate(tenant.organizationId),
     getAvailableAddonsCached(),
     getOrganizationAddonsCached(tenant.organizationId),
   ]);
 
-  // ── enabledModuleCodes comes as string[] from cache (Set not serializable) ──
+  // Normalize the request-scoped module set for the shell checks below.
   const enabledModuleCodesSet = new Set(enabledModuleCodes);
 
   const subscriptionEndsAt =

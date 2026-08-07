@@ -300,6 +300,19 @@ export function CompanyShell({
   const lockScreenQboAddon = availableAddons.find((a) => a.integrationPlanType === "qbo_r365");
   const lockScreenOrgAddon = lockScreenQboAddon ? organizationAddons.find((a) => a.moduleId === lockScreenQboAddon.moduleId) : null;
 
+  useEffect(() => {
+    if (!shouldLockDashboard) return;
+    const refreshBillingState = () => {
+      if (document.visibilityState === "visible") router.refresh();
+    };
+    const timer = setInterval(refreshBillingState, 3000);
+    document.addEventListener("visibilitychange", refreshBillingState);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", refreshBillingState);
+    };
+  }, [router, shouldLockDashboard]);
+
   const enabledModuleSet = useMemo(() => new Set(enabledModules), [enabledModules]);
   const visibleSections = useMemo(() => {
     return SECTIONS
