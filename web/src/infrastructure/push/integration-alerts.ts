@@ -1,5 +1,6 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { notifySuperadmins } from "./notify-superadmins";
+import { sendPushToUsers } from "./send-to-org";
 
 export type IntegrationAlertInput =
   | {
@@ -88,10 +89,40 @@ export async function notifyIntegrationEvent(input: IntegrationAlertInput): Prom
     }
 
     const payload = buildPayload(orgName, input);
-    await notifySuperadmins({ ...payload, url: "/superadmin/notifications" }, {
+    const options = {
       source: "integration_alert",
       ...(input.kind !== "receipt_processing_failed" ? { organizationId: input.organizationId } : {}),
-    });
+    };
+
+    const deliveries: Promise<unknown>[] = [
+      notifySuperadmins({ ...payload, url: "/superadmin/notifications" }, options),
+    ];
+
+    if (input.kind === "send_success") {
+      const { data: memberships, error } = await admin
+        .from("memberships")
+        .select("user_id, roles!inner(code)")
+        .eq("organization_id", input.organizationId)
+        .eq("status", "active")
+        .eq("roles.code", "company_admin");
+      if (error) throw new Error(error.message);
+
+      const companyAdminIds = Array.from(new Set((memberships ?? []).map((membership) => String(membership.user_id))));
+      if (companyAdminIds.length > 0) {
+        deliveries.push(sendPushToUsers(
+          companyAdminIds,
+          { ...payload, url: "/app/integrations/quickbooks" },
+          options,
+        ));
+      }
+    }
+
+    const results = await Promise.allSettled(deliveries);
+    for (const result of results) {
+      if (result.status === "rejected") {
+        console.error("[integration-alerts] Delivery error:", result.reason instanceof Error ? result.reason.message : result.reason);
+      }
+    }
   } catch (err) {
     console.error("[integration-alerts] Notification error:", err instanceof Error ? err.message : err);
   }

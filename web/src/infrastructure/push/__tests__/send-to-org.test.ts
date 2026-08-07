@@ -116,6 +116,23 @@ describe("sendPushToUsers", () => {
     expect(loggedRows()).toEqual([expect.objectContaining({ channel: "in_app", userId: "user-sin-push" })]);
   });
 
+  it("espera a que la campanita quede persistida antes de completar el envio", async () => {
+    const { sendPushToUsers } = await import("../send-to-org");
+    let releaseLog!: () => void;
+    let completed = false;
+
+    queueResult("push_subscriptions", ok([]));
+    logNotificationsBulk.mockImplementationOnce(() => new Promise<void>((resolve) => { releaseLog = resolve; }));
+
+    const sending = sendPushToUsers(["user-1"], payload, options).then(() => { completed = true; });
+    await vi.waitFor(() => expect(logNotificationsBulk).toHaveBeenCalledOnce());
+    expect(completed).toBe(false);
+
+    releaseLog();
+    await sending;
+    expect(completed).toBe(true);
+  });
+
   it("un fallo real (no vencimiento) se cuenta como failed, queda logueado con el motivo real, y la campanita (in_app) no depende de eso", async () => {
     const { sendPushToUsers } = await import("../send-to-org");
 

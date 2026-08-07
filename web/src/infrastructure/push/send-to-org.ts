@@ -159,9 +159,11 @@ async function _sendToSubscriptions(
     rows.push({ ...baseRow, channel: "in_app" as const, userId });
   }
 
-  logNotificationsBulk(rows).catch((err) =>
-    console.error("[push] logNotificationsBulk failed:", err instanceof Error ? err.message : err),
-  );
+  try {
+    await logNotificationsBulk(rows);
+  } catch (err) {
+    console.error("[push] logNotificationsBulk failed:", err instanceof Error ? err.message : err);
+  }
 
   return { sent, expired, failed };
 }

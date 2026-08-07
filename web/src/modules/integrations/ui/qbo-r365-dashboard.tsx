@@ -471,8 +471,17 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
 
   // Polling
   useEffect(() => {
-    const timer = setInterval(() => { if (document.visibilityState === "visible") setRefreshKey((p) => p + 1); }, 15000);
-    return () => clearInterval(timer);
+    const refreshVisibleData = () => {
+      if (document.visibilityState !== "visible") return;
+      setRefreshKey((p) => p + 1);
+      setUnifiedHistoryKey((p) => p + 1);
+    };
+    const timer = setInterval(refreshVisibleData, 15000);
+    document.addEventListener("visibilitychange", refreshVisibleData);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", refreshVisibleData);
+    };
   }, []);
 
   useEffect(() => {
@@ -689,6 +698,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
       setNewSyncFtpHost(""); setNewSyncFtpUser(""); setNewSyncFtpPass(""); setShowNewSyncFtpPass(false);
       setNewSyncBackfillEnabled(false); setNewSyncBackfillFromDate("");
       setRefreshKey((p) => p + 1);
+      setUnifiedHistoryKey((p) => p + 1);
       await fetch("/api/company/integrations/qbo-r365/complete-onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
