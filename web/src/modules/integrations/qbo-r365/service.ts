@@ -41,6 +41,7 @@ import {
   type SyncConfigCreatePayload,
   type SyncConfigSummary,
   type SyncConfigUpdatePayload,
+  resolveCustomerR365Location,
   type QboStoredSecrets,
 } from "@/modules/integrations/qbo-r365/types";
 
@@ -362,7 +363,7 @@ export async function createSyncConfig(
       organization_id: organizationId,
       qbo_customer_id: c.id,
       qbo_customer_name: c.name,
-      r365_location: acctNumMap.get(c.id) ?? null,
+      r365_location: resolveCustomerR365Location(acctNumMap.get(c.id), c.r365Location),
       created_by: actorId,
     })));
 

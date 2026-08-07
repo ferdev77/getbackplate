@@ -63,6 +63,7 @@ export type IntegrationProvider = "quickbooks_online" | "restaurant365_ftp";
 export const qboCustomerRefSchema = z.object({
   id: z.string().trim().min(1).max(120),
   name: z.string().trim().min(1).max(255),
+  r365Location: z.string().trim().max(120).optional(),
 });
 
 export const syncConfigCreateSchema = z.object({
@@ -95,6 +96,13 @@ export type QboCustomerRef = z.infer<typeof qboCustomerRefSchema>;
 export type SyncConfigCreatePayload = z.infer<typeof syncConfigCreateSchema>;
 export type SyncConfigUpdatePayload = z.infer<typeof syncConfigUpdateSchema>;
 export type SyncConfigAddCustomerPayload = z.infer<typeof syncConfigAddCustomerSchema>;
+
+export function resolveCustomerR365Location(
+  qboAccountNumber: string | null | undefined,
+  manualLocation: string | null | undefined,
+) {
+  return qboAccountNumber?.trim() || manualLocation?.trim() || null;
+}
 
 export type SyncConfigSummary = {
   id: string;
