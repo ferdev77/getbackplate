@@ -2,7 +2,7 @@ import { createDecipheriv, createHash, createHmac, randomUUID } from "node:crypt
 import { readFileSync } from "node:fs";
 
 const docNumber = process.argv[2]?.trim();
-const organizationName = process.env.INTUIT_REVIEW_ORGANIZATION?.trim() || "intuit sandbox";
+const organizationName = process.env.INTUIT_REVIEW_ORGANIZATION?.trim() || "intuit review";
 const entityType = process.env.INTUIT_REVIEW_ENTITY_TYPE?.trim() || "Invoice";
 if (!docNumber) {
   throw new Error("Usage: node scripts/send-intuit-review-webhook.mjs <DocNumber>");
