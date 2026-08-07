@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
 import { logAuthEvent } from "@/shared/lib/audit";
 import { setActiveOrganizationIdCookie } from "@/shared/lib/tenant-selection";
+import { shouldEnableRegistrationModule } from "@/modules/auth/registration-module-rules";
 
 function slugify(value: string) {
   return value
@@ -123,24 +124,27 @@ export async function registerPublicAction(formData: FormData) {
       redirect("/auth/register?error=" + qs("Your organization could not be created. Contact support."));
     }
 
-    // Integration-only organizations receive exactly their plan modules after
-    // checkout; assigning platform core modules here leaks unrelated navigation.
-    if (!integrationPlanIdParam) {
-      const { data: modules } = await supabaseAdmin
-        .from("module_catalog")
-        .select("id")
-        .eq("is_core", true);
+    // Integration signups need dashboard only as the surface for the blocking
+    // plan selector. The paid plan synchronization replaces this bootstrap set.
+    const onboardingTrack = integrationPlanIdParam ? "integration" : "platform";
+    const { data: modules, error: modulesError } = await supabaseAdmin
+      .from("module_catalog")
+      .select("id, code, is_core");
+    if (modulesError) throw new Error(modulesError.message);
 
-      if (modules?.length) {
-        await supabaseAdmin.from("organization_modules").insert(
-          modules.map((mod) => ({
+    if (modules?.length) {
+      const { error: organizationModulesError } = await supabaseAdmin.from("organization_modules").insert(
+        modules.map((mod) => {
+          const isEnabled = shouldEnableRegistrationModule({ code: mod.code, isCore: Boolean(mod.is_core) }, onboardingTrack);
+          return {
             organization_id: org.id,
             module_id: mod.id,
-            is_enabled: true,
-            enabled_at: new Date().toISOString(),
-          }))
-        );
-      }
+            is_enabled: isEnabled,
+            enabled_at: isEnabled ? new Date().toISOString() : null,
+          };
+        }),
+      );
+      if (organizationModulesError) throw new Error(organizationModulesError.message);
     }
 
     // 4. Assign Company Admin Role
