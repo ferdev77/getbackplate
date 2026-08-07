@@ -64,6 +64,15 @@ export const qboCustomerRefSchema = z.object({
   id: z.string().trim().min(1).max(120),
   name: z.string().trim().min(1).max(255),
   r365Location: z.string().trim().max(120).optional(),
+  r365LocationSource: z.enum(["qbo", "manual"]).optional(),
+}).superRefine((customer, context) => {
+  if (customer.r365LocationSource === "manual" && !/^\d{7}$/.test(customer.r365Location ?? "")) {
+    context.addIssue({
+      code: "custom",
+      path: ["r365Location"],
+      message: "Manual Account Number must contain exactly 7 digits.",
+    });
+  }
 });
 
 export const syncConfigCreateSchema = z.object({

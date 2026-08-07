@@ -322,7 +322,12 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
   // Editar sincronizacion existente (developer-only) — reusa el mismo modal/estado de crear
   const [editingSyncConfigId, setEditingSyncConfigId] = useState<string | null>(null);
   // Form state for new sync config
-  const [newSyncCustomers, setNewSyncCustomers] = useState<Array<{ id: string; name: string; r365Location?: string }>>([]);
+  const [newSyncCustomers, setNewSyncCustomers] = useState<Array<{
+    id: string;
+    name: string;
+    r365Location?: string;
+    r365LocationSource?: "qbo" | "manual";
+  }>>([]);
   const [newSyncName, setNewSyncName] = useState("");
   const [newSyncVendorName, setNewSyncVendorName] = useState("");
   const [newSyncLocation, setNewSyncLocation] = useState("");
@@ -583,6 +588,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
       id: customer.id,
       name: customer.displayName,
       r365Location: customer.acctNum ?? "",
+      r365LocationSource: customer.acctNum ? "qbo" : "manual",
     }]);
     if (isFirst) {
       setNewSyncName(customer.displayName);
@@ -605,7 +611,7 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
             setNewSyncLocation(data.customer.acctNum);
             setNewSyncCustomers((prev) => prev.map((picked) =>
               picked.id === customer.id
-                ? { ...picked, r365Location: data.customer?.acctNum ?? "" }
+                ? { ...picked, r365Location: data.customer?.acctNum ?? "", r365LocationSource: "qbo" }
                 : picked));
           }
         }
@@ -637,6 +643,11 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
     e.preventDefault();
     if (newSyncCustomers.length === 0) { toast.error(t("Selecciona al menos un cliente QuickBooks")); return; }
     if (!newSyncName.trim()) { toast.error(t("Ingresa un nombre para la sincronización")); return; }
+    if (newSyncCustomers.some((customer) =>
+      customer.r365LocationSource === "manual" && !/^\d{7}$/.test(customer.r365Location ?? ""))) {
+      toast.error(t("El Account Number manual debe tener exactamente 7 dígitos."));
+      return;
+    }
     if (newSyncBackfillEnabled && !newSyncBackfillFromDate) {
       toast.error(t("Elige una fecha de inicio para la importación histórica"));
       return;
@@ -1947,28 +1958,39 @@ export function QboR365Dashboard({ organizationId, locale, deferredDataUrl, show
                 {newSyncCustomers.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {newSyncCustomers.map((c) => {
-                      const acctNum = c.r365Location || qboCustomers.find((q) => q.id === c.id)?.acctNum;
+                      const qboAcctNum = c.r365LocationSource === "qbo"
+                        ? c.r365Location
+                        : qboCustomers.find((q) => q.id === c.id)?.acctNum;
                       const loading = !resolvedAcctNumIds.has(c.id);
                       return (
                         <span key={c.id} className="inline-flex min-h-7 items-center gap-1.5 rounded-full bg-[var(--gbp-bg)] px-2.5 py-1 text-[11px] font-medium text-[var(--gbp-text)]">
                           {c.name}
                           {loading ? (
                             <span className="font-mono text-[10px] text-[var(--gbp-muted)]">· {t("cargando…")}</span>
-                          ) : acctNum ? (
-                            <span className="font-mono text-[10px] text-[var(--gbp-text2)]">· {acctNum}</span>
+                          ) : qboAcctNum ? (
+                            <span className="font-mono text-[10px] text-[var(--gbp-text2)]">· {qboAcctNum}</span>
                           ) : !editingSyncConfigId ? (
-                            <label className="ml-0.5 inline-flex items-center gap-1 rounded-md border border-[var(--gbp-accent)]/50 bg-[var(--gbp-card)] px-1.5 py-0.5">
+                            <label className={`ml-0.5 inline-flex items-center gap-1 rounded-md border bg-[var(--gbp-card)] px-1.5 py-0.5 ${
+                              /^\d{7}$/.test(c.r365Location ?? "")
+                                ? "border-[var(--gbp-accent)]/50"
+                                : "border-[var(--gbp-error)]/60"
+                            }`}>
                               <span className="font-mono text-[10px] font-bold text-[var(--gbp-accent)]">· #</span>
                               <input
                                 value={c.r365Location ?? ""}
                                 onChange={(event) => {
-                                  const value = event.target.value;
+                                  const value = event.target.value.replace(/\D/g, "").slice(0, 7);
                                   setNewSyncCustomers((prev) => prev.map((picked) =>
-                                    picked.id === c.id ? { ...picked, r365Location: value } : picked));
+                                    picked.id === c.id
+                                      ? { ...picked, r365Location: value, r365LocationSource: "manual" }
+                                      : picked));
                                   if (newSyncCustomers.length === 1) setNewSyncLocation(value);
                                 }}
                                 onClick={(event) => event.stopPropagation()}
-                                placeholder="Account no."
+                                inputMode="numeric"
+                                pattern="[0-9]{7}"
+                                maxLength={7}
+                                placeholder="7 digits"
                                 aria-label={`${c.name} manual Account Number`}
                                 className="w-24 bg-transparent font-mono text-[10px] text-[var(--gbp-text)] outline-none placeholder:text-[var(--gbp-muted)]"
                               />

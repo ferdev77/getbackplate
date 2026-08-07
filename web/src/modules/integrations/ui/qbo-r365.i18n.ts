@@ -65,6 +65,7 @@ export const QUICKBOOKS_R365_EN: Record<string, string> = {
   "Sin resultados": "No results",
   "cargando…": "loading…",
   "sin cuenta": "no account",
+  "El Account Number manual debe tener exactamente 7 dígitos.": "Manual Account Number must contain exactly 7 digits.",
   "Con más de un cliente, la ubicación R365 se resuelve automáticamente por factura según el Account No. de cada cliente en QuickBooks.":
     "With more than one customer, the R365 location is resolved automatically per document based on each customer's Account No. in QuickBooks.",
   Nombre: "Name",
