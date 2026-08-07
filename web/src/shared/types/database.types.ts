@@ -2416,6 +2416,120 @@ export type Database = {
           },
         ]
       }
+      development_ledger_items: {
+        Row: {
+          amount_cents: number | null
+          archived_at: string | null
+          billing_status: string
+          created_at: string
+          created_by: string | null
+          id: string
+          occurred_on: string
+          plan_scope: string
+          prior_invoice_label: string | null
+          rationale: string | null
+          section_code: string
+          section_title: string
+          sort_order: number
+          stable_key: string | null
+          technical_detail: string | null
+          title: string
+          updated_at: string
+          updated_by: string | null
+          work_type: string
+        }
+        Insert: {
+          amount_cents?: number | null
+          archived_at?: string | null
+          billing_status?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          occurred_on: string
+          plan_scope: string
+          prior_invoice_label?: string | null
+          rationale?: string | null
+          section_code: string
+          section_title: string
+          sort_order?: number
+          stable_key?: string | null
+          technical_detail?: string | null
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+          work_type: string
+        }
+        Update: {
+          amount_cents?: number | null
+          archived_at?: string | null
+          billing_status?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          occurred_on?: string
+          plan_scope?: string
+          prior_invoice_label?: string | null
+          rationale?: string | null
+          section_code?: string
+          section_title?: string
+          sort_order?: number
+          stable_key?: string | null
+          technical_detail?: string | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          work_type?: string
+        }
+        Relationships: []
+      }
+      development_ledger_reports: {
+        Row: {
+          content_sha256: string
+          currency: string
+          date_from: string
+          date_to: string
+          generated_at: string
+          generated_by: string | null
+          html_document: string
+          id: string
+          item_count: number
+          snapshot: Json
+          template_version: number
+          title: string
+          total_cents: number
+        }
+        Insert: {
+          content_sha256: string
+          currency?: string
+          date_from: string
+          date_to: string
+          generated_at?: string
+          generated_by?: string | null
+          html_document: string
+          id?: string
+          item_count: number
+          snapshot: Json
+          template_version?: number
+          title: string
+          total_cents: number
+        }
+        Update: {
+          content_sha256?: string
+          currency?: string
+          date_from?: string
+          date_to?: string
+          generated_at?: string
+          generated_by?: string | null
+          html_document?: string
+          id?: string
+          item_count?: number
+          snapshot?: Json
+          template_version?: number
+          title?: string
+          total_cents?: number
+        }
+        Relationships: []
+      }
       superadmin_impersonation_sessions: {
         Row: {
           created_at: string
