@@ -21,6 +21,9 @@ function qs(message: string) {
 }
 
 export async function registerPublicAction(formData: FormData) {
+  let createdUserId: string | null = null;
+  let createdOrganizationId: string | null = null;
+  let registrationCompleted = false;
   try {
     const companyName = String(formData.get("companyName") ?? "").trim();
     const fullName = String(formData.get("fullName") ?? "").trim();
@@ -76,6 +79,7 @@ export async function registerPublicAction(formData: FormData) {
     }
 
     const userId = createdUser.user.id;
+    createdUserId = userId;
 
     // 2. Create the Organization (Tenant)
     const slug = slugify(companyName) || `org-${Math.random().toString(36).slice(2, 8)}`;
@@ -123,6 +127,7 @@ export async function registerPublicAction(formData: FormData) {
       console.error("Public Registration - Org Error:", orgError);
       redirect("/auth/register?error=" + qs("Your organization could not be created. Contact support."));
     }
+    createdOrganizationId = org.id;
 
     // Integration signups need dashboard only as the surface for the blocking
     // plan selector. The paid plan synchronization replaces this bootstrap set.
@@ -133,16 +138,16 @@ export async function registerPublicAction(formData: FormData) {
     if (modulesError) throw new Error(modulesError.message);
 
     if (modules?.length) {
+      const enabledModules = modules.filter((mod) =>
+        shouldEnableRegistrationModule({ code: mod.code, isCore: Boolean(mod.is_core) }, onboardingTrack),
+      );
       const { error: organizationModulesError } = await supabaseAdmin.from("organization_modules").insert(
-        modules.map((mod) => {
-          const isEnabled = shouldEnableRegistrationModule({ code: mod.code, isCore: Boolean(mod.is_core) }, onboardingTrack);
-          return {
-            organization_id: org.id,
-            module_id: mod.id,
-            is_enabled: isEnabled,
-            enabled_at: isEnabled ? new Date().toISOString() : null,
-          };
-        }),
+        enabledModules.map((mod) => ({
+          organization_id: org.id,
+          module_id: mod.id,
+          is_enabled: true,
+          enabled_at: new Date().toISOString(),
+        })),
       );
       if (organizationModulesError) throw new Error(organizationModulesError.message);
     }
@@ -188,6 +193,7 @@ export async function registerPublicAction(formData: FormData) {
     
     // Set the tenant cookie
     await setActiveOrganizationIdCookie(org.id);
+    registrationCompleted = true;
 
     // 6. Continue the selected checkout flow after the new session is established.
     if (integrationPlanIdParam) {
@@ -202,6 +208,15 @@ export async function registerPublicAction(formData: FormData) {
     redirect("/app/dashboard?welcome=true");
 
   } catch (error: unknown) {
+    if (!registrationCompleted && (createdOrganizationId || createdUserId)) {
+      const cleanupAdmin = createSupabaseAdminClient();
+      if (createdOrganizationId) {
+        await cleanupAdmin.from("organizations").delete().eq("id", createdOrganizationId);
+      }
+      if (createdUserId) {
+        await cleanupAdmin.auth.admin.deleteUser(createdUserId, false);
+      }
+    }
     if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) {
         throw error;
     }

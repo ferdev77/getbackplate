@@ -6,7 +6,6 @@ import { createSupabaseServerClient } from "@/infrastructure/supabase/client/ser
 import { legalConsentMetadata } from "@/shared/lib/legal-consent";
 import { logAuthEvent } from "@/shared/lib/audit";
 import { setActiveOrganizationIdCookie } from "@/shared/lib/tenant-selection";
-import { shouldEnableRegistrationModule } from "@/modules/auth/registration-module-rules";
 
 function slugify(value: string) {
   return value
@@ -89,31 +88,6 @@ export async function completeIntuitRegistrationAction(formData: FormData) {
   if (onboardingTrackError) {
     console.error("[intuit-sso] billing onboarding track update failed", onboardingTrackError.message);
     redirect(completeUrl("Your selected product could not be saved. Please try again.", preserved));
-  }
-
-  const resolvedOnboardingTrack = integrationPlanId ? "integration" : billingTrack;
-  const { data: modules, error: modulesError } = await admin.from("module_catalog").select("id, code, is_core");
-  if (modulesError) {
-    console.error("[intuit-sso] registration module lookup failed", modulesError.message);
-    redirect(completeUrl("Your selected product could not be prepared. Please try again.", preserved));
-  }
-  if (modules?.length) {
-    const { error: moduleSyncError } = await admin.from("organization_modules").upsert(
-      modules.map((module) => {
-        const isEnabled = shouldEnableRegistrationModule({ code: module.code, isCore: Boolean(module.is_core) }, resolvedOnboardingTrack);
-        return {
-          organization_id: organizationId,
-          module_id: module.id,
-          is_enabled: isEnabled,
-          enabled_at: isEnabled ? new Date().toISOString() : null,
-        };
-      }),
-      { onConflict: "organization_id,module_id" },
-    );
-    if (moduleSyncError) {
-      console.error("[intuit-sso] registration module sync failed", moduleSyncError.message);
-      redirect(completeUrl("Your selected product could not be prepared. Please try again.", preserved));
-    }
   }
 
   await admin.auth.admin.updateUserById(data.user.id, {
