@@ -32,6 +32,15 @@ export function resolveCompanyShellLocale({
   return resolveOrganizationLocale(integrationPlanId);
 }
 
+export function resolveBillingOnboardingTrack(input: {
+  persistedTrack: string | null | undefined;
+  urlTrack: string | null | undefined;
+  hasSelectedIntegrationPlan: boolean;
+}): "platform" | "integration" {
+  if (input.hasSelectedIntegrationPlan || input.urlTrack === "integration") return "integration";
+  return input.persistedTrack === "integration" ? "integration" : "platform";
+}
+
 // ── Theme ─────────────────────────────────────────────────────────────────────
 
 export function normalizeTheme(value: string) {

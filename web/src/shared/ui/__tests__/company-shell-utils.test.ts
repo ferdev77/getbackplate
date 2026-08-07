@@ -6,6 +6,7 @@ import {
   getPlanAmountByCycle,
   formatPlanPrice,
   resolveCompanyShellLocale,
+  resolveBillingOnboardingTrack,
 } from "../company-shell-utils";
 
 describe("isActive", () => {
@@ -41,6 +42,37 @@ describe("resolveCompanyShellLocale", () => {
     expect(resolveCompanyShellLocale({
       integrationPlanId: null,
     })).toBe("es");
+  });
+});
+
+describe("resolveBillingOnboardingTrack", () => {
+  it("keeps integration after redirects remove the pricing query", () => {
+    expect(resolveBillingOnboardingTrack({
+      persistedTrack: "integration",
+      urlTrack: null,
+      hasSelectedIntegrationPlan: false,
+    })).toBe("integration");
+  });
+
+  it("uses integration landing intent before persistence", () => {
+    expect(resolveBillingOnboardingTrack({
+      persistedTrack: "platform",
+      urlTrack: "integration",
+      hasSelectedIntegrationPlan: false,
+    })).toBe("integration");
+    expect(resolveBillingOnboardingTrack({
+      persistedTrack: "platform",
+      urlTrack: null,
+      hasSelectedIntegrationPlan: true,
+    })).toBe("integration");
+  });
+
+  it("keeps platform onboarding isolated from integration plans", () => {
+    expect(resolveBillingOnboardingTrack({
+      persistedTrack: "platform",
+      urlTrack: "platform",
+      hasSelectedIntegrationPlan: false,
+    })).toBe("platform");
   });
 });
 

@@ -90,6 +90,7 @@ import {
   normalizeTheme,
   normalizePlanPeriod,
   formatPlanPrice,
+  resolveBillingOnboardingTrack,
 } from "@/shared/ui/company-shell-utils";
 import { getFormattingLocale, type AppLocale } from "@/shared/lib/locale-policy";
 
@@ -147,6 +148,7 @@ type CompanyShellProps = {
     status: string | null;
     currentPeriodEnd: string | null;
   };
+  billingOnboardingTrack: "platform" | "integration";
   trialStatus?: {
     isActive: boolean;
     daysRemaining: number | null;
@@ -205,6 +207,7 @@ export function CompanyShell({
   branchOptions,
   impersonationMode = false,
   billingGate,
+  billingOnboardingTrack,
   trialStatus,
   availableAddons = [],
   organizationAddons = [],
@@ -292,10 +295,15 @@ export function CompanyShell({
   const selectedPlanIdFromUrl = searchParams.get("selectPlanId");
   const selectedIntegrationPlanIdFromUrl = searchParams.get("selectIntegrationPlanId");
   const selectedBillingPeriodFromUrl = searchParams.get("billingPeriod");
-  const isIntegrationLandingCheckout = Boolean(
-    searchParams.get("billingTrack") === "integration"
-    || (selectedIntegrationPlanIdFromUrl && integrationPlans.some((plan) => plan.id === selectedIntegrationPlanIdFromUrl)),
-  );
+  const resolvedBillingOnboardingTrack = resolveBillingOnboardingTrack({
+    persistedTrack: billingOnboardingTrack,
+    urlTrack: searchParams.get("billingTrack"),
+    hasSelectedIntegrationPlan: Boolean(
+      selectedIntegrationPlanIdFromUrl
+      && integrationPlans.some((plan) => plan.id === selectedIntegrationPlanIdFromUrl),
+    ),
+  });
+  const isIntegrationLandingCheckout = resolvedBillingOnboardingTrack === "integration";
   const shouldLockDashboard = Boolean(billingGate?.required && billingGate?.isBlocked && !impersonationMode);
   const lockScreenQboAddon = availableAddons.find((a) => a.integrationPlanType === "qbo_r365");
   const lockScreenOrgAddon = lockScreenQboAddon ? organizationAddons.find((a) => a.moduleId === lockScreenQboAddon.moduleId) : null;

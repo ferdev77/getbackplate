@@ -12,7 +12,7 @@ import {
   getAvailableAddonsCached,
   getOrganizationAddonsCached,
 } from "@/modules/organizations/cached-queries";
-import { getActiveBranches, getEnabledModules, getOrganizationBillingGate } from "@/modules/organizations/queries";
+import { getActiveBranches, getEnabledModules, getOrganizationBillingGate, getOrganizationById } from "@/modules/organizations/queries";
 import { requireCompanyAccess } from "@/shared/lib/access";
 import { resolveActiveSuperadminImpersonationSession } from "@/shared/lib/impersonation";
 import { CompanyShell } from "@/shared/ui/company-shell";
@@ -29,7 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   const [organization, orgSettings, enabledModules] = await Promise.all([
-    getOrganizationByIdCached(tenant.organizationId),
+    getOrganizationById(tenant.organizationId),
     getOrganizationSettingsCached(tenant.organizationId),
     getEnabledModulesCached(tenant.organizationId),
   ]);
@@ -209,6 +209,7 @@ export default async function CompanyLayout({
       branchOptions={activeBranches}
       impersonationMode={Boolean(impersonationSession)}
       billingGate={billingGate}
+      billingOnboardingTrack={organization?.billing_onboarding_track ?? "platform"}
       availableAddons={availableAddons.map((a) => ({
         moduleId: a.id,
         moduleCode: a.code,

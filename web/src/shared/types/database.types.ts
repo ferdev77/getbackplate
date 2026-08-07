@@ -1997,6 +1997,7 @@ export type Database = {
           billing_activated_at: string | null
           billing_activation_status: string
           billing_onboarding_required: boolean
+          billing_onboarding_track: string
           country_code: string | null
           created_at: string
           created_by: string | null
@@ -2013,6 +2014,7 @@ export type Database = {
           billing_activated_at?: string | null
           billing_activation_status?: string
           billing_onboarding_required?: boolean
+          billing_onboarding_track?: string
           country_code?: string | null
           created_at?: string
           created_by?: string | null
@@ -2029,6 +2031,7 @@ export type Database = {
           billing_activated_at?: string | null
           billing_activation_status?: string
           billing_onboarding_required?: boolean
+          billing_onboarding_track?: string
           country_code?: string | null
           created_at?: string
           created_by?: string | null

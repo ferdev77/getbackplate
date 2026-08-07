@@ -90,6 +90,7 @@ export async function registerPublicAction(formData: FormData) {
         created_by: userId,
         billing_onboarding_required: true,
         billing_activation_status: "pending",
+        billing_onboarding_track: integrationPlanIdParam ? "integration" : "platform",
       })
       .select("id")
       .single();
@@ -99,7 +100,8 @@ export async function registerPublicAction(formData: FormData) {
 
     const missingBillingColumns =
       Boolean(orgError?.message?.includes("billing_onboarding_required")) ||
-      Boolean(orgError?.message?.includes("billing_activation_status"));
+      Boolean(orgError?.message?.includes("billing_activation_status")) ||
+      Boolean(orgError?.message?.includes("billing_onboarding_track"));
 
     if (!org && missingBillingColumns) {
       const legacyCreateOrg = await supabaseAdmin

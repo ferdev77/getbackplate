@@ -81,6 +81,15 @@ export async function completeIntuitRegistrationAction(formData: FormData) {
     redirect(completeUrl("Your organization could not be completed. Please try again.", preserved));
   }
 
+  const { error: onboardingTrackError } = await admin
+    .from("organizations")
+    .update({ billing_onboarding_track: integrationPlanId ? "integration" : billingTrack })
+    .eq("id", organizationId);
+  if (onboardingTrackError) {
+    console.error("[intuit-sso] billing onboarding track update failed", onboardingTrackError.message);
+    redirect(completeUrl("Your selected product could not be saved. Please try again.", preserved));
+  }
+
   await admin.auth.admin.updateUserById(data.user.id, {
     user_metadata: { ...data.user.user_metadata, full_name: fullName },
   });
