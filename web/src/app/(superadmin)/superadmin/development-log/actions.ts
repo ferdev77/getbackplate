@@ -52,14 +52,22 @@ export async function saveDevelopmentReportPricesAction(reportId: string, input:
   return { ok: true };
 }
 
-export async function publishDevelopmentReportAction(reportId: string, input: unknown): Promise<ActionResult> {
+export async function publishDevelopmentReportAction(reportId: string): Promise<ActionResult> {
   const user = await requirePublisher();
-  const prices = normalizePrices(input);
   if (!user) return { ok: false, error: "Sólo fer@soliz.com puede publicar este período" };
-  if (!UUID_RE.test(reportId) || !prices) return { ok: false, error: "Precios inválidos" };
+  if (!UUID_RE.test(reportId)) return { ok: false, error: "Informe inválido" };
 
+  const admin = createSupabaseAdminClient();
+  const { data: draft, error: draftError } = await admin
+    .from("development_ledger_reports")
+    .select("price_state")
+    .eq("id", reportId)
+    .eq("publication_status", "draft")
+    .maybeSingle();
+  const prices = normalizePrices(draft?.price_state);
+  if (draftError || !draft || !prices) return { ok: false, error: "El período ya fue publicado o no existe" };
   const now = new Date().toISOString();
-  const { data, error } = await createSupabaseAdminClient()
+  const { data, error } = await admin
     .from("development_ledger_reports")
     .update({
       price_state: prices as Json,

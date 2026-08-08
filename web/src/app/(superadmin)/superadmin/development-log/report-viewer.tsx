@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
-import { CheckCircle2, LoaderCircle, Send } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CheckCircle2, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
-import { publishDevelopmentReportAction, saveDevelopmentReportPricesAction } from "./actions";
+import { saveDevelopmentReportPricesAction } from "./actions";
 
 type PriceState = Record<string, string>;
 
@@ -16,7 +16,6 @@ export function DevelopmentReportViewer({ reportId, title, editable, initialPric
   const pricesRef = useRef(initialPrices);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [saveState, setSaveState] = useState<"saved" | "dirty" | "saving">("saved");
-  const [publishing, startPublishing] = useTransition();
 
   useEffect(() => {
     if (!editable) return;
@@ -44,32 +43,16 @@ export function DevelopmentReportViewer({ reportId, title, editable, initialPric
     };
   }, [editable, reportId]);
 
-  function publish() {
-    if (!window.confirm("¿Publicar este período? Después de publicarlo no se podrán cambiar los precios.")) return;
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    startPublishing(async () => {
-      const result = await publishDevelopmentReportAction(reportId, pricesRef.current);
-      if (!result.ok) toast.error(result.error);
-      else {
-        toast.success("Período publicado");
-        window.location.reload();
-      }
-    });
-  }
-
   return <section className="overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-white shadow-xl">
-    {editable && <div className="flex flex-col gap-3 border-b border-amber-300/60 bg-amber-50 px-4 py-3 text-amber-950 sm:flex-row sm:items-center sm:justify-between">
+    {editable && <div className="border-b border-amber-300/60 bg-amber-50 px-4 py-3 text-amber-950">
       <div>
-        <p className="text-sm font-black">Borrador privado de fer@soliz.com</p>
+        <p className="text-sm font-black">Edición de precios</p>
         <p className="flex items-center gap-1.5 text-xs text-amber-800">
           {saveState === "saving" && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}
           {saveState === "saved" && <CheckCircle2 className="h-3.5 w-3.5" />}
           {saveState === "saving" ? "Guardando precios..." : saveState === "dirty" ? "Cambios pendientes" : "Precios guardados"}
         </p>
       </div>
-      <button type="button" disabled={publishing} onClick={publish} className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-950 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">
-        <Send className="h-4 w-4" />{publishing ? "Publicando..." : "Publicar período"}
-      </button>
     </div>}
     <iframe
       src={`/api/superadmin/development-reports/${reportId}`}

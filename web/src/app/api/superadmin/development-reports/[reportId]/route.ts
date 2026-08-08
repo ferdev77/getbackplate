@@ -26,7 +26,7 @@ function renderStoredReport(html: string, prices: Record<string, string>, editab
   return rendered;
 }
 
-export async function GET(request: Request, context: { params: Promise<{ reportId: string }> }) {
+export async function GET(_request: Request, context: { params: Promise<{ reportId: string }> }) {
   const access = await assertSuperadminApi();
   if (!access.ok) return Response.json({ error: access.error }, { status: access.status });
   const { reportId } = await context.params;
@@ -44,8 +44,7 @@ export async function GET(request: Request, context: { params: Promise<{ reportI
   if (error || !data || (data.publication_status !== "published" && !isPublisher)) {
     return Response.json({ error: "Informe no encontrado" }, { status: 404 });
   }
-  const download = new URL(request.url).searchParams.get("download") === "1";
-  const disposition = `${download ? "attachment" : "inline"}; filename="${safeFilename(data.title)}.html"`;
+  const disposition = `inline; filename="${safeFilename(data.title)}.html"`;
   const rendered = renderStoredReport(data.html_document, priceState(data.price_state), isPublisher && data.publication_status === "draft", reportId);
   const etag = createHash("sha256").update(rendered, "utf8").digest("hex");
   return new Response(rendered, {

@@ -28,7 +28,7 @@ describe("development report publishing actions", () => {
     chain.eq.mockReturnValue(chain);
     chain.select.mockReturnValue(chain);
     mocks.update.mockReturnValue(chain);
-    mocks.adminClient.mockReturnValue({ from: vi.fn(() => ({ update: mocks.update })) });
+    mocks.adminClient.mockReturnValue({ from: vi.fn(() => ({ select: chain.select, update: mocks.update })) });
   });
 
   it("rejects every editor except fer@soliz.com", async () => {
@@ -49,8 +49,11 @@ describe("development report publishing actions", () => {
   });
 
   it("publishes a draft irreversibly with actor metadata", async () => {
+    mocks.maybeSingle
+      .mockResolvedValueOnce({ data: { price_state: { "i1-1": "30" } }, error: null })
+      .mockResolvedValueOnce({ data: { id: reportId }, error: null });
     const { publishDevelopmentReportAction } = await import("./actions");
-    const result = await publishDevelopmentReportAction(reportId, { "i1-1": "30" });
+    const result = await publishDevelopmentReportAction(reportId);
 
     expect(result).toEqual({ ok: true });
     expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({

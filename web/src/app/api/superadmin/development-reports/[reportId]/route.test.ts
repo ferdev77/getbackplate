@@ -49,11 +49,11 @@ describe("GET /api/superadmin/development-reports/[reportId]", () => {
     expect(await response.text()).toContain("<p>ok</p>");
   });
 
-  it("uses attachment disposition for downloads", async () => {
+  it("never exposes an attachment download mode", async () => {
     const { GET } = await import("./route");
     const response = await GET(new Request(`https://app.example.com/api/superadmin/development-reports/${reportId}?download=1`), { params: Promise.resolve({ reportId }) });
 
-    expect(response.headers.get("content-disposition")).toBe('attachment; filename="Informe-privado.html"');
+    expect(response.headers.get("content-disposition")).toBe('inline; filename="Informe-privado.html"');
   });
 
   it("hides drafts from every superadmin except fer@soliz.com", async () => {
