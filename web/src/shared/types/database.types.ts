@@ -2493,10 +2493,15 @@ export type Database = {
           html_document: string
           id: string
           item_count: number
+          price_state: Json
+          publication_status: string
+          published_at: string | null
+          published_by: string | null
           snapshot: Json
           template_version: number
           title: string
           total_cents: number
+          updated_at: string
         }
         Insert: {
           content_sha256: string
@@ -2508,10 +2513,15 @@ export type Database = {
           html_document: string
           id?: string
           item_count: number
+          price_state?: Json
+          publication_status?: string
+          published_at?: string | null
+          published_by?: string | null
           snapshot: Json
           template_version?: number
           title: string
           total_cents: number
+          updated_at?: string
         }
         Update: {
           content_sha256?: string
@@ -2523,10 +2533,15 @@ export type Database = {
           html_document?: string
           id?: string
           item_count?: number
+          price_state?: Json
+          publication_status?: string
+          published_at?: string | null
+          published_by?: string | null
           snapshot?: Json
           template_version?: number
           title?: string
           total_cents?: number
+          updated_at?: string
         }
         Relationships: []
       }

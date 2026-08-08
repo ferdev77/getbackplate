@@ -36,6 +36,7 @@
     "migrate:dev": "node --env-file=.env.local scripts/apply-dev-migration.mjs",
     "migrate:prod": "node --env-file=.env.production.local scripts/apply-prod-migration.mjs",
     "verify:migrations:dev": "node --env-file=.env.local scripts/verify-dev-migrations.mjs",
+    "verify:development-report:dev": "node --env-file=.env.local scripts/verify-development-report-publication.mjs",
     "verify:stripe-recovery:dev": "node --env-file=.env.local scripts/verify-dev-stripe-recovery.mjs",
     "report:owner-weekly": "node --env-file=.env.production.local node_modules/tsx/dist/cli.mjs scripts/send-owner-weekly-report.ts",
     "audit:migrations:prod": "node --env-file=.env.production.local scripts/audit-prod-migration-readiness.mjs",
