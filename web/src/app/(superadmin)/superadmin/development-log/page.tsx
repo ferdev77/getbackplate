@@ -1,32 +1,63 @@
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/client/admin";
-import { databaseRowToLedgerItem } from "@/modules/superadmin/development-ledger/types";
-import type { DevelopmentLedgerReport } from "@/modules/superadmin/development-ledger/types";
 import { requireSuperadmin } from "@/shared/lib/access";
 import { PageContent } from "@/shared/ui/page-content";
-import { DevelopmentLogClient } from "./development-log-client";
+import Link from "next/link";
+import { CalendarDays, Download, ExternalLink, FileArchive } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-export default async function DevelopmentLogPage() {
+function dateLabel(value: string) {
+  return new Intl.DateTimeFormat("es-MX", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" })
+    .format(new Date(`${value}T00:00:00Z`));
+}
+
+export default async function DevelopmentLogPage({ searchParams }: { searchParams: Promise<{ report?: string }> }) {
   await requireSuperadmin();
   const admin = createSupabaseAdminClient();
-  const [{ data: itemRows, error: itemError }, { data: reportRows, error: reportError }] = await Promise.all([
-    admin.from("development_ledger_items").select("*").is("archived_at", null).order("sort_order", { ascending: true }).order("id", { ascending: true }),
-    admin.from("development_ledger_reports").select("id, title, date_from, date_to, item_count, total_cents, currency, content_sha256, generated_at").order("generated_at", { ascending: false }),
-  ]);
-  if (itemError) throw new Error(`Unable to load development ledger: ${itemError.message}`);
+  const { data: reportRows, error: reportError } = await admin
+    .from("development_ledger_reports")
+    .select("id, title, date_from, date_to, item_count, total_cents, currency, content_sha256, generated_at")
+    .order("date_from", { ascending: false })
+    .order("generated_at", { ascending: false });
   if (reportError) throw new Error(`Unable to load development reports: ${reportError.message}`);
-  const reports: DevelopmentLedgerReport[] = (reportRows ?? []).map((row) => ({
-    id: row.id,
-    title: row.title,
-    dateFrom: row.date_from,
-    dateTo: row.date_to,
-    itemCount: row.item_count,
-    totalCents: row.total_cents,
-    currency: row.currency,
-    contentSha256: row.content_sha256,
-    generatedAt: row.generated_at,
-  }));
+  const reports = reportRows ?? [];
+  const requestedId = (await searchParams).report;
+  const selected = reports.find((report) => report.id === requestedId) ?? reports[0] ?? null;
 
-  return <PageContent spacing="roomy"><DevelopmentLogClient items={(itemRows ?? []).map((row) => databaseRowToLedgerItem(row))} reports={reports} /></PageContent>;
+  return <PageContent spacing="roomy" className="space-y-6">
+    <header className="flex flex-col gap-4 border-b border-[var(--gbp-border)] pb-6 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--gbp-accent)]">Archivo inmutable · SuperAdmin</p>
+        <h1 className="mt-2 text-3xl font-black tracking-[-0.035em] text-[var(--gbp-text)] sm:text-4xl">Registro de desarrollo</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--gbp-text2)]">Cada documento corresponde a un período cerrado e incorporado desde una sesión de IA. Esta pantalla no permite agregar ni modificar contenido.</p>
+      </div>
+      {selected && <div className="flex gap-2">
+        <a href={`/api/superadmin/development-reports/${selected.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-[var(--gbp-border)] bg-[var(--gbp-surface)] px-4 py-2.5 text-sm font-bold text-[var(--gbp-text2)] hover:text-[var(--gbp-text)]">Abrir aparte <ExternalLink className="h-4 w-4" /></a>
+        <a href={`/api/superadmin/development-reports/${selected.id}?download=1`} className="inline-flex items-center gap-2 rounded-xl bg-[var(--gbp-accent)] px-4 py-2.5 text-sm font-bold text-white"><Download className="h-4 w-4" /> Descargar HTML</a>
+      </div>}
+    </header>
+
+    {reports.length > 0 && <nav aria-label="Períodos publicados" className="flex gap-3 overflow-x-auto pb-1">
+      {reports.map((report) => {
+        const active = report.id === selected?.id;
+        return <Link key={report.id} href={`/superadmin/development-log?report=${report.id}`} className={`min-w-64 rounded-2xl border p-4 transition ${active ? "border-[var(--gbp-accent)] bg-[var(--gbp-accent-glow)]" : "border-[var(--gbp-border)] bg-[var(--gbp-surface)] hover:border-[var(--gbp-accent)]/50"}`}>
+          <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[var(--gbp-accent)]"><CalendarDays className="h-3.5 w-3.5" />{dateLabel(report.date_from)} - {dateLabel(report.date_to)}</span>
+          <strong className="mt-2 block text-sm text-[var(--gbp-text)]">{report.title}</strong>
+          <span className="mt-1 block text-xs text-[var(--gbp-muted)]">{report.item_count} entregas · snapshot verificado</span>
+        </Link>;
+      })}
+    </nav>}
+
+    {selected ? <section className="overflow-hidden rounded-2xl border border-[var(--gbp-border)] bg-white shadow-xl">
+      <iframe
+        key={selected.id}
+        src={`/api/superadmin/development-reports/${selected.id}`}
+        title={selected.title}
+        sandbox="allow-scripts"
+        className="h-[calc(100vh-13rem)] min-h-[720px] w-full bg-white"
+      />
+    </section> : <section className="grid min-h-96 place-items-center rounded-2xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 text-center">
+      <div><FileArchive className="mx-auto h-10 w-10 text-[var(--gbp-muted)]" /><h2 className="mt-4 font-black text-[var(--gbp-text)]">Todavía no hay períodos publicados</h2><p className="mt-1 text-sm text-[var(--gbp-muted)]">El próximo informe se incorporará mediante una sesión de IA.</p></div>
+    </section>}
+  </PageContent>;
 }

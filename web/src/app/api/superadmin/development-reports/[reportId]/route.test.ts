@@ -41,6 +41,8 @@ describe("GET /api/superadmin/development-reports/[reportId]", () => {
     expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
     expect(response.headers.get("content-disposition")).toContain("inline");
     expect(response.headers.get("content-security-policy")).toContain("default-src 'none'");
+    expect(response.headers.get("content-security-policy")).toContain("script-src 'unsafe-inline'");
+    expect(response.headers.get("x-frame-options")).toBe("SAMEORIGIN");
     expect(await response.text()).toContain("<p>ok</p>");
   });
 

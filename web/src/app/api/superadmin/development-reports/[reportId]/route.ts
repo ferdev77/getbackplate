@@ -26,10 +26,11 @@ export async function GET(request: Request, context: { params: Promise<{ reportI
     headers: {
       "Cache-Control": "private, no-store",
       "Content-Disposition": disposition,
-      "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; frame-ancestors 'self'",
+      "Content-Security-Policy": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; frame-ancestors 'self'",
       "Content-Type": "text/html; charset=utf-8",
       "ETag": `\"${data.content_sha256}\"`,
       "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "SAMEORIGIN",
     },
   });
 }
