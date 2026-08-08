@@ -18,11 +18,17 @@ await client.connect();
 try {
   await client.query("begin");
   const { rows: reports } = await client.query(
-    "select publication_status, price_state, total_cents from public.development_ledger_reports where id = $1",
+    "select publication_status, price_state, total_cents, html_document from public.development_ledger_reports where id = $1",
     [REPORT_ID],
   );
   if (reports.length !== 1 || reports[0].publication_status !== "draft" || Object.keys(reports[0].price_state ?? {}).length !== 31) {
     throw new Error("Initial development report is not a 31-price draft");
+  }
+  const improvementBadges = reports[0].html_document.match(/<span class="chip mejora">Mejora<\/span>/g) ?? [];
+  const correctionBadges = reports[0].html_document.match(/<span class="chip fix">Corrección<\/span>/g) ?? [];
+  const { rows: improvementRows } = await client.query("select count(*)::integer as count from public.development_ledger_items where work_type = 'improvement'");
+  if (improvementBadges.length !== 32 || correctionBadges.length !== 47 || improvementRows[0]?.count !== 31) {
+    throw new Error("Development report improvement classification is inconsistent");
   }
 
   const { rows: policies } = await client.query(
