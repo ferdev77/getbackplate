@@ -141,3 +141,21 @@ export function applyDevelopmentReportOwnerCopy(source) {
     .replace("ya le facturaste al owner, va como COBRADO", "ya fue facturado, va como COBRADO")
     .replace(", sin inputs individuales", "");
 }
+
+export function applyDevelopmentReportSupportBundle(source) {
+  if (source.includes('data-price-key="p7-total"')) return source;
+  const sectionPattern = /(<article class="section p" id="p7")>([\s\S]*?)(<ul class="entries">)/;
+  const match = source.match(sectionPattern);
+  if (!match) throw new Error("Unable to find the Support report section");
+  const priceBlock = `<div class="section-price">
+          <div class="section-price-copy">
+            <strong>Soporte</strong>
+          </div>
+          <label class="bill-field">
+            <span class="cur">US$</span>
+            <input type="number" min="0" step="5" placeholder="0" id="supportSectionPrice" data-section-price data-price-key="p7-total" data-price-plan="p" aria-label="Importe general de Soporte">
+          </label>
+        </div>
+        `;
+  return source.replace(sectionPattern, () => `${match[1]} data-single-price="true">${match[2]}${priceBlock}${match[3]}`);
+}

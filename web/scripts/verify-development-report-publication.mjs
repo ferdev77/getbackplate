@@ -36,6 +36,9 @@ try {
     || reports[0].html_document.includes('<span class="tot-l">Con precio puesto</span>')
     || reports[0].html_document.includes("facturaron al owner")
     || reports[0].html_document.includes("sin inputs individuales")
+    || !reports[0].html_document.includes('id="p7" data-single-price="true"')
+    || !reports[0].html_document.includes('data-price-key="p7-total"')
+    || ["p7-1", "p7-2", "p7-3", "p7-4"].some((key) => Object.hasOwn(reports[0].price_state, key))
   ) {
     throw new Error("Development report badge value summary is missing or stale");
   }
