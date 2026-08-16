@@ -30,6 +30,13 @@ try {
   if (improvementBadges.length !== 32 || correctionBadges.length !== 47 || improvementRows[0]?.count !== 31) {
     throw new Error("Development report improvement classification is inconsistent");
   }
+  if (
+    !reports[0].html_document.includes('id="vCharged"')
+    || !reports[0].html_document.includes('id="vImprovement"')
+    || reports[0].html_document.includes('<span class="tot-l">Con precio puesto</span>')
+  ) {
+    throw new Error("Development report badge value summary is missing or stale");
+  }
 
   const { rows: policies } = await client.query(
     "select qual from pg_policies where schemaname = 'public' and tablename = 'development_ledger_reports' and policyname = 'development_ledger_reports_superadmin_select'",
