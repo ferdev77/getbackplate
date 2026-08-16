@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { applyDevelopmentReportImprovements, applyDevelopmentReportValueSummary } from "./lib/development-report-classification.mjs";
+import { applyDevelopmentReportImprovements, applyDevelopmentReportOwnerCopy, applyDevelopmentReportValueSummary } from "./lib/development-report-classification.mjs";
 
 const [sourceArgument, destinationArgument, version, title, dateFrom, dateTo, itemCountArgument, totalCentsArgument] = process.argv.slice(2);
 if (!sourceArgument || !destinationArgument || !/^\d{14}$/.test(version ?? "") || !title || !/^\d{4}-\d{2}-\d{2}$/.test(dateFrom ?? "") || !/^\d{4}-\d{2}-\d{2}$/.test(dateTo ?? "")) {
@@ -25,6 +25,7 @@ if (html.includes("gbp-borrador-precios-v4")) {
     .replaceAll("Ítems cobrados", "Ítems facturados anteriormente");
   html = applyDevelopmentReportImprovements(html);
   html = applyDevelopmentReportValueSummary(html);
+  html = applyDevelopmentReportOwnerCopy(html);
 }
 
 const hash = createHash("sha256").update(html, "utf8").digest("hex");

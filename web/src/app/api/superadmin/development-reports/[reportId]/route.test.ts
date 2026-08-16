@@ -46,7 +46,11 @@ describe("GET /api/superadmin/development-reports/[reportId]", () => {
     expect(response.headers.get("content-security-policy")).toContain("default-src 'none'");
     expect(response.headers.get("content-security-policy")).toContain("script-src 'unsafe-inline'");
     expect(response.headers.get("x-frame-options")).toBe("SAMEORIGIN");
-    expect(await response.text()).toContain("<p>ok</p>");
+    const html = await response.text();
+    expect(html).toContain("<p>ok</p>");
+    expect(html).toContain("draftNote.remove()");
+    expect(html).toContain("Valor total del período");
+    expect(html).toContain("field.replaceWith(amount)");
   });
 
   it("never exposes an attachment download mode", async () => {
@@ -80,5 +84,6 @@ describe("GET /api/superadmin/development-reports/[reportId]", () => {
     expect(response.status).toBe(200);
     expect(html).toContain('var precios = {"i1-1":"45"};');
     expect(html).toContain("development-report-prices");
+    expect(html).not.toContain("draftNote.remove()");
   });
 });

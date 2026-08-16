@@ -19,7 +19,7 @@ const ITEMS = [
   { href: "/superadmin/modules", label: "Módulos" },
   { href: "/superadmin/plans", label: "Planes" },
   { href: "/superadmin/payment-links", label: "Links de Pago" },
-  { href: "/superadmin/development-log", label: "Registro" },
+  { href: "/superadmin/development-log", label: "Dev" },
   { href: "/superadmin/trash", label: "Papelera" },
   { href: "/superadmin/guide", label: "Guía" },
 ];

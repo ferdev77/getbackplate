@@ -134,3 +134,10 @@ export function summarizeDevelopmentReportPrices(html) {
   }
   return counts;
 }
+
+export function applyDevelopmentReportOwnerCopy(source) {
+  return source
+    .replace("Las marcadas <b>Facturado anteriormente</b> ya se le facturaron al owner y no llevan", "Las áreas marcadas como <b>Facturado anteriormente</b> no llevan")
+    .replace("ya le facturaste al owner, va como COBRADO", "ya fue facturado, va como COBRADO")
+    .replace(", sin inputs individuales", "");
+}

@@ -17,10 +17,24 @@ function priceState(value: unknown) {
 function renderStoredReport(html: string, prices: Record<string, string>, editable: boolean, reportId: string) {
   const serializedPrices = JSON.stringify(prices).replaceAll("<", "\\u003c");
   let rendered = html.replace(/var precios = \{[^\n]*\};/, `var precios = ${serializedPrices};`);
+  const publishedCleanup = `
+    document.title=document.title.replace(/\\s*·\\s*BORRADOR/i,'');
+    var draftNote=document.querySelector('.draft-note');if(draftNote)draftNote.remove();
+    var totalLabel=document.querySelector('#tTotal')?.closest('.tot')?.querySelector('.tot-l');if(totalLabel)totalLabel.textContent='Valor total del período';
+    var breakdownButton=document.getElementById('btnDesglose');if(breakdownButton)breakdownButton.textContent='Ver desglose por plan';
+    document.querySelectorAll('.bill-field').forEach(function(field){
+      var input=field.querySelector('input');if(!input)return;
+      var value=parseFloat(input.value);if(!(value>0)){field.remove();return;}
+      var amount=document.createElement('span');amount.className='pill pill-partial';
+      amount.textContent='US$ '+new Intl.NumberFormat('es-MX',{maximumFractionDigits:2}).format(value);field.replaceWith(amount);
+    });
+    document.querySelectorAll('.pill-paid.clickable').forEach(function(button){
+      var label=document.createElement('span');label.className='pill pill-paid';label.textContent=button.textContent||'Facturado anteriormente';button.replaceWith(label);
+    });`;
   const controls = `<script>(function(){
     document.querySelectorAll('.undo,.pill-paid.clickable').forEach(function(el){el.disabled=true;el.style.pointerEvents='none';});
-    var clearButton=document.getElementById('btnLimpiar');if(clearButton)clearButton.hidden=true;
-    ${editable ? `document.addEventListener('input',function(){setTimeout(function(){try{var value=JSON.parse(localStorage.getItem('gbp-borrador-precios-v4')||'{}');parent.postMessage({type:'development-report-prices',reportId:${JSON.stringify(reportId)},prices:value},location.origin);}catch(e){}},0);});` : `document.querySelectorAll('.bill-field input').forEach(function(el){el.disabled=true;el.style.pointerEvents='none';});`}
+    var clearButton=document.getElementById('btnLimpiar');if(clearButton)clearButton.remove();
+    ${editable ? `document.addEventListener('input',function(){setTimeout(function(){try{var value=JSON.parse(localStorage.getItem('gbp-borrador-precios-v4')||'{}');parent.postMessage({type:'development-report-prices',reportId:${JSON.stringify(reportId)},prices:value},location.origin);}catch(e){}},0);});` : publishedCleanup}
   })();</script>`;
   rendered = rendered.includes("</body>") ? rendered.replace("</body>", `${controls}</body>`) : `${rendered}${controls}`;
   return rendered;

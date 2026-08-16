@@ -34,6 +34,8 @@ try {
     !reports[0].html_document.includes('id="vCharged"')
     || !reports[0].html_document.includes('id="vImprovement"')
     || reports[0].html_document.includes('<span class="tot-l">Con precio puesto</span>')
+    || reports[0].html_document.includes("facturaron al owner")
+    || reports[0].html_document.includes("sin inputs individuales")
   ) {
     throw new Error("Development report badge value summary is missing or stale");
   }
