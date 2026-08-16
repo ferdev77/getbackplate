@@ -30,9 +30,9 @@ export default async function DevelopmentLogPage() {
   return <PageContent spacing="roomy" className="space-y-6">
     <header className="border-b border-[var(--gbp-border)] pb-6">
       <div>
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--gbp-accent)]">Dev · SuperAdmin</p>
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--gbp-accent)]">Evolución del producto</p>
         <h1 className="mt-2 text-3xl font-black tracking-[-0.035em] text-[var(--gbp-text)] sm:text-4xl">Registro de desarrollo</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--gbp-text2)]">{isPublisher ? "Abre un período para revisar y ajustar sus precios. Publícalo desde su tarjeta cuando esté listo." : "Aquí sólo aparecen los períodos publicados."}</p>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--gbp-text2)]">Consulta las entregas, mejoras y avances realizados en cada período.</p>
       </div>
     </header>
 
@@ -49,7 +49,7 @@ export default async function DevelopmentLogPage() {
         </article>;
       })}
     </section> : <section className="grid min-h-96 place-items-center rounded-2xl border border-dashed border-[var(--gbp-border)] bg-[var(--gbp-surface)] p-8 text-center">
-      <div><FileArchive className="mx-auto h-10 w-10 text-[var(--gbp-muted)]" /><h2 className="mt-4 font-black text-[var(--gbp-text)]">No hay períodos publicados</h2><p className="mt-1 text-sm text-[var(--gbp-muted)]">Los informes publicados aparecerán aquí.</p></div>
+      <div><FileArchive className="mx-auto h-10 w-10 text-[var(--gbp-muted)]" /><h2 className="mt-4 font-black text-[var(--gbp-text)]">Aún no hay registros disponibles</h2><p className="mt-1 text-sm text-[var(--gbp-muted)]">Los próximos períodos aparecerán en este espacio.</p></div>
     </section>}
   </PageContent>;
 }
