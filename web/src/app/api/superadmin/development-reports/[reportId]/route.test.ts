@@ -49,6 +49,7 @@ describe("GET /api/superadmin/development-reports/[reportId]", () => {
     const html = await response.text();
     expect(html).toContain("<p>ok</p>");
     expect(html).toContain("draftNote.remove()");
+    expect(html).toContain("Aislamiento confirmado:");
     expect(html).toContain("Valor total del período");
     expect(html).toContain("field.replaceWith(amount)");
   });

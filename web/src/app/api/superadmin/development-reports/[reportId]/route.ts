@@ -20,6 +20,7 @@ function renderStoredReport(html: string, prices: Record<string, string>, editab
   const publishedCleanup = `
     document.title=document.title.replace(/\\s*·\\s*BORRADOR/i,'');
     var draftNote=document.querySelector('.draft-note');if(draftNote)draftNote.remove();
+    document.querySelectorAll('.ba-note').forEach(function(note){if(note.textContent.trim().startsWith('Aislamiento confirmado:'))note.remove();});
     var totalLabel=document.querySelector('#tTotal')?.closest('.tot')?.querySelector('.tot-l');if(totalLabel)totalLabel.textContent='Valor total del período';
     var breakdownButton=document.getElementById('btnDesglose');if(breakdownButton)breakdownButton.textContent='Ver desglose por plan';
     document.querySelectorAll('.bill-field').forEach(function(field){
